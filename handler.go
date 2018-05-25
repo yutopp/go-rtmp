@@ -13,5 +13,5 @@ import (
 
 // TODO: fix interface
 type Handler struct {
-	OnMessage func(msg message.Message, r Stream)
+	OnMessage func(msg message.Message, timestamp uint64, s Stream)
 }

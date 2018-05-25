@@ -16,11 +16,11 @@ import (
 
 type ChunkStreamIO struct {
 	streamID int
-	f        func(streamID int, msg message.Message) error
+	f        func(msg message.Message, streamID int) error
 }
 
 func (w *ChunkStreamIO) Write(msg message.Message) error {
-	return w.f(w.streamID, msg)
+	return w.f(msg, w.streamID)
 }
 
 type ChunkStreamLayer struct {
@@ -41,43 +41,43 @@ func NewChunkStreamLayer(r io.Reader, w io.Writer, h *Handler) *ChunkStreamLayer
 
 func (s *ChunkStreamLayer) Serve() error {
 	for {
-		msg, streamID, err := s.readMessage()
+		msg, timestamp, streamID, err := s.readMessage()
 		if err != nil {
 			return nil
 		}
 
-		writer := &ChunkStreamIO{
+		stream := &ChunkStreamIO{
 			streamID: streamID,
 			f:        s.writeMessage,
 		}
-		s.handler.OnMessage(msg, writer)
+		s.handler.OnMessage(msg, timestamp, stream)
 	}
 }
 
-func (s *ChunkStreamLayer) readMessageFragment() (int, message.Message, error) {
+func (s *ChunkStreamLayer) readMessageFragment() (message.Message, uint64, int, error) {
 	return s.r.ReadChunk(s.state)
 }
 
-func (s *ChunkStreamLayer) readMessage() (message.Message, int, error) {
+func (s *ChunkStreamLayer) readMessage() (message.Message, uint64, int, error) {
 	for {
-		streamID, msg, err := s.readMessageFragment()
+		msg, timestamp, streamID, err := s.readMessageFragment()
 		if err != nil {
 			if err == internal.ErrChunkIsNotCompleted {
 				continue
 			}
-			return nil, 0, err
+			return nil, 0, 0, err
 		}
-		return msg, streamID, err
+		return msg, timestamp, streamID, err
 	}
 }
 
-func (s *ChunkStreamLayer) writeMessageFragment(streamID int, msg message.Message) error {
-	return s.w.WriteChunk(s.state, streamID, msg)
+func (s *ChunkStreamLayer) writeMessageFragment(msg message.Message, streamID int) error {
+	return s.w.WriteChunk(s.state, msg, streamID)
 }
 
-func (s *ChunkStreamLayer) writeMessage(streamID int, msg message.Message) error {
+func (s *ChunkStreamLayer) writeMessage(msg message.Message, streamID int) error {
 	for {
-		err := s.writeMessageFragment(streamID, msg)
+		err := s.writeMessageFragment(msg, streamID)
 		if err != nil {
 			if err == internal.ErrChunkIsNotCompleted {
 				msg = nil

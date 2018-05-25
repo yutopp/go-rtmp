@@ -27,7 +27,7 @@ const (
 	stateIDPublishing
 )
 
-type ConnHandler func(message.Message, Stream) error
+type ConnHandler func(message.Message, uint64, Stream) error
 
 // Server Connection
 // TODO: rename or add prefix (Server/Client)
@@ -76,18 +76,18 @@ func (c *Conn) Serve() error {
 	return c.transport.Serve()
 }
 
-func (c *Conn) handleMessage(msg message.Message, w Stream) {
+func (c *Conn) handleMessage(msg message.Message, timestamp uint64, s Stream) {
 	var err error
 
 	switch c.stateID {
 	case stateIDConnecting:
-		err = c.handleConnectMessage(msg, w)
+		err = c.handleConnectMessage(msg, timestamp, s)
 	case stateIDCreateingStream:
-		err = c.handleCreateStreamMessage(msg, w)
+		err = c.handleCreateStreamMessage(msg, timestamp, s)
 	case stateIDControllingStream:
-		err = c.handleControllingMessage(msg, w)
+		err = c.handleControllingMessage(msg, timestamp, s)
 	case stateIDPublishing:
-		err = c.handlePublishStreamMessage(msg, w)
+		err = c.handlePublishStreamMessage(msg, timestamp, s)
 	default:
 		panic("unexpected state") // TODO: fix
 	}
@@ -99,7 +99,7 @@ func (c *Conn) handleMessage(msg message.Message, w Stream) {
 	c.bufw.Flush()
 }
 
-func (c *Conn) handleConnectMessage(msg message.Message, w Stream) error {
+func (c *Conn) handleConnectMessage(msg message.Message, timestamp uint64, s Stream) error {
 	switch msg := msg.(type) {
 	case *message.CommandMessageAMF0:
 		switch msg.CommandName {
@@ -107,12 +107,12 @@ func (c *Conn) handleConnectMessage(msg message.Message, w Stream) error {
 			log.Printf("connect")
 
 			// TODO: fix
-			if err := w.Write(&message.CtrlWinAckSize{Size: 1 * 1024 * 1024}); err != nil {
+			if err := s.Write(&message.CtrlWinAckSize{Size: 1 * 1024 * 1024}); err != nil {
 				return err
 			}
 
 			// TODO: fix
-			if err := w.Write(&message.SetPeerBandwidth{Size: 1 * 1024 * 1024, Limit: 1}); err != nil {
+			if err := s.Write(&message.SetPeerBandwidth{Size: 1 * 1024 * 1024, Limit: 1}); err != nil {
 				return err
 			}
 
@@ -141,7 +141,7 @@ func (c *Conn) handleConnectMessage(msg message.Message, w Stream) error {
 					},
 				},
 			}
-			if err := w.Write(m); err != nil {
+			if err := s.Write(m); err != nil {
 				return err
 			}
 			log.Printf("connected")
@@ -161,7 +161,7 @@ func (c *Conn) handleConnectMessage(msg message.Message, w Stream) error {
 	}
 }
 
-func (c *Conn) handleCreateStreamMessage(msg message.Message, w Stream) error {
+func (c *Conn) handleCreateStreamMessage(msg message.Message, timestamp uint64, s Stream) error {
 	switch msg := msg.(type) {
 	case *message.CommandMessageAMF0:
 		switch msg.CommandName {
@@ -177,7 +177,7 @@ func (c *Conn) handleCreateStreamMessage(msg message.Message, w Stream) error {
 				},
 			}
 
-			if err := w.Write(m); err != nil {
+			if err := s.Write(m); err != nil {
 				return err
 			}
 			log.Printf("streamCreated")
@@ -197,7 +197,7 @@ func (c *Conn) handleCreateStreamMessage(msg message.Message, w Stream) error {
 	}
 }
 
-func (c *Conn) handleControllingMessage(msg message.Message, w Stream) error {
+func (c *Conn) handleControllingMessage(msg message.Message, timestamp uint64, s Stream) error {
 	switch msg := msg.(type) {
 	case *message.CommandMessageAMF0:
 		switch msg.CommandName {
@@ -213,7 +213,7 @@ func (c *Conn) handleControllingMessage(msg message.Message, w Stream) error {
 					},
 				},
 			}
-			if err := w.Write(m); err != nil {
+			if err := s.Write(m); err != nil {
 				return err
 			}
 
@@ -232,12 +232,12 @@ func (c *Conn) handleControllingMessage(msg message.Message, w Stream) error {
 	}
 }
 
-func (c *Conn) handlePublishStreamMessage(msg message.Message, w Stream) error {
+func (c *Conn) handlePublishStreamMessage(msg message.Message, timestamp uint64, s Stream) error {
 	switch msg := msg.(type) {
 	case *message.AudioMessage:
-		return c.userHandler(msg, w)
+		return c.userHandler(msg, timestamp, s)
 	case *message.VideoMessage:
-		return c.userHandler(msg, w)
+		return c.userHandler(msg, timestamp, s)
 	default:
 		log.Printf("unexpected message: %+v", msg)
 		return nil

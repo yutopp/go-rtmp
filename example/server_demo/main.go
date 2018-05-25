@@ -27,7 +27,7 @@ func main() {
 	}
 }
 
-func handler(m rtmpMsg.Message, s rtmp.Stream) error {
+func handler(m rtmpMsg.Message, timestamp uint64, s rtmp.Stream) error {
 	log.Printf("MESSAGE: %+v", m)
 
 	switch msg := m.(type) {

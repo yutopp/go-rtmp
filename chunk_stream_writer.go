@@ -37,7 +37,7 @@ func NewChunkStreamWriter(w io.Writer) *ChunkStreamWriter {
 }
 
 // TODO: fix interface
-func (cw *ChunkStreamWriter) WriteChunk(chunkState *ChunkState, streamID int, msg message.Message) error {
+func (cw *ChunkStreamWriter) WriteChunk(chunkState *ChunkState, msg message.Message, streamID int) error {
 	streamState := chunkState.StreamState(streamID)
 	state := streamState.WriterState()
 

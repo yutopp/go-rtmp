@@ -27,16 +27,16 @@ func NewChunkStreamReader(r io.Reader) *ChunkStreamReader {
 }
 
 // TODO: fix interface
-func (cr *ChunkStreamReader) ReadChunk(chunkState *ChunkState) (int, message.Message, error) {
+func (cr *ChunkStreamReader) ReadChunk(chunkState *ChunkState) (message.Message, uint64, int, error) {
 	var bh chunkBasicHeader
 	if err := decodeChunkBasicHeader(cr.r, &bh); err != nil {
-		return 0, nil, err
+		return nil, 0, 0, err
 	}
 	log.Printf("basicHeader = %+v", bh)
 
 	var mh chunkMessageHeader
 	if err := decodeChunkMessageHeader(cr.r, bh.fmt, &mh); err != nil {
-		return 0, nil, err
+		return nil, 0, 0, err
 	}
 	log.Printf("messageHeader = %+v", mh)
 
@@ -140,7 +140,7 @@ func (cr *ChunkStreamReader) ReadChunk(chunkState *ChunkState) (int, message.Mes
 
 	state.restLength -= expectLen
 	if state.restLength != 0 {
-		return 0, nil, internal.ErrChunkIsNotCompleted
+		return nil, 0, 0, internal.ErrChunkIsNotCompleted
 	}
 
 	log.Printf("Start decode!")
@@ -152,8 +152,8 @@ func (cr *ChunkStreamReader) ReadChunk(chunkState *ChunkState) (int, message.Mes
 	dec := message.NewDecoder(buf, state.messageTypeID)
 	var msg message.Message
 	if err := dec.Decode(&msg); err != nil {
-		return 0, nil, err
+		return nil, 0, 0, err
 	}
 
-	return bh.chunkStreamID, msg, nil
+	return msg, uint64(state.timestamp), bh.chunkStreamID, nil
 }
