@@ -1,13 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"log"
 	"net"
 
-	"github.com/yutopp/rtmp-go"
-	rtmpMsg "github.com/yutopp/rtmp-go/message"
+	"github.com/yutopp/go-rtmp"
+	rtmpmsg "github.com/yutopp/go-rtmp/message"
 
-	"github.com/yutopp/flv-go"
+	flvtag "github.com/yutopp/go-flv/tag"
 )
 
 func main() {
@@ -27,20 +28,22 @@ func main() {
 	}
 }
 
-func handler(m rtmpMsg.Message, timestamp uint64, s rtmp.Stream) error {
+func handler(m rtmpmsg.Message, timestamp uint64, s rtmp.Stream) error {
 	log.Printf("MESSAGE: %+v", m)
 
 	switch msg := m.(type) {
-	case *rtmpMsg.AudioMessage:
-		audio, err := flv.ParseAudioData(msg.Payload)
+	case *rtmpmsg.AudioMessage:
+		buf := bytes.NewBuffer(msg.Payload)
+		audio, err := flvtag.DecodeAudioData(buf)
 		if err != nil {
 			return err
 		}
 
 		log.Printf("FLV Audio Data: %+v", audio)
 
-	case *rtmpMsg.VideoMessage:
-		video, err := flv.ParseVideoData(msg.Payload)
+	case *rtmpmsg.VideoMessage:
+		buf := bytes.NewBuffer(msg.Payload)
+		video, err := flvtag.DecodeVideoData(buf)
 		if err != nil {
 			return err
 		}

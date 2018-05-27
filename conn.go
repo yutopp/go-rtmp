@@ -13,8 +13,8 @@ import (
 
 	"log"
 
-	"github.com/yutopp/rtmp-go/handshake"
-	"github.com/yutopp/rtmp-go/message"
+	"github.com/yutopp/go-rtmp/handshake"
+	"github.com/yutopp/go-rtmp/message"
 )
 
 type stateID int

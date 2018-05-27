@@ -1,12 +1,20 @@
-# rtmp-go
+# go-rtmp
 
-Go implementation of RTMP 1.0.
+RTMP 1.0 server/client library written in Go.
 
-# License
+*Work in progress*
 
-[Boost Software License, Version 1.0](https://www.boost.org/LICENSE_1_0.txt)
+## Installation
 
-# References
+```
+go get github.com/yutopp/go-rtmp
+```
+
+## License
+
+[Boost Software License - Version 1.0](./LICENSE_1_0.txt)
+
+## References
 
 - [spec](https://wwwimages2.adobe.com/www.adobe.com/content/dam/acom/en/devnet/rtmp/pdf/rtmp_specification_1.0.pdf)
 

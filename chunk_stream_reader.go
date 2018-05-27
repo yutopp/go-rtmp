@@ -12,8 +12,8 @@ import (
 	"io"
 	"log"
 
-	"github.com/yutopp/rtmp-go/internal"
-	"github.com/yutopp/rtmp-go/message"
+	"github.com/yutopp/go-rtmp/internal"
+	"github.com/yutopp/go-rtmp/message"
 )
 
 type ChunkStreamReader struct {

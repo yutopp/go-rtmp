@@ -8,7 +8,7 @@
 package rtmp
 
 import (
-	"github.com/yutopp/rtmp-go/message"
+	"github.com/yutopp/go-rtmp/message"
 )
 
 // TODO: fix interface
