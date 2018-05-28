@@ -14,7 +14,7 @@ import (
 	"io"
 	"log"
 
-	"github.com/yutopp/amf0-go"
+	"github.com/yutopp/go-amf0"
 )
 
 type Decoder struct {
