@@ -9,9 +9,9 @@ package rtmp
 
 import (
 	"bufio"
-	"net"
-
+	"github.com/pkg/errors"
 	"log"
+	"net"
 
 	"github.com/yutopp/go-rtmp/handshake"
 	"github.com/yutopp/go-rtmp/message"
@@ -39,6 +39,8 @@ type Conn struct {
 	writer    *ChunkStreamWriter
 	stateID   stateID
 
+	streamer *ChunkStreamer
+
 	userHandler ConnHandler
 	userData    interface{}
 }
@@ -53,8 +55,13 @@ func NewConn(rwc net.Conn, handler ConnHandler) *Conn {
 func (c *Conn) Serve() error {
 	defer func() {
 		if r := recover(); r != nil {
+			err, ok := r.(error)
+			if !ok {
+				err = errors.Errorf("Panic message: %+v", r)
+			}
+			err = errors.WithStack(err)
 			// TODO: fix
-			log.Printf("Panic: %+v", r)
+			log.Printf("Panic: %+v", err)
 		}
 	}()
 	defer c.rwc.Close()
@@ -67,18 +74,40 @@ func (c *Conn) Serve() error {
 	c.bufw = bufio.NewWriterSize(c.rwc, 4*1024) // TODO: fix buffer size
 
 	handler := &Handler{
-		OnMessage: c.handleMessage,
+		OnMessage: func(msg message.Message, timestamp uint64, s Stream) {
+			c.handleMessage(msg, timestamp, s)
+		},
 	}
 	c.transport = NewChunkStreamLayer(c.bufr, c.bufw, handler)
+	c.streamer = NewChunkStreamer(c.bufr, c.bufw)
 
 	c.stateID = stateIDConnecting // nextState: wait for "connect"
 
-	return c.transport.Serve()
+	for {
+		reader, err := c.streamer.NewChunkReader()
+		if err != nil {
+			return err
+		}
+		dec := message.NewDecoder(reader, reader.messageTypeID)
+		var msg message.Message
+		if err := dec.Decode(&msg); err != nil {
+			return err
+		}
+		reader.Close()
+
+		stream := &ChunkStreamIO{
+			streamID: reader.basicHeader.chunkStreamID,
+			f: func(msg message.Message, streamID int) error {
+				return c.transport.writeMessage(msg, streamID)
+			},
+		}
+		if err := c.handleMessage(msg, reader.timestamp, stream); err != nil {
+			return err
+		}
+	}
 }
 
-func (c *Conn) handleMessage(msg message.Message, timestamp uint64, s Stream) {
-	var err error
-
+func (c *Conn) handleMessage(msg message.Message, timestamp uint64, s Stream) (err error) {
 	switch c.stateID {
 	case stateIDConnecting:
 		err = c.handleConnectMessage(msg, timestamp, s)
@@ -92,11 +121,11 @@ func (c *Conn) handleMessage(msg message.Message, timestamp uint64, s Stream) {
 		panic("unexpected state") // TODO: fix
 	}
 	if err != nil {
-		// TODO: handle error
-		panic(err)
+		return
 	}
 
 	c.bufw.Flush()
+	return nil
 }
 
 func (c *Conn) handleConnectMessage(msg message.Message, timestamp uint64, s Stream) error {

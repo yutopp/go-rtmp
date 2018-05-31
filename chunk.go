@@ -24,7 +24,6 @@ func (w *ChunkStreamIO) Write(msg message.Message) error {
 }
 
 type ChunkStreamLayer struct {
-	r       *ChunkStreamReader
 	w       *ChunkStreamWriter
 	state   *ChunkState
 	handler *Handler
@@ -32,42 +31,9 @@ type ChunkStreamLayer struct {
 
 func NewChunkStreamLayer(r io.Reader, w io.Writer, h *Handler) *ChunkStreamLayer {
 	return &ChunkStreamLayer{
-		r:       NewChunkStreamReader(r),
 		w:       NewChunkStreamWriter(w),
 		state:   NewChunkState(),
 		handler: h,
-	}
-}
-
-func (s *ChunkStreamLayer) Serve() error {
-	for {
-		msg, timestamp, streamID, err := s.readMessage()
-		if err != nil {
-			return nil
-		}
-
-		stream := &ChunkStreamIO{
-			streamID: streamID,
-			f:        s.writeMessage,
-		}
-		s.handler.OnMessage(msg, timestamp, stream)
-	}
-}
-
-func (s *ChunkStreamLayer) readMessageFragment() (message.Message, uint64, int, error) {
-	return s.r.ReadChunk(s.state)
-}
-
-func (s *ChunkStreamLayer) readMessage() (message.Message, uint64, int, error) {
-	for {
-		msg, timestamp, streamID, err := s.readMessageFragment()
-		if err != nil {
-			if err == internal.ErrChunkIsNotCompleted {
-				continue
-			}
-			return nil, 0, 0, err
-		}
-		return msg, timestamp, streamID, err
 	}
 }
 
