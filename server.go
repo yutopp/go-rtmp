@@ -14,7 +14,7 @@ import (
 type Server struct {
 }
 
-func (srv *Server) Serve(l net.Listener, handher ConnHandler) error {
+func (srv *Server) Serve(l net.Listener, handherFactory HandlerFactory) error {
 	defer l.Close()
 
 	for {
@@ -23,13 +23,13 @@ func (srv *Server) Serve(l net.Listener, handher ConnHandler) error {
 			continue
 		}
 
-		c := srv.newConn(rwc, handher)
+		c := srv.newConn(rwc, handherFactory())
 		go c.Serve()
 	}
 }
 
-func (srv *Server) newConn(rwc net.Conn, handher ConnHandler) *Conn {
-	conn := NewConn(rwc, handher)
+func (srv *Server) newConn(rwc net.Conn, handler Handler) *Conn {
+	conn := NewConn(rwc, handler)
 
 	return conn
 }

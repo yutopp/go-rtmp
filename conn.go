@@ -27,14 +27,6 @@ const (
 	stateIDPublishing
 )
 
-type ConnHandler interface {
-	OnConnect()
-	OnPublish()
-	OnPlay()
-	OnAudio(timestamp uint32, payload []byte) error
-	OnVideo(timestamp uint32, payload []byte) error
-}
-
 // Server Connection
 // TODO: rename or add prefix (Server/Client)
 type Conn struct {
@@ -43,10 +35,10 @@ type Conn struct {
 	bufw     *bufio.Writer
 	stateID  stateID
 	streamer *ChunkStreamer
-	handler  ConnHandler
+	handler  Handler
 }
 
-func NewConn(rwc net.Conn, handler ConnHandler) *Conn {
+func NewConn(rwc net.Conn, handler Handler) *Conn {
 	return &Conn{
 		rwc:     rwc,
 		handler: handler,
@@ -147,6 +139,10 @@ func (c *Conn) handleConnectMessage(chunkStreamID int, timestamp uint32, msg mes
 	case *message.CommandMessageAMF0:
 		switch msg.CommandName {
 		case "connect":
+			if err := c.handler.OnConnect(timestamp, msg.Args); err != nil {
+				return err
+			}
+
 			log.Printf("connect: %+v", msg)
 
 			// TODO: fix
@@ -168,24 +164,22 @@ func (c *Conn) handleConnectMessage(chunkStreamID int, timestamp uint32, msg mes
 			m := &message.CommandMessageAMF0{
 				CommandName:   "_result",
 				TransactionID: msg.TransactionID,
-				Command: &message.NetConnectionResult{
-					Objects: []interface{}{
-						map[string]interface{}{
-							"fmsVer":       "rtmp/testing",
-							"capabilities": 250,
-							"mode":         1,
+				Args: []interface{}{
+					map[string]interface{}{
+						"fmsVer":       "rtmp/testing",
+						"capabilities": 250,
+						"mode":         1,
+					},
+					map[string]interface{}{
+						"level": "status",
+						"code":  "NetConnection.Connect.Success",
+						"data": []struct {
+							Key   string `amf0:"ecma"`
+							Value interface{}
+						}{
+							{"version", "testing"},
 						},
-						map[string]interface{}{
-							"level": "status",
-							"code":  "NetConnection.Connect.Success",
-							"data": []struct {
-								Key   string `amf0:"ecma"`
-								Value interface{}
-							}{
-								{"version", "testing"},
-							},
-							"application": nil,
-						},
+						"application": nil,
 					},
 				},
 			}
@@ -217,11 +211,9 @@ func (c *Conn) handleCreateStreamMessage(chunkStreamID int, timestamp uint32, ms
 			m := &message.CommandMessageAMF0{
 				CommandName:   "_result",
 				TransactionID: msg.TransactionID,
-				Command: &message.NetConnectionResult{
-					Objects: []interface{}{
-						nil,
-						20, // TODO: fix
-					},
+				Args: []interface{}{
+					nil,
+					20, // TODO: fix
 				},
 			}
 
@@ -250,11 +242,16 @@ func (c *Conn) handleControllingMessage(chunkStreamID int, timestamp uint32, msg
 	case *message.CommandMessageAMF0:
 		switch msg.CommandName {
 		case "publish":
+			if err := c.handler.OnPublish(timestamp, msg.Args); err != nil {
+				return err
+			}
+
 			m := &message.CommandMessageAMF0{
 				CommandName:   "onStatus",
 				TransactionID: 0,
-				Command: &message.NetStreamOnStatus{
-					InfoObject: map[string]interface{}{
+				Args: []interface{}{
+					nil,
+					map[string]interface{}{
 						"level":       "status",
 						"code":        "NetStream.Publish.Start",
 						"description": "yoyo",

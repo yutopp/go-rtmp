@@ -73,30 +73,11 @@ func (enc *Encoder) encodeCommandMessageAMF0(m *CommandMessageAMF0) error {
 		return err
 	}
 
-	// if command is null, write null
-	if m.Command == nil {
-		return amfEnc.Encode(nil)
-	}
-
-	switch cmd := m.Command.(type) {
-	case *NetConnectionResult:
-		for _, object := range cmd.Objects {
-			if err := amfEnc.Encode(object); err != nil {
-				return err
-			}
-		}
-		return nil
-
-	case *NetStreamOnStatus:
-		if err := amfEnc.Encode(cmd.CommandObject); err != nil {
+	for _, arg := range m.Args {
+		if err := amfEnc.Encode(arg); err != nil {
 			return err
 		}
-		if err := amfEnc.Encode(cmd.InfoObject); err != nil {
-			return err
-		}
-		return nil
-
-	default:
-		panic("unsupported command(writer)")
 	}
+
+	return nil
 }

@@ -126,7 +126,7 @@ func (dec *Decoder) decodeCommandMessage(msg *Message) error {
 
 	log.Printf("transactionID = %+v", transactionID)
 
-	var command interface{}
+	var args []interface{}
 	switch name {
 	case "connect":
 		var object map[string]interface{}
@@ -134,25 +134,21 @@ func (dec *Decoder) decodeCommandMessage(msg *Message) error {
 			return err
 		}
 		log.Printf("command: object = %+v", object)
-		command = &NetConnectionConnection{
-			CommandObject: object,
+		args = []interface{}{
+			object,
 		}
 
 	case "releaseStream":
 		log.Printf("ignored releaseStream")
-
-	case "FCPublish":
-		log.Printf("ignored FCPublish")
 
 	case "createStream":
 		var object interface{}
 		if err := d.Decode(&object); err != nil {
 			return err
 		}
-		if object == nil {
-			break
+		args = []interface{}{
+			object,
 		}
-		command = &NetConnectionCreateStream{}
 
 	case "publish":
 		var commandObject interface{}
@@ -167,11 +163,14 @@ func (dec *Decoder) decodeCommandMessage(msg *Message) error {
 		if err := d.Decode(&publishingType); err != nil {
 			return err
 		}
-		command = &NetStreamPublish{
-			CommandObject:  commandObject,
-			PublishingName: publishingName,
-			PublishingType: publishingType,
+		args = []interface{}{
+			commandObject,
+			publishingName,
+			publishingType,
 		}
+
+	case "FCPublish":
+		log.Printf("ignored FCPublish")
 
 	default:
 		return errors.New("Not supported command: " + name)
@@ -180,7 +179,7 @@ func (dec *Decoder) decodeCommandMessage(msg *Message) error {
 	*msg = &CommandMessageAMF0{
 		CommandName:   name,
 		TransactionID: transactionID,
-		Command:       command,
+		Args:          args,
 	}
 
 	return nil

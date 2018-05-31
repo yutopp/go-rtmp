@@ -85,7 +85,7 @@ func (m *DataMessageAMF0) TypeID() TypeID {
 type CommandMessageAMF0 struct {
 	CommandName   string
 	TransactionID int64
-	Command       interface{}
+	Args          []interface{}
 }
 
 func (m *CommandMessageAMF0) TypeID() TypeID {
