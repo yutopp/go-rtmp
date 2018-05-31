@@ -9,6 +9,7 @@ package rtmp
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
 )
 
@@ -56,7 +57,7 @@ func encodeChunkBasicHeader(w io.Writer, mh *chunkBasicHeader) error {
 	case mh.chunkStreamID >= 320 && mh.chunkStreamID <= 65599:
 		panic("not implemented")
 	default:
-		panic("unexpected chunk stream id")
+		panic(fmt.Sprintf("unexpected chunk stream id: %d", mh.chunkStreamID))
 	}
 }
 

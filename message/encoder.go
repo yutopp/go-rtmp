@@ -33,6 +33,8 @@ func (enc *Encoder) Encode(msg Message) error {
 		return enc.encodeCtrlWinAckSize(msg)
 	case *SetPeerBandwidth:
 		return enc.encodeSetPeerBandwidth(msg)
+	case *VideoMessage:
+		return enc.encodeVideoMessage(msg)
 	case *CommandMessageAMF0:
 		return enc.encodeCommandMessageAMF0(msg)
 	}
@@ -49,7 +51,7 @@ func (enc *Encoder) encodeCtrlWinAckSize(m *CtrlWinAckSize) error {
 	buf := make([]byte, 4)
 	binary.BigEndian.PutUint32(buf, m.Size) // [0:4]
 
-	enc.w.Write(buf)
+	enc.w.Write(buf) // TODO: error check
 
 	return nil
 }
@@ -59,7 +61,15 @@ func (enc *Encoder) encodeSetPeerBandwidth(m *SetPeerBandwidth) error {
 	binary.BigEndian.PutUint32(buf, m.Size) // [0:4]
 	buf[4] = m.Limit
 
-	enc.w.Write(buf)
+	enc.w.Write(buf) // TODO: error check
+
+	return nil
+}
+
+func (enc *Encoder) encodeVideoMessage(m *VideoMessage) error {
+	if _, err := enc.w.Write(m.Payload); err != nil {
+		return err
+	}
 
 	return nil
 }

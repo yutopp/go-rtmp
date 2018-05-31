@@ -81,13 +81,13 @@ func (cs *ChunkStreamer) readChunk() (*ChunkStreamReader, error) {
 	if err := decodeChunkBasicHeader(cs.bufr, &bh); err != nil {
 		return nil, err
 	}
-	log.Printf("basicHeader = %+v", bh)
+	log.Printf("(READ) BasicHeader = %+v", bh)
 
 	var mh chunkMessageHeader
 	if err := decodeChunkMessageHeader(cs.bufr, bh.fmt, &mh); err != nil {
 		return nil, err
 	}
-	log.Printf("messageHeader = %+v", mh)
+	log.Printf("(READ) MessageHeader = %+v", mh)
 
 	reader := cs.prepareChunkReader(bh.chunkStreamID)
 	reader.basicHeader = bh
@@ -116,7 +116,7 @@ func (cs *ChunkStreamer) readChunk() (*ChunkStreamReader, error) {
 		panic("unsupported chunk") // TODO: fix
 	}
 
-	log.Printf("MessageLength: %d / Rest=%d", reader.messageLength, reader.buf.Len())
+	log.Printf("(READ) MessageLength: %d / Rest=%d", reader.messageLength, reader.buf.Len())
 
 	expectLen := int(reader.messageLength) - reader.buf.Len()
 	if expectLen <= 0 {
@@ -131,7 +131,8 @@ func (cs *ChunkStreamer) readChunk() (*ChunkStreamReader, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	log.Printf("(READ) Buffer: %+v", reader.buf.Bytes())
+	
 	if int(reader.messageLength)-reader.buf.Len() != 0 {
 		// fragmented
 		return nil, nil
@@ -161,8 +162,8 @@ func (cs *ChunkStreamer) writeChunk(writer *ChunkStreamWriter) (bool, error) {
 	}
 	writer.basicHeader.fmt = fmt
 
-	log.Printf("headers: Basic = %+v / Message = %+v", writer.basicHeader, writer.messageHeader)
-	log.Printf("buffer: %+v", writer.buf.Bytes())
+	log.Printf("(WRITE) Headers: Basic = %+v / Message = %+v", writer.basicHeader, writer.messageHeader)
+	log.Printf("(WRITE) Buffer: %+v", writer.buf.Bytes())
 
 	expectLen := writer.buf.Len()
 	if uint32(expectLen) > cs.chunkSize {
