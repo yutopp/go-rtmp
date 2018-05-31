@@ -282,7 +282,7 @@ func (c *Conn) handlePublishStreamMessage(chunkStreamID int, timestamp uint32, m
 	case *message.AudioMessage:
 		return c.handler.OnAudio(timestamp, msg.Payload)
 	case *message.VideoMessage:
-		return c.handler.OnAudio(timestamp, msg.Payload)
+		return c.handler.OnVideo(timestamp, msg.Payload)
 	default:
 		log.Printf("unexpected message: %+v", msg)
 		return nil

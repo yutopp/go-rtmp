@@ -33,6 +33,7 @@ func (h *Handler) OnAudio(timestamp uint32, payload []byte) error {
 	}
 
 	log.Printf("FLV Audio Data: %+v", audio)
+
 	return nil
 }
 
@@ -44,6 +45,7 @@ func (h *Handler) OnVideo(timestamp uint32, payload []byte) error {
 	}
 
 	log.Printf("FLV Video Data: %+v", video)
+
 	return nil
 }
 
