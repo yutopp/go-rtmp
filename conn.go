@@ -27,28 +27,29 @@ const (
 	stateIDPublishing
 )
 
-type ConnHandler func(message.Message, uint64, Stream) error
+type ConnHandler interface {
+	OnConnect()
+	OnPublish()
+	OnPlay()
+	OnAudio(timestamp uint32, payload []byte) error
+	OnVideo(timestamp uint32, payload []byte) error
+}
 
 // Server Connection
 // TODO: rename or add prefix (Server/Client)
 type Conn struct {
-	rwc       net.Conn
-	bufr      *bufio.Reader
-	bufw      *bufio.Writer
-	transport *ChunkStreamLayer
-	writer    *ChunkStreamWriter
-	stateID   stateID
-
+	rwc      net.Conn
+	bufr     *bufio.Reader
+	bufw     *bufio.Writer
+	stateID  stateID
 	streamer *ChunkStreamer
-
-	userHandler ConnHandler
-	userData    interface{}
+	handler  ConnHandler
 }
 
 func NewConn(rwc net.Conn, handler ConnHandler) *Conn {
 	return &Conn{
-		rwc:         rwc,
-		userHandler: handler,
+		rwc:     rwc,
+		handler: handler,
 	}
 }
 
@@ -72,15 +73,7 @@ func (c *Conn) Serve() error {
 
 	c.bufr = bufio.NewReaderSize(c.rwc, 4*1024) // TODO: fix buffer size
 	c.bufw = bufio.NewWriterSize(c.rwc, 4*1024) // TODO: fix buffer size
-
-	handler := &Handler{
-		OnMessage: func(msg message.Message, timestamp uint64, s Stream) {
-			c.handleMessage(msg, timestamp, s)
-		},
-	}
-	c.transport = NewChunkStreamLayer(c.bufr, c.bufw, handler)
 	c.streamer = NewChunkStreamer(c.bufr, c.bufw)
-
 	c.stateID = stateIDConnecting // nextState: wait for "connect"
 
 	for {
@@ -90,19 +83,13 @@ func (c *Conn) Serve() error {
 			return err
 		}
 
-		stream := &ChunkStreamIO{
-			streamID: chunkStreamID,
-			f: func(msg message.Message, streamID int) error {
-				return c.write(msg, streamID)
-			},
-		}
-		if err := c.handleMessage(msg, timestamp, stream); err != nil {
+		if err := c.handleMessage(chunkStreamID, timestamp, msg); err != nil {
 			return err
 		}
 	}
 }
 
-func (c *Conn) read(msg *message.Message) (int, uint64, error) {
+func (c *Conn) read(msg *message.Message) (int, uint32, error) {
 	reader, err := c.streamer.NewChunkReader()
 	if err != nil {
 		return 0, 0, err
@@ -114,10 +101,10 @@ func (c *Conn) read(msg *message.Message) (int, uint64, error) {
 		return 0, 0, err
 	}
 
-	return reader.basicHeader.chunkStreamID, reader.timestamp, nil
+	return reader.basicHeader.chunkStreamID, uint32(reader.timestamp), nil
 }
 
-func (c *Conn) write(msg message.Message, chunkStreamID int) error {
+func (c *Conn) write(chunkStreamID int, timestamp uint32, msg message.Message) error {
 	writer, err := c.streamer.NewChunkWriter(chunkStreamID)
 	if err != nil {
 		return err
@@ -130,20 +117,21 @@ func (c *Conn) write(msg message.Message, chunkStreamID int) error {
 	}
 	writer.messageLength = uint32(writer.buf.Len())
 	writer.messageTypeID = byte(msg.TypeID())
+	writer.timestamp = timestamp
 
 	return c.streamer.Sched(writer)
 }
 
-func (c *Conn) handleMessage(msg message.Message, timestamp uint64, s Stream) (err error) {
+func (c *Conn) handleMessage(chunkStreamID int, timestamp uint32, msg message.Message) (err error) {
 	switch c.stateID {
 	case stateIDConnecting:
-		err = c.handleConnectMessage(msg, timestamp, s)
+		err = c.handleConnectMessage(chunkStreamID, timestamp, msg)
 	case stateIDCreateingStream:
-		err = c.handleCreateStreamMessage(msg, timestamp, s)
+		err = c.handleCreateStreamMessage(chunkStreamID, timestamp, msg)
 	case stateIDControllingStream:
-		err = c.handleControllingMessage(msg, timestamp, s)
+		err = c.handleControllingMessage(chunkStreamID, timestamp, msg)
 	case stateIDPublishing:
-		err = c.handlePublishStreamMessage(msg, timestamp, s)
+		err = c.handlePublishStreamMessage(chunkStreamID, timestamp, msg)
 	default:
 		panic("unexpected state") // TODO: fix
 	}
@@ -151,24 +139,28 @@ func (c *Conn) handleMessage(msg message.Message, timestamp uint64, s Stream) (e
 		return
 	}
 
-	c.bufw.Flush()
 	return nil
 }
 
-func (c *Conn) handleConnectMessage(msg message.Message, timestamp uint64, s Stream) error {
+func (c *Conn) handleConnectMessage(chunkStreamID int, timestamp uint32, msg message.Message) error {
 	switch msg := msg.(type) {
 	case *message.CommandMessageAMF0:
 		switch msg.CommandName {
 		case "connect":
-			log.Printf("connect")
+			log.Printf("connect: %+v", msg)
 
 			// TODO: fix
-			if err := s.Write(&message.CtrlWinAckSize{Size: 1 * 1024 * 1024}); err != nil {
+			if err := c.write(chunkStreamID, timestamp, &message.CtrlWinAckSize{
+				Size: 1 * 1024 * 1024,
+			}); err != nil {
 				return err
 			}
 
 			// TODO: fix
-			if err := s.Write(&message.SetPeerBandwidth{Size: 1 * 1024 * 1024, Limit: 1}); err != nil {
+			if err := c.write(chunkStreamID, timestamp, &message.SetPeerBandwidth{
+				Size:  1 * 1024 * 1024,
+				Limit: 1,
+			}); err != nil {
 				return err
 			}
 
@@ -197,7 +189,7 @@ func (c *Conn) handleConnectMessage(msg message.Message, timestamp uint64, s Str
 					},
 				},
 			}
-			if err := s.Write(m); err != nil {
+			if err := c.write(chunkStreamID, timestamp, m); err != nil {
 				return err
 			}
 			log.Printf("connected")
@@ -217,7 +209,7 @@ func (c *Conn) handleConnectMessage(msg message.Message, timestamp uint64, s Str
 	}
 }
 
-func (c *Conn) handleCreateStreamMessage(msg message.Message, timestamp uint64, s Stream) error {
+func (c *Conn) handleCreateStreamMessage(chunkStreamID int, timestamp uint32, msg message.Message) error {
 	switch msg := msg.(type) {
 	case *message.CommandMessageAMF0:
 		switch msg.CommandName {
@@ -233,7 +225,7 @@ func (c *Conn) handleCreateStreamMessage(msg message.Message, timestamp uint64, 
 				},
 			}
 
-			if err := s.Write(m); err != nil {
+			if err := c.write(chunkStreamID, timestamp, m); err != nil {
 				return err
 			}
 			log.Printf("streamCreated")
@@ -253,7 +245,7 @@ func (c *Conn) handleCreateStreamMessage(msg message.Message, timestamp uint64, 
 	}
 }
 
-func (c *Conn) handleControllingMessage(msg message.Message, timestamp uint64, s Stream) error {
+func (c *Conn) handleControllingMessage(chunkStreamID int, timestamp uint32, msg message.Message) error {
 	switch msg := msg.(type) {
 	case *message.CommandMessageAMF0:
 		switch msg.CommandName {
@@ -269,7 +261,7 @@ func (c *Conn) handleControllingMessage(msg message.Message, timestamp uint64, s
 					},
 				},
 			}
-			if err := s.Write(m); err != nil {
+			if err := c.write(chunkStreamID, timestamp, m); err != nil {
 				return err
 			}
 
@@ -288,12 +280,12 @@ func (c *Conn) handleControllingMessage(msg message.Message, timestamp uint64, s
 	}
 }
 
-func (c *Conn) handlePublishStreamMessage(msg message.Message, timestamp uint64, s Stream) error {
+func (c *Conn) handlePublishStreamMessage(chunkStreamID int, timestamp uint32, msg message.Message) error {
 	switch msg := msg.(type) {
 	case *message.AudioMessage:
-		return c.userHandler(msg, timestamp, s)
+		return c.handler.OnAudio(timestamp, msg.Payload)
 	case *message.VideoMessage:
-		return c.userHandler(msg, timestamp, s)
+		return c.handler.OnAudio(timestamp, msg.Payload)
 	default:
 		log.Printf("unexpected message: %+v", msg)
 		return nil

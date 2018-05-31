@@ -9,13 +9,10 @@ package rtmp
 
 import (
 	"bytes"
-	"io"
 )
 
 // Must call Close after reading.
 type ChunkStreamReader struct {
-	r io.Reader
-
 	basicHeader   chunkBasicHeader
 	messageHeader chunkMessageHeader
 

@@ -2,14 +2,44 @@ package main
 
 import (
 	"bytes"
+	flvtag "github.com/yutopp/go-flv/tag"
+	"github.com/yutopp/go-rtmp"
 	"log"
 	"net"
-
-	"github.com/yutopp/go-rtmp"
-	rtmpmsg "github.com/yutopp/go-rtmp/message"
-
-	flvtag "github.com/yutopp/go-flv/tag"
 )
+
+type Handler struct{}
+
+func (h *Handler) OnConnect() {
+}
+
+func (h *Handler) OnPublish() {
+}
+
+func (h *Handler) OnPlay() {
+}
+
+func (h *Handler) OnAudio(timestamp uint32, payload []byte) error {
+	buf := bytes.NewBuffer(payload)
+	audio, err := flvtag.DecodeAudioData(buf)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("FLV Audio Data: %+v", audio)
+	return nil
+}
+
+func (h *Handler) OnVideo(timestamp uint32, payload []byte) error {
+	buf := bytes.NewBuffer(payload)
+	video, err := flvtag.DecodeVideoData(buf)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("FLV Video Data: %+v", video)
+	return nil
+}
 
 func main() {
 	tcpAddr, err := net.ResolveTCPAddr("tcp", ":1935")
@@ -23,11 +53,12 @@ func main() {
 	}
 
 	srv := &rtmp.Server{}
-	if err := srv.Serve(listner, handler); err != nil {
+	if err := srv.Serve(listner, &Handler{}); err != nil {
 		log.Panicf("Failed: %+v", err)
 	}
 }
 
+/*
 func handler(m rtmpmsg.Message, timestamp uint64, s rtmp.Stream) error {
 	log.Printf("MESSAGE: %+v", m)
 
@@ -53,3 +84,4 @@ func handler(m rtmpmsg.Message, timestamp uint64, s rtmp.Stream) error {
 
 	return nil
 }
+*/
