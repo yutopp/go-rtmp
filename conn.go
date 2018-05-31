@@ -84,27 +84,54 @@ func (c *Conn) Serve() error {
 	c.stateID = stateIDConnecting // nextState: wait for "connect"
 
 	for {
-		reader, err := c.streamer.NewChunkReader()
+		var msg message.Message
+		chunkStreamID, timestamp, err := c.read(&msg)
 		if err != nil {
 			return err
 		}
-		dec := message.NewDecoder(reader, reader.messageTypeID)
-		var msg message.Message
-		if err := dec.Decode(&msg); err != nil {
-			return err
-		}
-		reader.Close()
 
 		stream := &ChunkStreamIO{
-			streamID: reader.basicHeader.chunkStreamID,
+			streamID: chunkStreamID,
 			f: func(msg message.Message, streamID int) error {
-				return c.transport.writeMessage(msg, streamID)
+				return c.write(msg, streamID)
 			},
 		}
-		if err := c.handleMessage(msg, reader.timestamp, stream); err != nil {
+		if err := c.handleMessage(msg, timestamp, stream); err != nil {
 			return err
 		}
 	}
+}
+
+func (c *Conn) read(msg *message.Message) (int, uint64, error) {
+	reader, err := c.streamer.NewChunkReader()
+	if err != nil {
+		return 0, 0, err
+	}
+	defer reader.Close()
+
+	dec := message.NewDecoder(reader, reader.messageTypeID)
+	if err := dec.Decode(msg); err != nil {
+		return 0, 0, err
+	}
+
+	return reader.basicHeader.chunkStreamID, reader.timestamp, nil
+}
+
+func (c *Conn) write(msg message.Message, chunkStreamID int) error {
+	writer, err := c.streamer.NewChunkWriter(chunkStreamID)
+	if err != nil {
+		return err
+	}
+	//defer writer.Close()
+
+	enc := message.NewEncoder(writer)
+	if err := enc.Encode(msg); err != nil {
+		return err
+	}
+	writer.messageLength = uint32(writer.buf.Len())
+	writer.messageTypeID = byte(msg.TypeID())
+
+	return c.streamer.Sched(writer)
 }
 
 func (c *Conn) handleMessage(msg message.Message, timestamp uint64, s Stream) (err error) {

@@ -8,27 +8,43 @@
 package rtmp
 
 import (
+	"bufio"
 	"bytes"
+	"errors"
 	"io"
 	"log"
+	"sync"
 )
 
 type ChunkStreamer struct {
-	r io.Reader
-	w io.Writer
+	bufr *bufio.Reader
+	bufw *bufio.Writer
 
 	chunkSize uint32
 	readers   map[int]*ChunkStreamReader
+	writers   map[int]*ChunkStreamWriter
+
+	writerSched *chunkStreamerWriterSched
 }
 
-func NewChunkStreamer(r io.Reader, w io.Writer) *ChunkStreamer {
-	return &ChunkStreamer{
-		r: r,
-		w: w,
+func NewChunkStreamer(bufr *bufio.Reader, bufw *bufio.Writer) *ChunkStreamer {
+	cs := &ChunkStreamer{
+		bufr: bufr,
+		bufw: bufw,
 
 		chunkSize: 128, // TODO fix
 		readers:   make(map[int]*ChunkStreamReader),
+		writers:   make(map[int]*ChunkStreamWriter),
+
+		writerSched: &chunkStreamerWriterSched{
+			isActive: make(chan bool, 1),
+			writers:  make(map[int]*ChunkStreamWriter),
+		},
 	}
+	cs.writerSched.streamer = cs
+	go cs.schedWriteLoop()
+
+	return cs
 }
 
 func (cs *ChunkStreamer) NewChunkReader() (*ChunkStreamReader, error) {
@@ -43,27 +59,37 @@ again:
 	return reader, nil
 }
 
+func (cs *ChunkStreamer) NewChunkWriter(chunkStreamID int) (*ChunkStreamWriter, error) {
+	writer := cs.prepareChunkWriter(chunkStreamID)
+	writer.m.Lock()
+	defer writer.m.Unlock()
+
+	return writer, nil
+}
+
+func (cs *ChunkStreamer) Sched(writer *ChunkStreamWriter) error {
+	return cs.writerSched.sched(writer)
+}
+
+func (cs *ChunkStreamer) Close() error {
+	return nil
+}
+
 // returns nil reader when chunk is fragmented.
 func (cs *ChunkStreamer) readChunk() (*ChunkStreamReader, error) {
 	var bh chunkBasicHeader
-	if err := decodeChunkBasicHeader(cs.r, &bh); err != nil {
+	if err := decodeChunkBasicHeader(cs.bufr, &bh); err != nil {
 		return nil, err
 	}
 	log.Printf("basicHeader = %+v", bh)
 
 	var mh chunkMessageHeader
-	if err := decodeChunkMessageHeader(cs.r, bh.fmt, &mh); err != nil {
+	if err := decodeChunkMessageHeader(cs.bufr, bh.fmt, &mh); err != nil {
 		return nil, err
 	}
 	log.Printf("messageHeader = %+v", mh)
 
-	reader, ok := cs.readers[bh.chunkStreamID]
-	if !ok {
-		reader = &ChunkStreamReader{
-			buf: new(bytes.Buffer),
-		}
-		cs.readers[bh.chunkStreamID] = reader
-	}
+	reader := cs.prepareChunkReader(bh.chunkStreamID)
 	reader.basicHeader = bh
 	reader.messageHeader = mh
 
@@ -101,7 +127,7 @@ func (cs *ChunkStreamer) readChunk() (*ChunkStreamReader, error) {
 		expectLen = int(cs.chunkSize)
 	}
 
-	_, err := io.CopyN(reader.buf, cs.r, int64(expectLen))
+	_, err := io.CopyN(reader.buf, cs.bufr, int64(expectLen))
 	if err != nil {
 		return nil, err
 	}
@@ -112,4 +138,155 @@ func (cs *ChunkStreamer) readChunk() (*ChunkStreamReader, error) {
 	}
 
 	return reader, nil
+}
+
+func (cs *ChunkStreamer) writeChunk(writer *ChunkStreamWriter) (bool, error) {
+	fmt := byte(2) // default: only timestamp delta
+	if writer.messageHeader.messageLength != writer.messageLength || writer.messageTypeID != writer.messageHeader.messageTypeID {
+		// header or type id is updated, change fmt to 1 to notify difference and update state
+		writer.messageHeader.messageLength = writer.messageLength
+		writer.messageHeader.messageTypeID = writer.messageTypeID
+		fmt = 1
+	}
+	if writer.timestamp != writer.messageHeader.timestamp {
+		if writer.timestamp >= writer.messageHeader.timestamp {
+			writer.messageHeader.timestampDelta = writer.timestamp - writer.messageHeader.timestamp
+			writer.messageHeader.timestamp = writer.timestamp
+		} else {
+			// timestamp is reversed, clear timestamp data
+			fmt = 0
+			writer.messageHeader.timestampDelta = 0
+			writer.messageHeader.timestamp = writer.timestamp
+		}
+	}
+	writer.basicHeader.fmt = fmt
+
+	log.Printf("headers: Basic = %+v / Message = %+v", writer.basicHeader, writer.messageHeader)
+	log.Printf("buffer: %+v", writer.buf.Bytes())
+
+	expectLen := writer.buf.Len()
+	if uint32(expectLen) > cs.chunkSize {
+		expectLen = int(cs.chunkSize)
+	}
+
+	if err := encodeChunkBasicHeader(cs.bufw, &writer.basicHeader); err != nil {
+		return false, err
+	}
+	if err := encodeChunkMessageHeader(cs.bufw, writer.basicHeader.fmt, &writer.messageHeader); err != nil {
+		return false, err
+	}
+
+	if _, err := io.CopyN(cs.bufw, writer, int64(expectLen)); err != nil {
+		return false, err
+	}
+	if err := cs.bufw.Flush(); err != nil {
+		return false, err
+	}
+
+	if writer.buf.Len() != 0 {
+		// fragmented
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func (cs *ChunkStreamer) schedWriteLoop() {
+	// TODO: error handling
+	_ = cs.writerSched.run()
+}
+
+func (cs *ChunkStreamer) prepareChunkReader(chunkStreamID int) *ChunkStreamReader {
+	reader, ok := cs.readers[chunkStreamID]
+	if !ok {
+		reader = &ChunkStreamReader{
+			buf: new(bytes.Buffer),
+		}
+		cs.readers[chunkStreamID] = reader
+	}
+
+	return reader
+}
+
+func (cs *ChunkStreamer) prepareChunkWriter(chunkStreamID int) *ChunkStreamWriter {
+	writer, ok := cs.writers[chunkStreamID]
+	if !ok {
+		writer = &ChunkStreamWriter{
+			basicHeader: chunkBasicHeader{
+				chunkStreamID: chunkStreamID,
+			},
+		}
+		cs.writers[chunkStreamID] = writer
+	}
+
+	return writer
+}
+
+type chunkStreamerWriterSched struct {
+	streamer *ChunkStreamer
+	isActive chan bool
+	m        sync.Mutex
+	writers  map[int]*ChunkStreamWriter
+}
+
+func (sched *chunkStreamerWriterSched) sched(writer *ChunkStreamWriter) error {
+	sched.m.Lock()
+	defer sched.m.Unlock()
+
+	_, ok := sched.writers[writer.basicHeader.chunkStreamID]
+	if ok {
+		return errors.New("Running writer")
+	}
+
+	writer.m.Lock()
+	sched.writers[writer.basicHeader.chunkStreamID] = writer
+
+	if len(sched.writers) > 0 {
+		sched.isActive <- true
+	}
+
+	return nil
+}
+
+func (sched *chunkStreamerWriterSched) unSched(writer *ChunkStreamWriter) error {
+	// Lock must be taken before calling this function.
+
+	_, ok := sched.writers[writer.basicHeader.chunkStreamID]
+	if !ok {
+		return errors.New("Not running writer")
+	}
+
+	writer.m.Unlock()
+	delete(sched.writers, writer.basicHeader.chunkStreamID)
+
+	return nil
+}
+
+func (sched *chunkStreamerWriterSched) run() error {
+	for {
+		select {
+		case <-sched.isActive:
+			// TODO: error handling
+			_ = sched.runActives()
+		}
+	}
+}
+
+func (sched *chunkStreamerWriterSched) runActives() error {
+	sched.m.Lock()
+	defer sched.m.Unlock()
+
+	for _, writer := range sched.writers {
+		isCompleted, err := sched.streamer.writeChunk(writer)
+		// TODO: error handling
+		if isCompleted || err != nil {
+			_ = sched.unSched(writer)
+		}
+	}
+
+	if len(sched.writers) > 0 {
+		sched.isActive <- true
+	}
+
+	return nil
 }

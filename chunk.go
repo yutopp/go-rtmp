@@ -10,7 +10,6 @@ package rtmp
 import (
 	"io"
 
-	"github.com/yutopp/go-rtmp/internal"
 	"github.com/yutopp/go-rtmp/message"
 )
 
@@ -31,27 +30,8 @@ type ChunkStreamLayer struct {
 
 func NewChunkStreamLayer(r io.Reader, w io.Writer, h *Handler) *ChunkStreamLayer {
 	return &ChunkStreamLayer{
-		w:       NewChunkStreamWriter(w),
 		state:   NewChunkState(),
 		handler: h,
-	}
-}
-
-func (s *ChunkStreamLayer) writeMessageFragment(msg message.Message, streamID int) error {
-	return s.w.WriteChunk(s.state, msg, streamID)
-}
-
-func (s *ChunkStreamLayer) writeMessage(msg message.Message, streamID int) error {
-	for {
-		err := s.writeMessageFragment(msg, streamID)
-		if err != nil {
-			if err == internal.ErrChunkIsNotCompleted {
-				msg = nil
-				continue
-			}
-			return err
-		}
-		return nil
 	}
 }
 
