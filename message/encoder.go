@@ -9,6 +9,7 @@ package message
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
 
 	"github.com/yutopp/go-amf0"
@@ -33,13 +34,15 @@ func (enc *Encoder) Encode(msg Message) error {
 		return enc.encodeCtrlWinAckSize(msg)
 	case *SetPeerBandwidth:
 		return enc.encodeSetPeerBandwidth(msg)
+	case *AudioMessage:
+		return enc.encodeAudioMessage(msg)
 	case *VideoMessage:
 		return enc.encodeVideoMessage(msg)
 	case *CommandMessageAMF0:
 		return enc.encodeCommandMessageAMF0(msg)
+	default:
+		return fmt.Errorf("Unexpected message type: %d", msg.TypeID())
 	}
-
-	panic("unreachable!")
 }
 
 func (enc *Encoder) encodeUserCtrl(msg *UserCtrl) error {
@@ -62,6 +65,14 @@ func (enc *Encoder) encodeSetPeerBandwidth(m *SetPeerBandwidth) error {
 	buf[4] = m.Limit
 
 	enc.w.Write(buf) // TODO: error check
+
+	return nil
+}
+
+func (enc *Encoder) encodeAudioMessage(m *AudioMessage) error {
+	if _, err := enc.w.Write(m.Payload); err != nil {
+		return err
+	}
 
 	return nil
 }

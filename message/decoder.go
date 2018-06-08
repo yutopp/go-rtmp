@@ -19,10 +19,10 @@ import (
 
 type Decoder struct {
 	r      io.Reader
-	typeID byte
+	typeID TypeID
 }
 
-func NewDecoder(r io.Reader, typeID byte) *Decoder {
+func NewDecoder(r io.Reader, typeID TypeID) *Decoder {
 	return &Decoder{
 		r:      r,
 		typeID: typeID,
@@ -30,7 +30,7 @@ func NewDecoder(r io.Reader, typeID byte) *Decoder {
 }
 
 func (dec *Decoder) Decode(msg *Message) error {
-	switch TypeID(dec.typeID) {
+	switch dec.typeID {
 	case TypeIDAudioMessage:
 		return dec.decodeAudioMessage(msg)
 	case TypeIDVideoMessage:
@@ -40,7 +40,7 @@ func (dec *Decoder) Decode(msg *Message) error {
 	case TypeIDCommandMessageAMF0:
 		return dec.decodeCommandMessage(msg)
 	default:
-		return fmt.Errorf("unexpected message type: %d", dec.typeID)
+		return fmt.Errorf("Unexpected message type: %d", dec.typeID)
 	}
 }
 

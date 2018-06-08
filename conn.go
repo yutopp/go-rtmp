@@ -88,7 +88,7 @@ func (c *Conn) read(msg *message.Message) (int, uint32, error) {
 	}
 	defer reader.Close()
 
-	dec := message.NewDecoder(reader, reader.messageTypeID)
+	dec := message.NewDecoder(reader, message.TypeID(reader.messageTypeID))
 	if err := dec.Decode(msg); err != nil {
 		return 0, 0, err
 	}
