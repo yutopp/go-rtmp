@@ -48,7 +48,7 @@ func TestStreamerSingleChunk(t *testing.T) {
 	assert.Nil(t, err)
 
 	// read a message
-	r, err := streamer.NewChunkReader()
+	r, err := streamer.readChunk()
 	assert.Nil(t, err)
 	assert.NotNil(t, r)
 	defer r.Close()
@@ -57,14 +57,17 @@ func TestStreamerSingleChunk(t *testing.T) {
 	var actualMsg message.Message
 	err = dec.Decode(&actualMsg)
 	assert.Nil(t, err)
+	assert.Equal(t, uint64(timestamp), r.timestamp)
 
 	// check message
 	assert.Equal(t, msg, actualMsg)
 }
 
 func TestStreamerMultipleChunk(t *testing.T) {
-	buf := new(bytes.Buffer)
-	buf.Grow(2048)
+	const chunkSize = 128
+	const payloadUnit = "test"
+
+	buf := bytes.NewBuffer(make([]byte, 0, 2048))
 	inbuf := bufio.NewReaderSize(buf, 2048)
 	outbuf := bufio.NewWriterSize(buf, 2048)
 
@@ -72,7 +75,8 @@ func TestStreamerMultipleChunk(t *testing.T) {
 
 	chunkStreamID := 2
 	msg := &message.VideoMessage{
-		Payload: []byte(strings.Repeat("test", 128)),
+		// will be chunked (chunkSize * len(payloadUnit))
+		Payload: []byte(strings.Repeat(payloadUnit, chunkSize)),
 	}
 	timestamp := uint32(72)
 
@@ -94,8 +98,11 @@ func TestStreamerMultipleChunk(t *testing.T) {
 	assert.Nil(t, err)
 
 	// read a message
-	r, err := streamer.NewChunkReader()
-	assert.Nil(t, err)
+	var r *ChunkStreamReader
+	for i := 0; i < len(payloadUnit); i++ {
+		r, err = streamer.readChunk()
+		assert.Nil(t, err)
+	}
 	assert.NotNil(t, r)
 	defer r.Close()
 
@@ -103,6 +110,7 @@ func TestStreamerMultipleChunk(t *testing.T) {
 	var actualMsg message.Message
 	err = dec.Decode(&actualMsg)
 	assert.Nil(t, err)
+	assert.Equal(t, uint64(timestamp), r.timestamp)
 
 	// check message
 	assert.Equal(t, msg, actualMsg)

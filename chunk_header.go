@@ -25,18 +25,16 @@ func decodeChunkBasicHeader(r io.Reader, bh *chunkBasicHeader) error {
 		return err
 	}
 
-	fmt := (buf[0] & 0xC0) >> 6 // 0b11000000 >> 6
-	csID := int(buf[0] & 0x3f)  // 0b00111111
+	fmtTy := (buf[0] & 0xC0) >> 6 // 0b11000000 >> 6
+	csID := int(buf[0] & 0x3f)    // 0b00111111
 
 	// TODO: implement
 	switch csID {
-	case 0:
-		panic("not implemented")
-	case 1:
-		panic("not implemented")
+	case 0, 1:
+		panic(fmt.Sprintf("not implemented: csID: %d", csID))
 	}
 
-	bh.fmt = fmt
+	bh.fmt = fmtTy
 	bh.chunkStreamID = csID
 
 	return nil

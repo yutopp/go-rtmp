@@ -13,6 +13,7 @@ import (
 	"errors"
 	"io"
 	"log"
+	"math"
 	"sync"
 )
 
@@ -96,6 +97,7 @@ func (cs *ChunkStreamer) readChunk() (*ChunkStreamReader, error) {
 	switch bh.fmt {
 	case 0:
 		reader.timestamp = uint64(mh.timestamp)
+		reader.timestampDelta = 0 // reset
 		reader.messageLength = mh.messageLength
 		reader.messageTypeID = mh.messageTypeID
 		reader.messageStreamID = mh.messageStreamID
@@ -111,6 +113,7 @@ func (cs *ChunkStreamer) readChunk() (*ChunkStreamReader, error) {
 		reader.timestamp += uint64(reader.timestampDelta)
 
 	case 3:
+		reader.timestamp += uint64(reader.timestampDelta)
 
 	default:
 		panic("unsupported chunk") // TODO: fix
@@ -215,6 +218,9 @@ func (cs *ChunkStreamer) prepareChunkWriter(chunkStreamID int) *ChunkStreamWrite
 		writer = &ChunkStreamWriter{
 			basicHeader: chunkBasicHeader{
 				chunkStreamID: chunkStreamID,
+			},
+			messageHeader: chunkMessageHeader{
+				timestamp: math.MaxUint32, // initial state will be updated by writer.timestamp
 			},
 		}
 		cs.writers[chunkStreamID] = writer
