@@ -159,7 +159,7 @@ func (m *SharedObjectMessageAMF0) TypeID() TypeID {
 type CommandMessage struct {
 	CommandName   string
 	TransactionID int64
-	Args          []interface{}
+	Command       AMFConvertible
 }
 
 type CommandMessageAMF3 struct {

@@ -173,7 +173,7 @@ func (dec *Decoder) decodeCommandMessage(d *amf0.Decoder, cmdMsg *CommandMessage
 
 	log.Printf("transactionID = %+v", transactionID)
 
-	var args []interface{}
+	var args AMFConvertible
 	switch name {
 	case "connect":
 		var object map[string]interface{}
@@ -181,9 +181,13 @@ func (dec *Decoder) decodeCommandMessage(d *amf0.Decoder, cmdMsg *CommandMessage
 			return err
 		}
 		log.Printf("command: object = %+v", object)
-		args = []interface{}{
-			object,
+
+		var cmd NetConnectionConnect
+		if err := cmd.FromArgs(object); err != nil {
+			return err
 		}
+
+		args = &cmd
 
 	case "releaseStream":
 		log.Printf("ignored releaseStream")
@@ -193,9 +197,14 @@ func (dec *Decoder) decodeCommandMessage(d *amf0.Decoder, cmdMsg *CommandMessage
 		if err := d.Decode(&object); err != nil {
 			return err
 		}
-		args = []interface{}{
-			object,
+		log.Printf("createStream: object = %+v", object)
+
+		var cmd NetConnectionCreateStream
+		if err := cmd.FromArgs(object); err != nil {
+			return err
 		}
+
+		args = &cmd
 
 	case "publish":
 		var commandObject interface{}
@@ -210,14 +219,19 @@ func (dec *Decoder) decodeCommandMessage(d *amf0.Decoder, cmdMsg *CommandMessage
 		if err := d.Decode(&publishingType); err != nil {
 			return err
 		}
-		args = []interface{}{
-			commandObject,
-			publishingName,
-			publishingType,
+
+		var cmd NetStreamPublish
+		if err := cmd.FromArgs(commandObject, publishingName, publishingType); err != nil {
+			return err
 		}
+		args = &cmd
 
 	case "FCPublish":
-		log.Printf("ignored FCPublish")
+		log.Printf("Ignored FCPublish")
+
+	case "_result":
+		// TODO: implement
+		log.Println("Ignored _result")
 
 	default:
 		return errors.New("Not supported command: " + name)
@@ -226,7 +240,7 @@ func (dec *Decoder) decodeCommandMessage(d *amf0.Decoder, cmdMsg *CommandMessage
 	*cmdMsg = CommandMessage{
 		CommandName:   name,
 		TransactionID: transactionID,
-		Args:          args,
+		Command:       args,
 	}
 
 	return nil

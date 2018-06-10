@@ -17,25 +17,15 @@ import (
 	"github.com/yutopp/go-rtmp/message"
 )
 
-type stateID int
-
-const (
-	stateIDInvalid stateID = iota
-	stateIDConnecting
-	stateIDCreateingStream
-	stateIDControllingStream
-	stateIDPublishing
-)
-
 // Server Connection
 // TODO: rename or add prefix (Server/Client)
 type Conn struct {
-	rwc      net.Conn
-	bufr     *bufio.Reader
-	bufw     *bufio.Writer
-	stateID  stateID
-	streamer *ChunkStreamer
-	handler  Handler
+	rwc          net.Conn
+	bufr         *bufio.Reader
+	bufw         *bufio.Writer
+	stateHandler stateHandler
+	streamer     *ChunkStreamer
+	handler      Handler
 }
 
 func NewConn(rwc net.Conn, handler Handler) *Conn {
@@ -66,7 +56,7 @@ func (c *Conn) Serve() error {
 	c.bufr = bufio.NewReaderSize(c.rwc, 4*1024) // TODO: fix buffer size
 	c.bufw = bufio.NewWriterSize(c.rwc, 4*1024) // TODO: fix buffer size
 	c.streamer = NewChunkStreamer(c.bufr, c.bufw)
-	c.stateID = stateIDConnecting // nextState: wait for "connect"
+	c.stateHandler = &connectMessageHandler{conn: c}
 
 	for {
 		var msg message.Message
@@ -82,182 +72,9 @@ func (c *Conn) Serve() error {
 }
 
 func (c *Conn) handleMessage(chunkStreamID int, timestamp uint32, msg message.Message) (err error) {
-	switch c.stateID {
-	case stateIDConnecting:
-		err = c.handleConnectMessage(chunkStreamID, timestamp, msg)
-	case stateIDCreateingStream:
-		err = c.handleCreateStreamMessage(chunkStreamID, timestamp, msg)
-	case stateIDControllingStream:
-		err = c.handleControllingMessage(chunkStreamID, timestamp, msg)
-	case stateIDPublishing:
-		err = c.handlePublishStreamMessage(chunkStreamID, timestamp, msg)
-	default:
-		panic("unexpected state") // TODO: fix
-	}
-	if err != nil {
-		return
+	if err := c.stateHandler.Handle(chunkStreamID, timestamp, msg); err != nil {
+		return err
 	}
 
 	return nil
-}
-
-func (c *Conn) handleConnectMessage(chunkStreamID int, timestamp uint32, msg message.Message) error {
-	switch msg := msg.(type) {
-	case *message.CommandMessageAMF0:
-		switch msg.CommandName {
-		case "connect":
-			if err := c.handler.OnConnect(timestamp, msg.Args); err != nil {
-				return err
-			}
-
-			log.Printf("connect: %+v", msg)
-
-			// TODO: fix
-			if err := c.streamer.Write(chunkStreamID, timestamp, &message.WinAckSize{
-				Size: c.streamer.windowSize,
-			}); err != nil {
-				return err
-			}
-
-			// TODO: fix
-			if err := c.streamer.Write(chunkStreamID, timestamp, &message.SetPeerBandwidth{
-				Size:  1 * 1024 * 1024,
-				Limit: 1,
-			}); err != nil {
-				return err
-			}
-
-			// TODO: fix
-			m := &message.CommandMessageAMF0{
-				CommandMessage: message.CommandMessage{
-					CommandName:   "_result",
-					TransactionID: msg.TransactionID,
-					Args: []interface{}{
-						map[string]interface{}{
-							"fmsVer":       "rtmp/testing",
-							"capabilities": 250,
-							"mode":         1,
-						},
-						map[string]interface{}{
-							"level": "status",
-							"code":  "NetConnection.Connect.Success",
-							"data": []struct {
-								Key   string `amf0:"ecma"`
-								Value interface{}
-							}{
-								{"version", "testing"},
-							},
-							"application": nil,
-						},
-					},
-				},
-			}
-			if err := c.streamer.Write(chunkStreamID, timestamp, m); err != nil {
-				return err
-			}
-			log.Printf("connected")
-
-			c.stateID = stateIDCreateingStream
-
-			return nil
-
-		default:
-			log.Printf("unexpected command: %+v", msg)
-			return nil
-		}
-
-	default:
-		log.Printf("unexpected message: %+v", msg)
-		return nil
-	}
-}
-
-func (c *Conn) handleCreateStreamMessage(chunkStreamID int, timestamp uint32, msg message.Message) error {
-	switch msg := msg.(type) {
-	case *message.CommandMessageAMF0:
-		switch msg.CommandName {
-		case "createStream":
-			m := &message.CommandMessageAMF0{
-				CommandMessage: message.CommandMessage{
-					CommandName:   "_result",
-					TransactionID: msg.TransactionID,
-					Args: []interface{}{
-						nil,
-						20, // TODO: fix
-					},
-				},
-			}
-
-			if err := c.streamer.Write(chunkStreamID, timestamp, m); err != nil {
-				return err
-			}
-			log.Printf("streamCreated")
-
-			c.stateID = stateIDControllingStream
-
-			return nil
-
-		default:
-			log.Printf("unexpected command: %+v", msg)
-			return nil
-		}
-
-	default:
-		log.Printf("unexpected message: %+v", msg)
-		return nil
-	}
-}
-
-func (c *Conn) handleControllingMessage(chunkStreamID int, timestamp uint32, msg message.Message) error {
-	switch msg := msg.(type) {
-	case *message.CommandMessageAMF0:
-		switch msg.CommandName {
-		case "publish":
-			if err := c.handler.OnPublish(timestamp, msg.Args); err != nil {
-				return err
-			}
-
-			m := &message.CommandMessageAMF0{
-				CommandMessage: message.CommandMessage{
-					CommandName:   "onStatus",
-					TransactionID: 0,
-					Args: []interface{}{
-						nil,
-						map[string]interface{}{
-							"level":       "status",
-							"code":        "NetStream.Publish.Start",
-							"description": "yoyo",
-						},
-					},
-				},
-			}
-			if err := c.streamer.Write(chunkStreamID, timestamp, m); err != nil {
-				return err
-			}
-
-			c.stateID = stateIDPublishing
-
-			return nil
-
-		default:
-			log.Printf("unexpected command: %+v", msg)
-			return nil
-		}
-
-	default:
-		log.Printf("unexpected message: %+v", msg)
-		return nil
-	}
-}
-
-func (c *Conn) handlePublishStreamMessage(chunkStreamID int, timestamp uint32, msg message.Message) error {
-	switch msg := msg.(type) {
-	case *message.AudioMessage:
-		return c.handler.OnAudio(timestamp, msg.Payload)
-	case *message.VideoMessage:
-		return c.handler.OnVideo(timestamp, msg.Payload)
-	default:
-		log.Printf("unexpected message: %+v", msg)
-		return nil
-	}
 }

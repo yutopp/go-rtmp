@@ -99,6 +99,7 @@ func (enc *Encoder) encodeVideoMessage(m *VideoMessage) error {
 	return nil
 }
 
+// TODO: support amf3
 func (enc *Encoder) encodeCommandMessageAMF0(m *CommandMessageAMF0) error {
 	amfEnc := amf0.NewEncoder(enc.w)
 	if err := amfEnc.Encode(m.CommandName); err != nil {
@@ -108,7 +109,16 @@ func (enc *Encoder) encodeCommandMessageAMF0(m *CommandMessageAMF0) error {
 		return err
 	}
 
-	for _, arg := range m.Args {
+	if m.Command == nil {
+		return nil // Do nothing
+	}
+
+	args, err := m.Command.ToArgs()
+	if err != nil {
+		return err
+	}
+
+	for _, arg := range args {
 		if err := amfEnc.Encode(arg); err != nil {
 			return err
 		}

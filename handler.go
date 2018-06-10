@@ -7,9 +7,13 @@
 
 package rtmp
 
+import (
+	"github.com/yutopp/go-rtmp/message"
+)
+
 type Handler interface {
-	OnConnect(timestamp uint32, args []interface{}) error
-	OnPublish(timestamp uint32, args []interface{}) error
+	OnConnect(timestamp uint32, cmd *message.NetConnectionConnect) error
+	OnPublish(timestamp uint32, cmd *message.NetStreamPublish) error
 	OnPlay(timestamp uint32, args []interface{}) error
 	OnAudio(timestamp uint32, payload []byte) error
 	OnVideo(timestamp uint32, payload []byte) error
