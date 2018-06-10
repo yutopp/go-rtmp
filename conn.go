@@ -104,6 +104,9 @@ func (c *Conn) createStream(streamID uint32, handler streamHandler) error {
 		streamID: streamID,
 		handler:  handler,
 		conn:     c,
+		fragment: StreamFragment{
+			StreamID: streamID,
+		},
 	}
 
 	return nil
