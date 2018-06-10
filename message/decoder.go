@@ -36,9 +36,9 @@ func (dec *Decoder) Decode(msg *Message) error {
 	case TypeIDVideoMessage:
 		return dec.decodeVideoMessage(msg)
 	case TypeIDDataMessageAMF0:
-		return dec.decodeDataMessage(msg)
+		return dec.decodeDataMessageAMF0(msg)
 	case TypeIDCommandMessageAMF0:
-		return dec.decodeCommandMessage(msg)
+		return dec.decodeCommandMessageAMF0(msg)
 	default:
 		return fmt.Errorf("Unexpected message type: %d", dec.typeID)
 	}
@@ -72,10 +72,24 @@ func (dec *Decoder) decodeVideoMessage(msg *Message) error {
 	return nil
 }
 
-func (dec *Decoder) decodeDataMessage(msg *Message) error {
-	// TODO: support amf3
-	d := amf0.NewDecoder(dec.r)
+func (dec *Decoder) decodeDataMessageAMF3(msg *Message) error {
+	return fmt.Errorf("Not implemented: DataMessageAMF3")
+}
 
+func (dec *Decoder) decodeDataMessageAMF0(msg *Message) error {
+	d := amf0.NewDecoder(dec.r)
+	var body DataMessageAMF0
+	if err := dec.decodeDataMessage(d, &body.DataMessage); err != nil {
+		return err
+	}
+
+	*msg = &body
+
+	return nil
+}
+
+// TODO: support amf3
+func (dec *Decoder) decodeDataMessage(d *amf0.Decoder, dataMsg *DataMessage) error {
 	var name string
 	if err := d.Decode(&name); err != nil {
 		return err
@@ -102,7 +116,7 @@ func (dec *Decoder) decodeDataMessage(msg *Message) error {
 		return errors.New("Not supported data message: " + name)
 	}
 
-	*msg = &DataMessageAMF0{
+	*dataMsg = DataMessage{
 		Name: name,
 		Data: data,
 	}
@@ -110,9 +124,24 @@ func (dec *Decoder) decodeDataMessage(msg *Message) error {
 	return nil
 }
 
-func (dec *Decoder) decodeCommandMessage(msg *Message) error {
-	d := amf0.NewDecoder(dec.r)
+func (dec *Decoder) decodeCommandMessageAMF3(msg *Message) error {
+	return fmt.Errorf("Not implemented: CommandMessageAMF3")
+}
 
+func (dec *Decoder) decodeCommandMessageAMF0(msg *Message) error {
+	d := amf0.NewDecoder(dec.r)
+	var body CommandMessageAMF0
+	if err := dec.decodeCommandMessage(d, &body.CommandMessage); err != nil {
+		return err
+	}
+
+	*msg = &body
+
+	return nil
+}
+
+// TODO: support amf3
+func (dec *Decoder) decodeCommandMessage(d *amf0.Decoder, cmdMsg *CommandMessage) error {
 	var name string
 	if err := d.Decode(&name); err != nil {
 		return err
@@ -176,7 +205,7 @@ func (dec *Decoder) decodeCommandMessage(msg *Message) error {
 		return errors.New("Not supported command: " + name)
 	}
 
-	*msg = &CommandMessageAMF0{
+	*cmdMsg = CommandMessage{
 		CommandName:   name,
 		TransactionID: transactionID,
 		Args:          args,

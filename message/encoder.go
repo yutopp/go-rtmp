@@ -30,8 +30,8 @@ func (enc *Encoder) Encode(msg Message) error {
 	switch msg := msg.(type) {
 	case *UserCtrl:
 		return enc.encodeUserCtrl(msg)
-	case *CtrlWinAckSize:
-		return enc.encodeCtrlWinAckSize(msg)
+	case *WinAckSize:
+		return enc.encodeWinAckSize(msg)
 	case *SetPeerBandwidth:
 		return enc.encodeSetPeerBandwidth(msg)
 	case *AudioMessage:
@@ -50,7 +50,7 @@ func (enc *Encoder) encodeUserCtrl(msg *UserCtrl) error {
 	return ucmEnc.Encode(msg.Event)
 }
 
-func (enc *Encoder) encodeCtrlWinAckSize(m *CtrlWinAckSize) error {
+func (enc *Encoder) encodeWinAckSize(m *WinAckSize) error {
 	buf := make([]byte, 4)
 	binary.BigEndian.PutUint32(buf, m.Size) // [0:4]
 
@@ -62,7 +62,7 @@ func (enc *Encoder) encodeCtrlWinAckSize(m *CtrlWinAckSize) error {
 func (enc *Encoder) encodeSetPeerBandwidth(m *SetPeerBandwidth) error {
 	buf := make([]byte, 5)
 	binary.BigEndian.PutUint32(buf, m.Size) // [0:4]
-	buf[4] = m.Limit
+	buf[4] = byte(m.Limit)
 
 	enc.w.Write(buf) // TODO: error check
 
