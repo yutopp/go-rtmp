@@ -16,6 +16,17 @@ type testCase struct {
 
 var testCases = []testCase{
 	testCase{
+		Name:   "Ack",
+		TypeID: TypeIDAck,
+		Value: &Ack{
+			SequenceNumber: 1024,
+		},
+		Binary: []byte{
+			// SequenceNumber 1024 (32bit, BigEndian)
+			0x00, 0x00, 0x04, 0x00,
+		},
+	},
+	testCase{
 		Name:   "AudioMessage",
 		TypeID: TypeIDAudioMessage,
 		Value: &AudioMessage{

@@ -9,6 +9,7 @@ package message
 
 import (
 	"bytes"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -31,6 +32,8 @@ func NewDecoder(r io.Reader, typeID TypeID) *Decoder {
 
 func (dec *Decoder) Decode(msg *Message) error {
 	switch dec.typeID {
+	case TypeIDAck:
+		return dec.decodeAck(msg)
 	case TypeIDAudioMessage:
 		return dec.decodeAudioMessage(msg)
 	case TypeIDVideoMessage:
@@ -40,8 +43,23 @@ func (dec *Decoder) Decode(msg *Message) error {
 	case TypeIDCommandMessageAMF0:
 		return dec.decodeCommandMessageAMF0(msg)
 	default:
-		return fmt.Errorf("Unexpected message type: %d", dec.typeID)
+		return fmt.Errorf("Unexpected message type(decode): ID = %d", dec.typeID)
 	}
+}
+
+func (dec *Decoder) decodeAck(msg *Message) error {
+	buf := make([]byte, 4)
+	if _, err := io.ReadAtLeast(dec.r, buf, 4); err != nil {
+		return err
+	}
+
+	sequenceNumber := binary.BigEndian.Uint32(buf)
+
+	*msg = &Ack{
+		SequenceNumber: sequenceNumber,
+	}
+
+	return nil
 }
 
 func (dec *Decoder) decodeAudioMessage(msg *Message) error {

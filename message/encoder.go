@@ -11,6 +11,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"reflect"
 
 	"github.com/yutopp/go-amf0"
 )
@@ -28,6 +29,8 @@ func NewEncoder(w io.Writer) *Encoder {
 // Encode
 func (enc *Encoder) Encode(msg Message) error {
 	switch msg := msg.(type) {
+	case *Ack:
+		return enc.encodeAck(msg)
 	case *UserCtrl:
 		return enc.encodeUserCtrl(msg)
 	case *WinAckSize:
@@ -41,8 +44,19 @@ func (enc *Encoder) Encode(msg Message) error {
 	case *CommandMessageAMF0:
 		return enc.encodeCommandMessageAMF0(msg)
 	default:
-		return fmt.Errorf("Unexpected message type: %d", msg.TypeID())
+		return fmt.Errorf("Unexpected message type(encode): ID = %d, Type = %+v", msg.TypeID(), reflect.TypeOf(msg))
 	}
+}
+
+func (enc *Encoder) encodeAck(m *Ack) error {
+	buf := make([]byte, 4)
+	binary.BigEndian.PutUint32(buf, m.SequenceNumber) // [0:4]
+
+	if _, err := enc.w.Write(buf); err != nil { // TODO: length check
+		return err
+	}
+
+	return nil
 }
 
 func (enc *Encoder) encodeUserCtrl(msg *UserCtrl) error {

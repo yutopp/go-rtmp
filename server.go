@@ -8,6 +8,7 @@
 package rtmp
 
 import (
+	"log"
 	"net"
 )
 
@@ -24,7 +25,12 @@ func (srv *Server) Serve(l net.Listener, handherFactory HandlerFactory) error {
 		}
 
 		c := srv.newConn(rwc, handherFactory())
-		go c.Serve()
+		go func() {
+			// TODO: fix
+			if err := c.Serve(); err != nil {
+				log.Printf("Serve error: Err = %+v", err)
+			}
+		}()
 	}
 }
 

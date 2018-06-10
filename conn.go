@@ -70,7 +70,7 @@ func (c *Conn) Serve() error {
 
 	for {
 		var msg message.Message
-		chunkStreamID, timestamp, err := c.read(&msg)
+		chunkStreamID, timestamp, err := c.streamer.Read(&msg)
 		if err != nil {
 			return err
 		}
@@ -79,39 +79,6 @@ func (c *Conn) Serve() error {
 			return err
 		}
 	}
-}
-
-func (c *Conn) read(msg *message.Message) (int, uint32, error) {
-	reader, err := c.streamer.NewChunkReader()
-	if err != nil {
-		return 0, 0, err
-	}
-	defer reader.Close()
-
-	dec := message.NewDecoder(reader, message.TypeID(reader.messageTypeID))
-	if err := dec.Decode(msg); err != nil {
-		return 0, 0, err
-	}
-
-	return reader.basicHeader.chunkStreamID, uint32(reader.timestamp), nil
-}
-
-func (c *Conn) write(chunkStreamID int, timestamp uint32, msg message.Message) error {
-	writer, err := c.streamer.NewChunkWriter(chunkStreamID)
-	if err != nil {
-		return err
-	}
-	//defer writer.Close()
-
-	enc := message.NewEncoder(writer)
-	if err := enc.Encode(msg); err != nil {
-		return err
-	}
-	writer.messageLength = uint32(writer.buf.Len())
-	writer.messageTypeID = byte(msg.TypeID())
-	writer.timestamp = timestamp
-
-	return c.streamer.Sched(writer)
 }
 
 func (c *Conn) handleMessage(chunkStreamID int, timestamp uint32, msg message.Message) (err error) {
@@ -146,14 +113,14 @@ func (c *Conn) handleConnectMessage(chunkStreamID int, timestamp uint32, msg mes
 			log.Printf("connect: %+v", msg)
 
 			// TODO: fix
-			if err := c.write(chunkStreamID, timestamp, &message.CtrlWinAckSize{
-				Size: 1 * 1024 * 1024,
+			if err := c.streamer.Write(chunkStreamID, timestamp, &message.WinAckSize{
+				Size: c.streamer.windowSize,
 			}); err != nil {
 				return err
 			}
 
 			// TODO: fix
-			if err := c.write(chunkStreamID, timestamp, &message.SetPeerBandwidth{
+			if err := c.streamer.Write(chunkStreamID, timestamp, &message.SetPeerBandwidth{
 				Size:  1 * 1024 * 1024,
 				Limit: 1,
 			}); err != nil {
@@ -162,28 +129,30 @@ func (c *Conn) handleConnectMessage(chunkStreamID int, timestamp uint32, msg mes
 
 			// TODO: fix
 			m := &message.CommandMessageAMF0{
-				CommandName:   "_result",
-				TransactionID: msg.TransactionID,
-				Args: []interface{}{
-					map[string]interface{}{
-						"fmsVer":       "rtmp/testing",
-						"capabilities": 250,
-						"mode":         1,
-					},
-					map[string]interface{}{
-						"level": "status",
-						"code":  "NetConnection.Connect.Success",
-						"data": []struct {
-							Key   string `amf0:"ecma"`
-							Value interface{}
-						}{
-							{"version", "testing"},
+				CommandMessage: message.CommandMessage{
+					CommandName:   "_result",
+					TransactionID: msg.TransactionID,
+					Args: []interface{}{
+						map[string]interface{}{
+							"fmsVer":       "rtmp/testing",
+							"capabilities": 250,
+							"mode":         1,
 						},
-						"application": nil,
+						map[string]interface{}{
+							"level": "status",
+							"code":  "NetConnection.Connect.Success",
+							"data": []struct {
+								Key   string `amf0:"ecma"`
+								Value interface{}
+							}{
+								{"version", "testing"},
+							},
+							"application": nil,
+						},
 					},
 				},
 			}
-			if err := c.write(chunkStreamID, timestamp, m); err != nil {
+			if err := c.streamer.Write(chunkStreamID, timestamp, m); err != nil {
 				return err
 			}
 			log.Printf("connected")
@@ -209,15 +178,17 @@ func (c *Conn) handleCreateStreamMessage(chunkStreamID int, timestamp uint32, ms
 		switch msg.CommandName {
 		case "createStream":
 			m := &message.CommandMessageAMF0{
-				CommandName:   "_result",
-				TransactionID: msg.TransactionID,
-				Args: []interface{}{
-					nil,
-					20, // TODO: fix
+				CommandMessage: message.CommandMessage{
+					CommandName:   "_result",
+					TransactionID: msg.TransactionID,
+					Args: []interface{}{
+						nil,
+						20, // TODO: fix
+					},
 				},
 			}
 
-			if err := c.write(chunkStreamID, timestamp, m); err != nil {
+			if err := c.streamer.Write(chunkStreamID, timestamp, m); err != nil {
 				return err
 			}
 			log.Printf("streamCreated")
@@ -247,18 +218,20 @@ func (c *Conn) handleControllingMessage(chunkStreamID int, timestamp uint32, msg
 			}
 
 			m := &message.CommandMessageAMF0{
-				CommandName:   "onStatus",
-				TransactionID: 0,
-				Args: []interface{}{
-					nil,
-					map[string]interface{}{
-						"level":       "status",
-						"code":        "NetStream.Publish.Start",
-						"description": "yoyo",
+				CommandMessage: message.CommandMessage{
+					CommandName:   "onStatus",
+					TransactionID: 0,
+					Args: []interface{}{
+						nil,
+						map[string]interface{}{
+							"level":       "status",
+							"code":        "NetStream.Publish.Start",
+							"description": "yoyo",
+						},
 					},
 				},
 			}
-			if err := c.write(chunkStreamID, timestamp, m); err != nil {
+			if err := c.streamer.Write(chunkStreamID, timestamp, m); err != nil {
 				return err
 			}
 
