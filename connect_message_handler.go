@@ -67,7 +67,7 @@ func (h *connectMessageHandler) handleCommand(chunkStreamID int, timestamp uint3
 		m := wrapper(func(cmsg *message.CommandMessage) {
 			*cmsg = message.CommandMessage{
 				CommandName:   "_result",
-				TransactionID: msg.TransactionID,
+				TransactionID: 1, // 7.2.1.2, flow.6
 				Command: &message.NetConnectionConnectResult{
 					Properties: message.NetConnectionConnectResultProperties{
 						FMSVer:       "rtmp/testing",
