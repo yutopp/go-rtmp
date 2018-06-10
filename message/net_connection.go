@@ -117,7 +117,7 @@ func (t *NetConnectionCreateStream) ToArgs() ([]interface{}, error) {
 
 //
 type NetConnectionCreateStreamResult struct {
-	StreamID int
+	StreamID uint32
 }
 
 func (t *NetConnectionCreateStreamResult) FromArgs(args ...interface{}) error {

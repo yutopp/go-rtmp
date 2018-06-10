@@ -38,6 +38,8 @@ type ChunkStreamer struct {
 
 	peerWindowSize uint32
 	peerLimitType  message.LimitType
+
+	netConnectionWriter func(chunkStreamID int, timestamp uint32, msg message.Message) error
 }
 
 func NewChunkStreamer(bufr *bufio.Reader, bufw *bufio.Writer) *ChunkStreamer {
@@ -67,7 +69,7 @@ func NewChunkStreamer(bufr *bufio.Reader, bufw *bufio.Writer) *ChunkStreamer {
 	return cs
 }
 
-func (cs *ChunkStreamer) Read(msg *message.Message) (int, uint32, error) {
+func (cs *ChunkStreamer) Read(sf *StreamFragment) (int, uint32, error) {
 	reader, err := cs.NewChunkReader()
 	if err != nil {
 		return 0, 0, err
@@ -75,14 +77,16 @@ func (cs *ChunkStreamer) Read(msg *message.Message) (int, uint32, error) {
 	defer reader.Close()
 
 	dec := message.NewDecoder(reader, message.TypeID(reader.messageTypeID))
-	if err := dec.Decode(msg); err != nil {
+	if err := dec.Decode(&sf.Message); err != nil {
 		return 0, 0, err
 	}
+
+	sf.StreamID = reader.messageStreamID
 
 	return reader.basicHeader.chunkStreamID, uint32(reader.timestamp), nil
 }
 
-func (cs *ChunkStreamer) Write(chunkStreamID int, timestamp uint32, msg message.Message) error {
+func (cs *ChunkStreamer) Write(chunkStreamID int, timestamp uint32, sf *StreamFragment) error {
 	writer, err := cs.NewChunkWriter(chunkStreamID)
 	if err != nil {
 		return err
@@ -90,12 +94,13 @@ func (cs *ChunkStreamer) Write(chunkStreamID int, timestamp uint32, msg message.
 	//defer writer.Close()
 
 	enc := message.NewEncoder(writer)
-	if err := enc.Encode(msg); err != nil {
+	if err := enc.Encode(sf.Message); err != nil {
 		return err
 	}
-	writer.messageLength = uint32(writer.buf.Len())
-	writer.messageTypeID = byte(msg.TypeID())
 	writer.timestamp = timestamp
+	writer.messageLength = uint32(writer.buf.Len())
+	writer.messageTypeID = byte(sf.Message.TypeID())
+	writer.messageStreamID = sf.StreamID
 
 	return cs.Sched(writer)
 }
@@ -221,6 +226,10 @@ func (cs *ChunkStreamer) writeChunk(writer *ChunkStreamWriter) (bool, error) {
 			writer.messageHeader.timestamp = writer.timestamp
 		}
 	}
+	if writer.messageHeader.messageStreamID != writer.messageStreamID {
+		fmt = 0
+		writer.messageHeader.messageStreamID = writer.messageStreamID
+	}
 	writer.basicHeader.fmt = fmt
 
 	log.Printf("(WRITE) Headers: Basic = %+v / Message = %+v", writer.basicHeader, writer.messageHeader)
@@ -291,7 +300,8 @@ func (cs *ChunkStreamer) prepareChunkWriter(chunkStreamID int) *ChunkStreamWrite
 
 func (cs *ChunkStreamer) sendAck() error {
 	log.Printf("Sending Ack...")
-	return cs.Write(2, 0, &message.Ack{
+	// TODO: chunk stream id and fix timestamp
+	return cs.netConnectionWriter(2, 0, &message.Ack{
 		SequenceNumber: uint32(cs.r.totalReadBytes),
 	})
 }

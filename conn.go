@@ -9,29 +9,32 @@ package rtmp
 
 import (
 	"bufio"
+	"fmt"
 	"github.com/pkg/errors"
 	"log"
 	"net"
 
 	"github.com/yutopp/go-rtmp/handshake"
-	"github.com/yutopp/go-rtmp/message"
 )
 
 // Server Connection
 // TODO: rename or add prefix (Server/Client)
 type Conn struct {
-	rwc          net.Conn
-	bufr         *bufio.Reader
-	bufw         *bufio.Writer
-	stateHandler stateHandler
-	streamer     *ChunkStreamer
-	handler      Handler
+	rwc        net.Conn
+	bufr       *bufio.Reader
+	bufw       *bufio.Writer
+	streamer   *ChunkStreamer
+	streams    map[uint32]*Stream
+	maxStreams uint32
+	handler    Handler
 }
 
 func NewConn(rwc net.Conn, handler Handler) *Conn {
 	return &Conn{
-		rwc:     rwc,
-		handler: handler,
+		rwc:        rwc,
+		handler:    handler,
+		streams:    make(map[uint32]*Stream),
+		maxStreams: 10, // TODO: fix
 	}
 }
 
@@ -56,25 +59,68 @@ func (c *Conn) Serve() error {
 	c.bufr = bufio.NewReaderSize(c.rwc, 4*1024) // TODO: fix buffer size
 	c.bufw = bufio.NewWriterSize(c.rwc, 4*1024) // TODO: fix buffer size
 	c.streamer = NewChunkStreamer(c.bufr, c.bufw)
-	c.stateHandler = &connectMessageHandler{conn: c}
 
+	// StreamID 0 is default NetConnection stream
+	const DefaultNetConnectionStreamID = 0
+	if err := c.createStream(DefaultNetConnectionStreamID, &netConnectionMessageHandler{conn: c}); err != nil {
+		return err
+	}
+
+	c.streamer.netConnectionWriter = c.streams[DefaultNetConnectionStreamID].Write
+
+	var streamFragment StreamFragment
 	for {
-		var msg message.Message
-		chunkStreamID, timestamp, err := c.streamer.Read(&msg)
+		chunkStreamID, timestamp, err := c.streamer.Read(&streamFragment)
 		if err != nil {
 			return err
 		}
 
-		if err := c.handleMessage(chunkStreamID, timestamp, msg); err != nil {
+		if err := c.handleStreamFragment(chunkStreamID, timestamp, &streamFragment); err != nil {
 			return err
 		}
 	}
 }
 
-func (c *Conn) handleMessage(chunkStreamID int, timestamp uint32, msg message.Message) (err error) {
-	if err := c.stateHandler.Handle(chunkStreamID, timestamp, msg); err != nil {
+func (c *Conn) handleStreamFragment(chunkStreamID int, timestamp uint32, sf *StreamFragment) error {
+	stream, ok := c.streams[sf.StreamID]
+	if !ok {
+		return fmt.Errorf("Specified stream is not created yet: StreamID = %d", sf.StreamID)
+	}
+
+	if err := stream.handler.Handle(chunkStreamID, timestamp, sf.Message, stream); err != nil {
 		return err
 	}
 
+	return nil
+}
+
+func (c *Conn) createStream(streamID uint32, handler streamHandler) error {
+	_, ok := c.streams[streamID]
+	if ok {
+		return fmt.Errorf("Stream already exists: StreamID = %d", streamID)
+	}
+
+	c.streams[streamID] = &Stream{
+		streamID: streamID,
+		handler:  handler,
+		conn:     c,
+	}
+
+	return nil
+}
+
+func (c *Conn) createStreamIfAvailable(handler streamHandler) (uint32, error) {
+	for i := uint32(0); i < c.maxStreams; i++ {
+		if err := c.createStream(i, handler); err != nil {
+			continue
+		}
+		return i, nil
+	}
+
+	return 0, fmt.Errorf("Creating streams limit exceeded: Limit = %d", c.maxStreams)
+}
+
+// TODO: implement
+func (c *Conn) deleteStream(streamID uint32) error {
 	return nil
 }
