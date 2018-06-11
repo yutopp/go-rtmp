@@ -16,11 +16,11 @@ type ChunkStreamWriter struct {
 	basicHeader   chunkBasicHeader
 	messageHeader chunkMessageHeader
 
-	timestamp         uint32
-	timestampForDelta uint32
-	messageLength     uint32 // max, 24bits
-	messageTypeID     byte
-	messageStreamID   uint32
+	timestamp       uint32
+	timestampDelta  uint32
+	messageLength   uint32 // max, 24bits
+	messageTypeID   byte
+	messageStreamID uint32
 
 	m   sync.Mutex
 	buf bytes.Buffer

@@ -107,7 +107,7 @@ func (cs *ChunkStreamer) Write(chunkStreamID int, timestamp uint32, sf *StreamFr
 
 func (cs *ChunkStreamer) NewChunkReader() (*ChunkStreamReader, error) {
 again:
-	reader, err := cs.readChunk()
+	isCompleted, reader, err := cs.readChunk()
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +117,7 @@ again:
 		}
 	}
 
-	if reader == nil {
+	if !isCompleted {
 		goto again
 	}
 	return reader, nil
@@ -140,16 +140,16 @@ func (cs *ChunkStreamer) Close() error {
 }
 
 // returns nil reader when chunk is fragmented.
-func (cs *ChunkStreamer) readChunk() (*ChunkStreamReader, error) {
+func (cs *ChunkStreamer) readChunk() (bool, *ChunkStreamReader, error) {
 	var bh chunkBasicHeader
 	if err := decodeChunkBasicHeader(cs.r, &bh); err != nil {
-		return nil, err
+		return false, nil, err
 	}
 	log.Printf("(READ) BasicHeader = %+v", bh)
 
 	var mh chunkMessageHeader
 	if err := decodeChunkMessageHeader(cs.r, bh.fmt, &mh); err != nil {
-		return nil, err
+		return false, nil, err
 	}
 	log.Printf("(READ) MessageHeader = %+v", mh)
 
@@ -166,14 +166,14 @@ func (cs *ChunkStreamer) readChunk() (*ChunkStreamReader, error) {
 		reader.messageStreamID = mh.messageStreamID
 
 	case 1:
-		reader.timestampDelta = mh.timestampDelta
-		reader.timestamp += uint64(reader.timestampDelta)
+		reader.timestamp += uint64(mh.timestampDelta)
+		reader.timestampDelta = 0 // reset
 		reader.messageLength = mh.messageLength
 		reader.messageTypeID = mh.messageTypeID
 
 	case 2:
+		reader.timestamp += uint64(mh.timestampDelta)
 		reader.timestampDelta = mh.timestampDelta
-		reader.timestamp += uint64(reader.timestampDelta)
 
 	case 3:
 		reader.timestamp += uint64(reader.timestampDelta)
@@ -192,45 +192,24 @@ func (cs *ChunkStreamer) readChunk() (*ChunkStreamReader, error) {
 	if uint32(expectLen) > cs.chunkSize {
 		expectLen = int(cs.chunkSize)
 	}
+	log.Printf("(READ) Length = %d", expectLen)
 
 	_, err := io.CopyN(reader.buf, cs.r, int64(expectLen))
 	if err != nil {
-		return nil, err
+		return false, nil, err
 	}
 	//log.Printf("(READ) Buffer: %+v", reader.buf.Bytes())
 
 	if int(reader.messageLength)-reader.buf.Len() != 0 {
 		// fragmented
-		return nil, nil
+		return false, reader, nil
 	}
 
-	return reader, nil
+	return true, reader, nil
 }
 
 func (cs *ChunkStreamer) writeChunk(writer *ChunkStreamWriter) (bool, error) {
-	fmt := byte(2) // default: only timestamp delta
-	if writer.messageHeader.messageLength != writer.messageLength || writer.messageTypeID != writer.messageHeader.messageTypeID {
-		// header or type id is updated, change fmt to 1 to notify difference and update state
-		writer.messageHeader.messageLength = writer.messageLength
-		writer.messageHeader.messageTypeID = writer.messageTypeID
-		fmt = 1
-	}
-	if writer.timestamp != writer.messageHeader.timestamp {
-		if writer.timestamp >= writer.messageHeader.timestamp {
-			writer.messageHeader.timestampDelta = writer.timestamp - writer.messageHeader.timestamp
-			writer.messageHeader.timestamp = writer.timestamp
-		} else {
-			// timestamp is reversed, clear timestamp data
-			fmt = 0
-			writer.messageHeader.timestampDelta = 0
-			writer.messageHeader.timestamp = writer.timestamp
-		}
-	}
-	if writer.messageHeader.messageStreamID != writer.messageStreamID {
-		fmt = 0
-		writer.messageHeader.messageStreamID = writer.messageStreamID
-	}
-	writer.basicHeader.fmt = fmt
+	cs.updateWriterHeader(writer)
 
 	log.Printf("(WRITE) Headers: Basic = %+v / Message = %+v", writer.basicHeader, writer.messageHeader)
 	//log.Printf("(WRITE) Buffer: %+v", writer.buf.Bytes())
@@ -260,6 +239,36 @@ func (cs *ChunkStreamer) writeChunk(writer *ChunkStreamWriter) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func (cs *ChunkStreamer) updateWriterHeader(writer *ChunkStreamWriter) {
+	fmt := byte(2) // default: only timestamp delta
+	if writer.messageHeader.messageLength != writer.messageLength || writer.messageTypeID != writer.messageHeader.messageTypeID {
+		// header or type id is updated, change fmt to 1 to notify difference and update state
+		writer.messageHeader.messageLength = writer.messageLength
+		writer.messageHeader.messageTypeID = writer.messageTypeID
+		fmt = 1
+	}
+	if writer.timestamp != writer.messageHeader.timestamp {
+		if writer.timestamp >= writer.messageHeader.timestamp {
+			writer.timestampDelta = writer.timestamp - writer.messageHeader.timestamp
+		} else {
+			// timestamp is reversed, clear timestamp data
+			fmt = 0
+			writer.timestampDelta = 0
+		}
+	}
+	if writer.timestampDelta == writer.messageHeader.timestampDelta && fmt == 2 {
+		fmt = 3
+	}
+	writer.messageHeader.timestampDelta = writer.timestampDelta
+	writer.messageHeader.timestamp = writer.timestamp
+
+	if writer.messageHeader.messageStreamID != writer.messageStreamID {
+		fmt = 0
+		writer.messageHeader.messageStreamID = writer.messageStreamID
+	}
+	writer.basicHeader.fmt = fmt
 }
 
 func (cs *ChunkStreamer) schedWriteLoop() {

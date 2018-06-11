@@ -48,8 +48,9 @@ func TestStreamerSingleChunk(t *testing.T) {
 	assert.Nil(t, err)
 
 	// read a message
-	r, err := streamer.readChunk()
+	isCompleted, r, err := streamer.readChunk()
 	assert.Nil(t, err)
+	assert.True(t, isCompleted)
 	assert.NotNil(t, r)
 	defer r.Close()
 
@@ -100,7 +101,7 @@ func TestStreamerMultipleChunk(t *testing.T) {
 	// read a message
 	var r *ChunkStreamReader
 	for i := 0; i < len(payloadUnit); i++ {
-		r, err = streamer.readChunk()
+		_, r, err = streamer.readChunk()
 		assert.Nil(t, err)
 	}
 	assert.NotNil(t, r)
@@ -114,4 +115,110 @@ func TestStreamerMultipleChunk(t *testing.T) {
 
 	// check message
 	assert.Equal(t, msg, actualMsg)
+}
+
+func TestStreamerChunkExample1(t *testing.T) {
+	type write struct {
+		timestamp uint32
+	}
+
+	type read struct {
+		timestamp  uint32
+		fmt        byte
+		isComplete bool
+	}
+
+	type testCase struct {
+		name            string
+		chunkStreamID   int
+		typeID          byte
+		messageStreamID uint32
+		length          int
+		writeCases      []write
+		readCases       []read
+	}
+
+	tcs := []testCase{
+		// Example #1
+		testCase{
+			name:            "Example #1",
+			chunkStreamID:   3,
+			typeID:          8,
+			messageStreamID: 12345,
+			length:          32,
+			writeCases: []write{
+				write{timestamp: 1000},
+				write{timestamp: 1020},
+				write{timestamp: 1040},
+				write{timestamp: 1060},
+			},
+			readCases: []read{
+				read{timestamp: 1000, fmt: 0, isComplete: true},
+				read{timestamp: 1020, fmt: 2, isComplete: true},
+				read{timestamp: 1040, fmt: 3, isComplete: true},
+				read{timestamp: 1060, fmt: 3, isComplete: true},
+			},
+		},
+		// Example #2
+		testCase{
+			name:            "Example #2",
+			chunkStreamID:   4,
+			typeID:          9,
+			messageStreamID: 12346,
+			length:          307,
+			writeCases: []write{
+				write{timestamp: 1000},
+			},
+			readCases: []read{
+				read{timestamp: 1000, fmt: 0},
+				read{timestamp: 1000, fmt: 3},
+				read{timestamp: 1000, fmt: 3, isComplete: true},
+			},
+		},
+	}
+
+	for _, tc := range tcs {
+
+		t.Run(tc.name, func(t *testing.T) {
+			buf := bytes.NewBuffer(make([]byte, 0, 2048))
+			inbuf := bufio.NewReaderSize(buf, 2048)
+			outbuf := bufio.NewWriterSize(buf, 2048)
+
+			streamer := NewChunkStreamer(inbuf, outbuf)
+
+			bin := make([]byte, tc.length)
+
+			for _, wc := range tc.writeCases {
+				w, err := streamer.NewChunkWriter(tc.chunkStreamID)
+				assert.Nil(t, err)
+				assert.NotNil(t, w)
+
+				w.messageLength = uint32(len(bin))
+				w.messageTypeID = tc.typeID
+				w.messageStreamID = tc.messageStreamID
+				w.timestamp = wc.timestamp
+				w.buf.Write(bin)
+
+				err = streamer.Sched(w)
+				assert.Nil(t, err)
+			}
+
+			_, err := streamer.NewChunkWriter(tc.chunkStreamID) // wait for writing
+			assert.Nil(t, err)
+
+			for _, rc := range tc.readCases {
+				isCompleted, r, err := streamer.readChunk()
+				assert.Nil(t, err)
+				assert.NotNil(t, r)
+
+				assert.Equal(t, rc.fmt, r.basicHeader.fmt)
+				assert.Equal(t, uint64(rc.timestamp), r.timestamp)
+				assert.Equal(t, rc.isComplete, isCompleted)
+
+				if isCompleted {
+					r.Close()
+				}
+			}
+		})
+	}
 }
