@@ -10,6 +10,7 @@ package rtmp
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
@@ -120,6 +121,7 @@ func TestStreamerMultipleChunk(t *testing.T) {
 func TestStreamerChunkExample1(t *testing.T) {
 	type write struct {
 		timestamp uint32
+		length    int
 	}
 
 	type read struct {
@@ -133,7 +135,6 @@ func TestStreamerChunkExample1(t *testing.T) {
 		chunkStreamID   int
 		typeID          byte
 		messageStreamID uint32
-		length          int
 		writeCases      []write
 		readCases       []read
 	}
@@ -145,12 +146,11 @@ func TestStreamerChunkExample1(t *testing.T) {
 			chunkStreamID:   3,
 			typeID:          8,
 			messageStreamID: 12345,
-			length:          32,
 			writeCases: []write{
-				write{timestamp: 1000},
-				write{timestamp: 1020},
-				write{timestamp: 1040},
-				write{timestamp: 1060},
+				write{timestamp: 1000, length: 32},
+				write{timestamp: 1020, length: 32},
+				write{timestamp: 1040, length: 32},
+				write{timestamp: 1060, length: 32},
 			},
 			readCases: []read{
 				read{timestamp: 1000, fmt: 0, isComplete: true},
@@ -165,9 +165,8 @@ func TestStreamerChunkExample1(t *testing.T) {
 			chunkStreamID:   4,
 			typeID:          9,
 			messageStreamID: 12346,
-			length:          307,
 			writeCases: []write{
-				write{timestamp: 1000},
+				write{timestamp: 1000, length: 307},
 			},
 			readCases: []read{
 				read{timestamp: 1000, fmt: 0},
@@ -175,10 +174,26 @@ func TestStreamerChunkExample1(t *testing.T) {
 				read{timestamp: 1000, fmt: 3, isComplete: true},
 			},
 		},
+		// Original #1 fmt0 -> fmt3, fmt2 -> fmt3
+		testCase{
+			name:            "Original #1",
+			chunkStreamID:   5,
+			typeID:          10,
+			messageStreamID: 22346,
+			writeCases: []write{
+				write{timestamp: 1000, length: 200},
+				write{timestamp: 2000, length: 200},
+			},
+			readCases: []read{
+				read{timestamp: 1000, fmt: 0},
+				read{timestamp: 1000, fmt: 3, isComplete: true},
+				read{timestamp: 1000, fmt: 2}, // timestamp delta is not updated in this time
+				read{timestamp: 2000, fmt: 3, isComplete: true},
+			},
+		},
 	}
 
 	for _, tc := range tcs {
-
 		t.Run(tc.name, func(t *testing.T) {
 			buf := bytes.NewBuffer(make([]byte, 0, 2048))
 			inbuf := bufio.NewReaderSize(buf, 2048)
@@ -186,38 +201,42 @@ func TestStreamerChunkExample1(t *testing.T) {
 
 			streamer := NewChunkStreamer(inbuf, outbuf)
 
-			bin := make([]byte, tc.length)
+			for i, wc := range tc.writeCases {
+				t.Run(fmt.Sprintf("Write: %d", i), func(t *testing.T) {
+					w, err := streamer.NewChunkWriter(tc.chunkStreamID)
+					assert.Nil(t, err)
+					assert.NotNil(t, w)
 
-			for _, wc := range tc.writeCases {
-				w, err := streamer.NewChunkWriter(tc.chunkStreamID)
-				assert.Nil(t, err)
-				assert.NotNil(t, w)
+					bin := make([]byte, wc.length)
 
-				w.messageLength = uint32(len(bin))
-				w.messageTypeID = tc.typeID
-				w.messageStreamID = tc.messageStreamID
-				w.timestamp = wc.timestamp
-				w.buf.Write(bin)
+					w.messageLength = uint32(len(bin))
+					w.messageTypeID = tc.typeID
+					w.messageStreamID = tc.messageStreamID
+					w.timestamp = wc.timestamp
+					w.buf.Write(bin)
 
-				err = streamer.Sched(w)
-				assert.Nil(t, err)
+					err = streamer.Sched(w)
+					assert.Nil(t, err)
+				})
 			}
 
 			_, err := streamer.NewChunkWriter(tc.chunkStreamID) // wait for writing
 			assert.Nil(t, err)
 
-			for _, rc := range tc.readCases {
-				isCompleted, r, err := streamer.readChunk()
-				assert.Nil(t, err)
-				assert.NotNil(t, r)
+			for i, rc := range tc.readCases {
+				t.Run(fmt.Sprintf("Read: %d", i), func(t *testing.T) {
+					isCompleted, r, err := streamer.readChunk()
+					assert.Nil(t, err)
+					assert.NotNil(t, r)
 
-				assert.Equal(t, rc.fmt, r.basicHeader.fmt)
-				assert.Equal(t, uint64(rc.timestamp), r.timestamp)
-				assert.Equal(t, rc.isComplete, isCompleted)
+					assert.Equal(t, rc.fmt, r.basicHeader.fmt)
+					assert.Equal(t, uint64(rc.timestamp), r.timestamp)
+					assert.Equal(t, rc.isComplete, isCompleted)
 
-				if isCompleted {
-					r.Close()
-				}
+					if isCompleted {
+						r.Close()
+					}
+				})
 			}
 		})
 	}

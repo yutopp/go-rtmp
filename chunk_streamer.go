@@ -166,17 +166,15 @@ func (cs *ChunkStreamer) readChunk() (bool, *ChunkStreamReader, error) {
 		reader.messageStreamID = mh.messageStreamID
 
 	case 1:
-		reader.timestamp += uint64(mh.timestampDelta)
-		reader.timestampDelta = 0 // reset
+		reader.timestampDelta = mh.timestampDelta
 		reader.messageLength = mh.messageLength
 		reader.messageTypeID = mh.messageTypeID
 
 	case 2:
-		reader.timestamp += uint64(mh.timestampDelta)
 		reader.timestampDelta = mh.timestampDelta
 
 	case 3:
-		reader.timestamp += uint64(reader.timestampDelta)
+		// DO NOTHING
 
 	default:
 		panic("unsupported chunk") // TODO: fix
@@ -204,6 +202,9 @@ func (cs *ChunkStreamer) readChunk() (bool, *ChunkStreamReader, error) {
 		// fragmented
 		return false, reader, nil
 	}
+
+	// read completed, update timestamp
+	reader.timestamp += uint64(reader.timestampDelta)
 
 	return true, reader, nil
 }
