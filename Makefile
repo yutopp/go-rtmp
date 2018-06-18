@@ -16,9 +16,15 @@ vet:
 test:
 	go test -cover ./...
 
+dep-init:
+	dep ensure
+
+dep-update:
+	dep ensure -update
+
 example: dist/server_demo
 
 dist/server_demo:
 	go build -i -v -o $@ ./example/server_demo/...
 
-.PHONY: all pre fmt test vet lint example dist/server_demo
+.PHONY: all pre fmt lint vet test dep-init dep-update example dist/server_demo

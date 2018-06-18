@@ -23,4 +23,3 @@ go get github.com/yutopp/go-rtmp
 ## References
 
 - [spec](https://wwwimages2.adobe.com/www.adobe.com/content/dam/acom/en/devnet/rtmp/pdf/rtmp_specification_1.0.pdf)
-
