@@ -28,10 +28,20 @@ func decodeChunkBasicHeader(r io.Reader, bh *chunkBasicHeader) error {
 	fmtTy := (buf[0] & 0xC0) >> 6 // 0b11000000 >> 6
 	csID := int(buf[0] & 0x3f)    // 0b00111111
 
-	// TODO: implement
 	switch csID {
-	case 0, 1:
-		panic(fmt.Sprintf("not implemented: csID: %d", csID))
+	case 0:
+		_, err := io.ReadAtLeast(r, buf[1:2], 1)
+		if err != nil {
+			return err
+		}
+		csID = int(buf[1]) + 64
+
+	case 1:
+		_, err := io.ReadAtLeast(r, buf[1:], 2)
+		if err != nil {
+			return err
+		}
+		csID = int(buf[2])*256 + int(buf[1]) + 64
 	}
 
 	bh.fmt = fmtTy
@@ -51,11 +61,20 @@ func encodeChunkBasicHeader(w io.Writer, mh *chunkBasicHeader) error {
 		return err
 
 	case mh.chunkStreamID >= 64 && mh.chunkStreamID <= 319:
-		panic("not implemented")
+		buf[0] |= byte(0 & 0x3f) // 0x00111111
+		buf[1] = byte(mh.chunkStreamID - 64)
+		_, err := w.Write(buf[:2]) // TODO: should check length?
+		return err
+
 	case mh.chunkStreamID >= 320 && mh.chunkStreamID <= 65599:
-		panic("not implemented")
+		buf[0] |= byte(1 & 0x3f) // 0x00111111
+		buf[1] = byte(int(mh.chunkStreamID-64) % 256)
+		buf[2] = byte(int(mh.chunkStreamID-64) / 256)
+		_, err := w.Write(buf) // TODO: should check length?
+		return err
+
 	default:
-		panic(fmt.Sprintf("unexpected chunk stream id: %d", mh.chunkStreamID))
+		return fmt.Errorf("Chunk stream id exceeded limits: %d > 65599", mh.chunkStreamID)
 	}
 }
 
