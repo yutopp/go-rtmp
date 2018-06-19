@@ -32,19 +32,47 @@ func NewDecoder(r io.Reader, typeID TypeID) *Decoder {
 
 func (dec *Decoder) Decode(msg *Message) error {
 	switch dec.typeID {
+	case TypeIDSetChunkSize:
+		return dec.decodeSetChunkSize(msg)
+	case TypeIDAbortMessage:
+		return dec.decodeAbortMessage(msg)
 	case TypeIDAck:
 		return dec.decodeAck(msg)
+	case TypeIDUserCtrl:
+		return dec.decodeUserCtrl(msg)
+	case TypeIDWinAckSize:
+		return dec.decodeWinAckSize(msg)
+	case TypeIDSetPeerBandwidth:
+		return dec.decodeSetPeerBandwidth(msg)
 	case TypeIDAudioMessage:
 		return dec.decodeAudioMessage(msg)
 	case TypeIDVideoMessage:
 		return dec.decodeVideoMessage(msg)
+	case TypeIDDataMessageAMF3:
+		return dec.decodeDataMessageAMF3(msg)
+	case TypeIDSharedObjectMessageAMF3:
+		return dec.decodeSharedObjectMessageAMF3(msg)
+	case TypeIDCommandMessageAMF3:
+		return dec.decodeCommandMessageAMF3(msg)
 	case TypeIDDataMessageAMF0:
 		return dec.decodeDataMessageAMF0(msg)
+	case TypeIDSharedObjectMessageAMF0:
+		return dec.decodeSharedObjectMessageAMF0(msg)
 	case TypeIDCommandMessageAMF0:
 		return dec.decodeCommandMessageAMF0(msg)
+	case TypeIDAggregateMessage:
+		return dec.decodeAggregateMessage(msg)
 	default:
 		return fmt.Errorf("Unexpected message type(decode): ID = %d", dec.typeID)
 	}
+}
+
+func (dec *Decoder) decodeSetChunkSize(msg *Message) error {
+	return fmt.Errorf("Not implemented: SetChunkSize")
+}
+
+func (dec *Decoder) decodeAbortMessage(msg *Message) error {
+	return fmt.Errorf("Not implemented: AbortMessage")
 }
 
 func (dec *Decoder) decodeAck(msg *Message) error {
@@ -60,6 +88,18 @@ func (dec *Decoder) decodeAck(msg *Message) error {
 	}
 
 	return nil
+}
+
+func (dec *Decoder) decodeUserCtrl(msg *Message) error {
+	return fmt.Errorf("Not implemented: UserCtrl")
+}
+
+func (dec *Decoder) decodeWinAckSize(msg *Message) error {
+	return fmt.Errorf("Not implemented: WinAckSize")
+}
+
+func (dec *Decoder) decodeSetPeerBandwidth(msg *Message) error {
+	return fmt.Errorf("Not implemented: SetPeerBandwidth")
 }
 
 func (dec *Decoder) decodeAudioMessage(msg *Message) error {
@@ -94,6 +134,14 @@ func (dec *Decoder) decodeDataMessageAMF3(msg *Message) error {
 	return fmt.Errorf("Not implemented: DataMessageAMF3")
 }
 
+func (dec *Decoder) decodeSharedObjectMessageAMF3(msg *Message) error {
+	return fmt.Errorf("Not implemented: DataMessageAMF3")
+}
+
+func (dec *Decoder) decodeCommandMessageAMF3(msg *Message) error {
+	return fmt.Errorf("Not implemented: CommandMessageAMF3")
+}
+
 func (dec *Decoder) decodeDataMessageAMF0(msg *Message) error {
 	d := amf0.NewDecoder(dec.r)
 	var body DataMessageAMF0
@@ -104,6 +152,26 @@ func (dec *Decoder) decodeDataMessageAMF0(msg *Message) error {
 	*msg = &body
 
 	return nil
+}
+
+func (dec *Decoder) decodeSharedObjectMessageAMF0(msg *Message) error {
+	return fmt.Errorf("Not implemented: DataMessageAMF0")
+}
+
+func (dec *Decoder) decodeCommandMessageAMF0(msg *Message) error {
+	d := amf0.NewDecoder(dec.r)
+	var body CommandMessageAMF0
+	if err := dec.decodeCommandMessage(d, &body.CommandMessage); err != nil {
+		return err
+	}
+
+	*msg = &body
+
+	return nil
+}
+
+func (dec *Decoder) decodeAggregateMessage(msg *Message) error {
+	return fmt.Errorf("Not implemented: AggregateMessage")
 }
 
 // TODO: support amf3
@@ -138,22 +206,6 @@ func (dec *Decoder) decodeDataMessage(d *amf0.Decoder, dataMsg *DataMessage) err
 		Name: name,
 		Data: data,
 	}
-
-	return nil
-}
-
-func (dec *Decoder) decodeCommandMessageAMF3(msg *Message) error {
-	return fmt.Errorf("Not implemented: CommandMessageAMF3")
-}
-
-func (dec *Decoder) decodeCommandMessageAMF0(msg *Message) error {
-	d := amf0.NewDecoder(dec.r)
-	var body CommandMessageAMF0
-	if err := dec.decodeCommandMessage(d, &body.CommandMessage); err != nil {
-		return err
-	}
-
-	*msg = &body
 
 	return nil
 }

@@ -29,6 +29,10 @@ func NewEncoder(w io.Writer) *Encoder {
 // Encode
 func (enc *Encoder) Encode(msg Message) error {
 	switch msg := msg.(type) {
+	case *SetChunkSize:
+		return enc.encodeSetChunkSize(msg)
+	case *AbortMessage:
+		return enc.encodeAbortMessage(msg)
 	case *Ack:
 		return enc.encodeAck(msg)
 	case *UserCtrl:
@@ -41,11 +45,31 @@ func (enc *Encoder) Encode(msg Message) error {
 		return enc.encodeAudioMessage(msg)
 	case *VideoMessage:
 		return enc.encodeVideoMessage(msg)
+	case *DataMessageAMF3:
+		return enc.encodeDataMessageAMF3(msg)
+	case *SharedObjectMessageAMF3:
+		return enc.encodeSharedObjectMessageAMF3(msg)
+	case *CommandMessageAMF3:
+		return enc.encodeCommandMessageAMF3(msg)
+	case *DataMessageAMF0:
+		return enc.encodeDataMessageAMF0(msg)
+	case *SharedObjectMessageAMF0:
+		return enc.encodeSharedObjectMessageAMF0(msg)
 	case *CommandMessageAMF0:
 		return enc.encodeCommandMessageAMF0(msg)
+	case *AggregateMessage:
+		return enc.encodeAggregateMessage(msg)
 	default:
 		return fmt.Errorf("Unexpected message type(encode): ID = %d, Type = %+v", msg.TypeID(), reflect.TypeOf(msg))
 	}
+}
+
+func (enc *Encoder) encodeSetChunkSize(m *SetChunkSize) error {
+	return fmt.Errorf("Not implemented: SetChunkSize")
+}
+
+func (enc *Encoder) encodeAbortMessage(m *AbortMessage) error {
+	return fmt.Errorf("Not implemented: AbortMessage")
 }
 
 func (enc *Encoder) encodeAck(m *Ack) error {
@@ -99,6 +123,26 @@ func (enc *Encoder) encodeVideoMessage(m *VideoMessage) error {
 	return nil
 }
 
+func (enc *Encoder) encodeDataMessageAMF3(m *DataMessageAMF3) error {
+	return fmt.Errorf("Not implemented: DataMessageAMF3")
+}
+
+func (enc *Encoder) encodeSharedObjectMessageAMF3(m *SharedObjectMessageAMF3) error {
+	return fmt.Errorf("Not implemented: SharedObjectMessageAMF3")
+}
+
+func (enc *Encoder) encodeCommandMessageAMF3(m *CommandMessageAMF3) error {
+	return fmt.Errorf("Not implemented: CommandMessageAMF3")
+}
+
+func (enc *Encoder) encodeDataMessageAMF0(m *DataMessageAMF0) error {
+	return fmt.Errorf("Not implemented: DataMessageAMF0")
+}
+
+func (enc *Encoder) encodeSharedObjectMessageAMF0(m *SharedObjectMessageAMF0) error {
+	return fmt.Errorf("Not implemented: SharedObjectMessageAMF0")
+}
+
 // TODO: support amf3
 func (enc *Encoder) encodeCommandMessageAMF0(m *CommandMessageAMF0) error {
 	amfEnc := amf0.NewEncoder(enc.w)
@@ -125,4 +169,8 @@ func (enc *Encoder) encodeCommandMessageAMF0(m *CommandMessageAMF0) error {
 	}
 
 	return nil
+}
+
+func (enc *Encoder) encodeAggregateMessage(m *AggregateMessage) error {
+	return fmt.Errorf("Not implemented: AggregateMessage")
 }

@@ -22,7 +22,7 @@ const (
 	TypeIDSharedObjectMessageAMF3        = 16
 	TypeIDCommandMessageAMF3             = 17
 	TypeIDDataMessageAMF0                = 18
-	TypeIDSharedObjectMessageAMF0        = 16
+	TypeIDSharedObjectMessageAMF0        = 19
 	TypeIDCommandMessageAMF0             = 20
 	TypeIDAggregateMessage               = 22
 )
