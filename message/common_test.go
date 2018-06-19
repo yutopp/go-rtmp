@@ -16,6 +16,17 @@ type testCase struct {
 
 var testCases = []testCase{
 	testCase{
+		Name:   "SetChunkSize",
+		TypeID: TypeIDSetChunkSize,
+		Value: &SetChunkSize{
+			ChunkSize: 1024,
+		},
+		Binary: []byte{
+			// ChunkSize 1024 (31bit, BigEndian)
+			0x00, 0x00, 0x04, 0x00,
+		},
+	},
+	testCase{
 		Name:   "Ack",
 		TypeID: TypeIDAck,
 		Value: &Ack{

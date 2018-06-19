@@ -65,7 +65,18 @@ func (enc *Encoder) Encode(msg Message) error {
 }
 
 func (enc *Encoder) encodeSetChunkSize(m *SetChunkSize) error {
-	return fmt.Errorf("Not implemented: SetChunkSize")
+	if m.ChunkSize < 1 || m.ChunkSize > 0x7fffffff {
+		return fmt.Errorf("Invalid format: chunk size is out of range [1, 0x80000000)")
+	}
+
+	buf := make([]byte, 4)
+	binary.BigEndian.PutUint32(buf, m.ChunkSize&0x7fffffff) // 0b0111,1111...
+
+	if _, err := enc.w.Write(buf); err != nil { // TODO: length check
+		return err
+	}
+
+	return nil
 }
 
 func (enc *Encoder) encodeAbortMessage(m *AbortMessage) error {

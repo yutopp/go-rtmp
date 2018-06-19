@@ -68,7 +68,29 @@ func (dec *Decoder) Decode(msg *Message) error {
 }
 
 func (dec *Decoder) decodeSetChunkSize(msg *Message) error {
-	return fmt.Errorf("Not implemented: SetChunkSize")
+	buf := make([]byte, 4)
+	if _, err := io.ReadAtLeast(dec.r, buf, 4); err != nil {
+		return err
+	}
+
+	total := binary.BigEndian.Uint32(buf)
+
+	bit := (total & 0x80000000) >> 31 // 0b1000,0000... >> 31
+	chunkSize := total & 0x7fffffff   // 0b0111,1111...
+
+	if bit != 0 {
+		return fmt.Errorf("Invalid format: bit must be 0")
+	}
+
+	if chunkSize == 0 {
+		return fmt.Errorf("Invalid format: chunk size is 0")
+	}
+
+	*msg = &SetChunkSize{
+		ChunkSize: chunkSize,
+	}
+
+	return nil
 }
 
 func (dec *Decoder) decodeAbortMessage(msg *Message) error {
