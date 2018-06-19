@@ -14,7 +14,7 @@ vet:
 	go vet $$(go list ./... | grep -v /vendor/)
 
 test:
-	go test -cover ./...
+	go test -cover -v -race ./...
 
 dep-init:
 	dep ensure
