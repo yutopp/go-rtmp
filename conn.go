@@ -62,7 +62,12 @@ func (c *Conn) Serve() error {
 
 	// StreamID 0 is default NetConnection stream
 	const DefaultNetConnectionStreamID = 0
-	if err := c.createStream(DefaultNetConnectionStreamID, &netConnectionMessageHandler{conn: c}); err != nil {
+	if err := c.createStream(DefaultNetConnectionStreamID, &netConnectionMessageHandler{
+		conn: c,
+		defaultHandler: &commonMessageHandler{
+			conn: c,
+		},
+	}); err != nil {
 		return err
 	}
 

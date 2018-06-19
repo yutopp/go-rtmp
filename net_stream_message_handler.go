@@ -37,8 +37,9 @@ const (
 //       | _ -> self
 //
 type netStreamMessageHandler struct {
-	conn  *Conn
-	state netStreamState
+	conn           *Conn
+	state          netStreamState
+	defaultHandler streamHandler
 }
 
 func (h *netStreamMessageHandler) Handle(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
@@ -67,8 +68,8 @@ func (h *netStreamMessageHandler) handleAction(chunkStreamID int, timestamp uint
 		goto handleCommand
 
 	default:
-		log.Printf("Unexpected message(netStream): Message = %+v, State = %d", msg, h.state)
-		return nil
+		log.Printf("Message unhandled(netStream): Message = %+v, State = %d", msg, h.state)
+		return h.defaultHandler.Handle(chunkStreamID, timestamp, msg, stream)
 	}
 
 handleCommand:
@@ -116,7 +117,7 @@ func (h *netStreamMessageHandler) handlePublisher(chunkStreamID int, timestamp u
 	case *message.VideoMessage:
 		return h.conn.handler.OnVideo(timestamp, msg.Payload)
 	default:
-		log.Printf("Unexpected message(netStream): Message = %+v, State = %d", msg, h.state)
-		return nil
+		log.Printf("Message unhandled(netStream): Message = %+v, State = %d", msg, h.state)
+		return h.defaultHandler.Handle(chunkStreamID, timestamp, msg, stream)
 	}
 }

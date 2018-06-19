@@ -20,6 +20,7 @@ import (
 )
 
 const MaxChunkSize = 0xffffff // 5.4.1
+const DefaultChunkSize = 128
 
 type ChunkStreamer struct {
 	r    *ChunkStreamerReader
@@ -30,7 +31,8 @@ type ChunkStreamer struct {
 
 	writerSched *chunkStreamerWriterSched
 
-	chunkSize uint32
+	readChunkSize  uint32
+	writeChunkSize uint32
 
 	windowSize uint32
 	limitType  message.LimitType
@@ -49,14 +51,16 @@ func NewChunkStreamer(bufr *bufio.Reader, bufw *bufio.Writer) *ChunkStreamer {
 		},
 		bufw: bufw,
 
-		chunkSize: 128, // TODO fix
-		readers:   make(map[int]*ChunkStreamReader),
-		writers:   make(map[int]*ChunkStreamWriter),
+		readers: make(map[int]*ChunkStreamReader),
+		writers: make(map[int]*ChunkStreamWriter),
 
 		writerSched: &chunkStreamerWriterSched{
 			isActive: make(chan bool, 1),
 			writers:  make(map[int]*ChunkStreamWriter),
 		},
+
+		readChunkSize:  DefaultChunkSize,
+		writeChunkSize: DefaultChunkSize,
 
 		windowSize: 100, // TODO: fix
 		limitType:  message.LimitTypeHard,
@@ -135,6 +139,16 @@ func (cs *ChunkStreamer) Sched(writer *ChunkStreamWriter) error {
 	return cs.writerSched.sched(writer)
 }
 
+func (cs *ChunkStreamer) SetReadChunkSize(chunkSize uint32) error {
+	if chunkSize > MaxChunkSize {
+		chunkSize = MaxChunkSize
+	}
+
+	cs.readChunkSize = chunkSize
+
+	return nil
+}
+
 func (cs *ChunkStreamer) Close() error {
 	return nil
 }
@@ -187,8 +201,8 @@ func (cs *ChunkStreamer) readChunk() (bool, *ChunkStreamReader, error) {
 		panic("invalid state") // TODO fix
 	}
 
-	if uint32(expectLen) > cs.chunkSize {
-		expectLen = int(cs.chunkSize)
+	if uint32(expectLen) > cs.readChunkSize {
+		expectLen = int(cs.readChunkSize)
 	}
 	log.Printf("(READ) Length = %d", expectLen)
 
@@ -216,8 +230,8 @@ func (cs *ChunkStreamer) writeChunk(writer *ChunkStreamWriter) (bool, error) {
 	//log.Printf("(WRITE) Buffer: %+v", writer.buf.Bytes())
 
 	expectLen := writer.buf.Len()
-	if uint32(expectLen) > cs.chunkSize {
-		expectLen = int(cs.chunkSize)
+	if uint32(expectLen) > cs.writeChunkSize {
+		expectLen = int(cs.writeChunkSize)
 	}
 
 	if err := encodeChunkBasicHeader(cs.bufw, &writer.basicHeader); err != nil {

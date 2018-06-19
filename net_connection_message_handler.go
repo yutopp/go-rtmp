@@ -13,10 +13,6 @@ import (
 	"github.com/yutopp/go-rtmp/message"
 )
 
-type streamHandler interface {
-	Handle(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error
-}
-
 var _ streamHandler = (*netConnectionMessageHandler)(nil)
 
 type netConnectionState uint8
@@ -36,8 +32,9 @@ const (
 //       | _ -> self
 //
 type netConnectionMessageHandler struct {
-	conn  *Conn
-	state netConnectionState
+	conn           *Conn
+	state          netConnectionState
+	defaultHandler streamHandler
 }
 
 func (h *netConnectionMessageHandler) Handle(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
@@ -66,8 +63,8 @@ func (h *netConnectionMessageHandler) handleConnect(chunkStreamID int, timestamp
 		goto handleCommand
 
 	default:
-		log.Printf("Unexpected message(netConnection): Message = %+v, State = %d", msg, h.state)
-		return nil
+		log.Printf("Message unhandled(netConnection): Message = %+v, State = %d", msg, h.state)
+		return h.defaultHandler.Handle(chunkStreamID, timestamp, msg, stream)
 	}
 
 handleCommand:
@@ -148,8 +145,8 @@ func (h *netConnectionMessageHandler) handleCreateStream(chunkStreamID int, time
 		goto handleCommand
 
 	default:
-		log.Printf("Unexpected message(netConnection): Message = %+v, State = %d", msg, h.state)
-		return nil
+		log.Printf("Message unhandled(netConnection): Message = %+v, State = %d", msg, h.state)
+		return h.defaultHandler.Handle(chunkStreamID, timestamp, msg, stream)
 	}
 
 handleCommand:
@@ -159,7 +156,8 @@ handleCommand:
 
 		// Create a stream which handles NetStream(publish, play, etc...)
 		streamID, err := h.conn.createStreamIfAvailable(&netStreamMessageHandler{
-			conn: h.conn,
+			conn:           h.conn,
+			defaultHandler: h.defaultHandler,
 		})
 		if err != nil {
 			// TODO: send failed _result
@@ -190,18 +188,4 @@ handleCommand:
 		log.Printf("Unexpected command(netConnection): Command = %+v, State = %d", cmdMsg, h.state)
 		return nil
 	}
-}
-
-type amfWrapperFunc func(callback func(cmd *message.CommandMessage)) message.Message
-
-func amf0Wrapper(callback func(cmd *message.CommandMessage)) message.Message {
-	var m message.CommandMessageAMF0
-	callback(&m.CommandMessage)
-	return &m
-}
-
-func amf3Wrapper(callback func(cmd *message.CommandMessage)) message.Message {
-	var m message.CommandMessageAMF3
-	callback(&m.CommandMessage)
-	return &m
 }
