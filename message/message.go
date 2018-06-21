@@ -81,9 +81,9 @@ func (m *WinAckSize) TypeID() TypeID {
 type LimitType uint8
 
 const (
-	LimitTypeHard LimitType = 0
-	LimitTypeSoft
-	LimitTypeDynamic
+	LimitTypeHard    LimitType = 0
+	LimitTypeSoft              = 1
+	LimitTypeDynamic           = 2
 )
 
 type SetPeerBandwidth struct {

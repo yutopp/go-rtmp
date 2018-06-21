@@ -122,7 +122,9 @@ func (enc *Encoder) encodeSetPeerBandwidth(m *SetPeerBandwidth) error {
 	binary.BigEndian.PutUint32(buf, m.Size) // [0:4]
 	buf[4] = byte(m.Limit)
 
-	enc.w.Write(buf) // TODO: error check
+	if _, err := enc.w.Write(buf); err != nil { // TODO: length check
+		return err
+	}
 
 	return nil
 }

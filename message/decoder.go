@@ -143,7 +143,20 @@ func (dec *Decoder) decodeWinAckSize(msg *Message) error {
 }
 
 func (dec *Decoder) decodeSetPeerBandwidth(msg *Message) error {
-	return fmt.Errorf("Not implemented: SetPeerBandwidth")
+	buf := make([]byte, 5)
+	if _, err := io.ReadAtLeast(dec.r, buf, 5); err != nil {
+		return err
+	}
+
+	size := binary.BigEndian.Uint32(buf[0:4])
+	limit := LimitType(buf[4])
+
+	*msg = &SetPeerBandwidth{
+		Size:  size,
+		Limit: limit,
+	}
+
+	return nil
 }
 
 func (dec *Decoder) decodeAudioMessage(msg *Message) error {

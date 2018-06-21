@@ -61,6 +61,20 @@ var testCases = []testCase{
 		},
 	},
 	testCase{
+		Name:   "SetPeerBandwidth",
+		TypeID: TypeIDSetPeerBandwidth,
+		Value: &SetPeerBandwidth{
+			Size:  1024,
+			Limit: LimitTypeSoft,
+		},
+		Binary: []byte{
+			// Size 1024 (32bit, BigEndian)
+			0x00, 0x00, 0x04, 0x00,
+			// Limit Type 1(LimitTypeSoft, 8bit)
+			0x01,
+		},
+	},
+	testCase{
 		Name:   "AudioMessage",
 		TypeID: TypeIDAudioMessage,
 		Value: &AudioMessage{
