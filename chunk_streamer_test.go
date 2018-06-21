@@ -241,3 +241,28 @@ func TestStreamerChunkExample1(t *testing.T) {
 		})
 	}
 }
+
+func TestWriteToInvalidWriter(t *testing.T) {
+	buf := bytes.NewBuffer(make([]byte, 0, 2048))
+	inbuf := bufio.NewReaderSize(buf, 2048)
+
+	streamer := NewChunkStreamer(inbuf, &AlwaysErrorWriter{})
+
+	// Write some data
+	chunkStreamID := 10
+	timestamp := uint32(0)
+	err := streamer.Write(chunkStreamID, timestamp, &StreamFragment{
+		StreamID: 0,
+		Message:  &message.Ack{},
+	})
+	assert.Nil(t, err)
+
+	<-streamer.Done()
+	assert.EqualErrorf(t, streamer.Err(), "Always error!", "")
+}
+
+type AlwaysErrorWriter struct{}
+
+func (w *AlwaysErrorWriter) Write(buf []byte) (int, error) {
+	return 0, fmt.Errorf("Always error!")
+}

@@ -11,7 +11,6 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/pkg/errors"
-	"log"
 	"net"
 
 	"github.com/yutopp/go-rtmp/handshake"
@@ -38,19 +37,17 @@ func NewConn(rwc net.Conn, handler Handler) *Conn {
 	}
 }
 
-func (c *Conn) Serve() error {
+func (c *Conn) Serve() (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err, ok := r.(error)
+			errTmp, ok := r.(error)
 			if !ok {
-				err = errors.Errorf("Panic message: %+v", r)
+				errTmp = errors.Errorf("Panic: %+v", r)
 			}
-			err = errors.WithStack(err)
-			// TODO: fix
-			log.Printf("Panic: %+v", err)
+			err = errors.WithStack(errTmp)
 		}
 	}()
-	defer c.rwc.Close()
+	defer c.Close()
 
 	if err := handshake.HandshakeWithClient(c.rwc, c.rwc); err != nil {
 		return err
@@ -75,15 +72,26 @@ func (c *Conn) Serve() error {
 
 	var streamFragment StreamFragment
 	for {
-		chunkStreamID, timestamp, err := c.streamer.Read(&streamFragment)
-		if err != nil {
-			return err
-		}
+		select {
+		case <-c.streamer.Done():
+			return c.streamer.Err()
 
-		if err := c.handleStreamFragment(chunkStreamID, timestamp, &streamFragment); err != nil {
-			return err
+		default:
+			chunkStreamID, timestamp, err := c.streamer.Read(&streamFragment)
+			if err != nil {
+				return err
+			}
+
+			if err := c.handleStreamFragment(chunkStreamID, timestamp, &streamFragment); err != nil {
+				return err
+			}
 		}
 	}
+}
+
+func (c *Conn) Close() error {
+	_ = c.streamer.Close()
+	return c.rwc.Close()
 }
 
 func (c *Conn) handleStreamFragment(chunkStreamID int, timestamp uint32, sf *StreamFragment) error {

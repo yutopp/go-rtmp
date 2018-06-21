@@ -8,16 +8,16 @@
 package rtmp
 
 import (
-	"bufio"
+	"io"
 )
 
 type ChunkStreamerReader struct {
-	bufr           *bufio.Reader
+	reader         io.Reader
 	totalReadBytes uint64
 }
 
 func (r *ChunkStreamerReader) Read(b []byte) (int, error) {
-	n, err := r.bufr.Read(b)
+	n, err := r.reader.Read(b)
 	r.totalReadBytes += uint64(n)
 	return n, err
 }

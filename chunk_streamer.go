@@ -8,9 +8,8 @@
 package rtmp
 
 import (
-	"bufio"
 	"bytes"
-	"errors"
+	"github.com/pkg/errors"
 	"io"
 	"log"
 	"math"
@@ -23,8 +22,8 @@ const MaxChunkSize = 0xffffff // 5.4.1
 const DefaultChunkSize = 128
 
 type ChunkStreamer struct {
-	r    *ChunkStreamerReader
-	bufw *bufio.Writer
+	r *ChunkStreamerReader
+	w *ChunkStreamerWriter
 
 	readers map[int]*ChunkStreamReader
 	writers map[int]*ChunkStreamWriter
@@ -41,15 +40,20 @@ type ChunkStreamer struct {
 	peerWindowSize uint32
 	peerLimitType  message.LimitType
 
+	err  error
+	done chan (interface{})
+
 	netConnectionWriter func(chunkStreamID int, timestamp uint32, msg message.Message) error
 }
 
-func NewChunkStreamer(bufr *bufio.Reader, bufw *bufio.Writer) *ChunkStreamer {
+func NewChunkStreamer(r io.Reader, w io.Writer) *ChunkStreamer {
 	cs := &ChunkStreamer{
 		r: &ChunkStreamerReader{
-			bufr: bufr,
+			reader: r,
 		},
-		bufw: bufw,
+		w: &ChunkStreamerWriter{
+			writer: w,
+		},
 
 		readers: make(map[int]*ChunkStreamReader),
 		writers: make(map[int]*ChunkStreamWriter),
@@ -66,6 +70,8 @@ func NewChunkStreamer(bufr *bufio.Reader, bufw *bufio.Writer) *ChunkStreamer {
 		limitType:  message.LimitTypeHard,
 
 		peerWindowSize: math.MaxUint32,
+
+		done: make(chan interface{}),
 	}
 	cs.writerSched.streamer = cs
 	go cs.schedWriteLoop()
@@ -147,6 +153,14 @@ func (cs *ChunkStreamer) SetReadChunkSize(chunkSize uint32) error {
 	cs.readChunkSize = chunkSize
 
 	return nil
+}
+
+func (cs *ChunkStreamer) Done() <-chan interface{} {
+	return cs.done
+}
+
+func (cs *ChunkStreamer) Err() error {
+	return cs.err
 }
 
 func (cs *ChunkStreamer) Close() error {
@@ -234,17 +248,17 @@ func (cs *ChunkStreamer) writeChunk(writer *ChunkStreamWriter) (bool, error) {
 		expectLen = int(cs.writeChunkSize)
 	}
 
-	if err := encodeChunkBasicHeader(cs.bufw, &writer.basicHeader); err != nil {
+	if err := encodeChunkBasicHeader(cs.w, &writer.basicHeader); err != nil {
 		return false, err
 	}
-	if err := encodeChunkMessageHeader(cs.bufw, writer.basicHeader.fmt, &writer.messageHeader); err != nil {
+	if err := encodeChunkMessageHeader(cs.w, writer.basicHeader.fmt, &writer.messageHeader); err != nil {
 		return false, err
 	}
 
-	if _, err := io.CopyN(cs.bufw, writer, int64(expectLen)); err != nil {
+	if _, err := io.CopyN(cs.w, writer, int64(expectLen)); err != nil {
 		return false, err
 	}
-	if err := cs.bufw.Flush(); err != nil {
+	if err := cs.w.Flush(); err != nil {
 		return false, err
 	}
 
@@ -287,10 +301,8 @@ func (cs *ChunkStreamer) updateWriterHeader(writer *ChunkStreamWriter) {
 }
 
 func (cs *ChunkStreamer) schedWriteLoop() {
-	// TODO: error handling
-	if err := cs.writerSched.run(); err != nil {
-		log.Panicf("ERR: %+v", err)
-	}
+	defer close(cs.done)
+	cs.err = cs.writerSched.run()
 }
 
 func (cs *ChunkStreamer) prepareChunkReader(chunkStreamID int) *ChunkStreamReader {
@@ -370,12 +382,23 @@ func (sched *chunkStreamerWriterSched) unSched(writer *ChunkStreamWriter) error 
 	return nil
 }
 
-func (sched *chunkStreamerWriterSched) run() error {
+func (sched *chunkStreamerWriterSched) run() (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			errTmp, ok := r.(error)
+			if !ok {
+				errTmp = errors.Errorf("Panic: %+v", r)
+			}
+			err = errors.WithStack(errTmp)
+		}
+	}()
+
 	for {
 		select {
 		case <-sched.isActive:
-			if err := sched.runActives(); err != nil {
-				return err
+			err = sched.runActives()
+			if err != nil {
+				return
 			}
 		}
 	}
