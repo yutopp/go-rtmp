@@ -37,7 +37,6 @@ var testCases = []testCase{
 			0x00, 0x00, 0x04, 0x00,
 		},
 	},
-
 	testCase{
 		Name:   "Ack",
 		TypeID: TypeIDAck,
@@ -46,6 +45,18 @@ var testCases = []testCase{
 		},
 		Binary: []byte{
 			// SequenceNumber 1024 (32bit, BigEndian)
+			0x00, 0x00, 0x04, 0x00,
+		},
+	},
+	// TODO: UserCtrl
+	testCase{
+		Name:   "WinAckSize",
+		TypeID: TypeIDWinAckSize,
+		Value: &WinAckSize{
+			Size: 1024,
+		},
+		Binary: []byte{
+			// Size 1024 (32bit, BigEndian)
 			0x00, 0x00, 0x04, 0x00,
 		},
 	},

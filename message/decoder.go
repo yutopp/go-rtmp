@@ -128,7 +128,18 @@ func (dec *Decoder) decodeUserCtrl(msg *Message) error {
 }
 
 func (dec *Decoder) decodeWinAckSize(msg *Message) error {
-	return fmt.Errorf("Not implemented: WinAckSize")
+	buf := make([]byte, 4)
+	if _, err := io.ReadAtLeast(dec.r, buf, 4); err != nil {
+		return err
+	}
+
+	size := binary.BigEndian.Uint32(buf)
+
+	*msg = &WinAckSize{
+		Size: size,
+	}
+
+	return nil
 }
 
 func (dec *Decoder) decodeSetPeerBandwidth(msg *Message) error {

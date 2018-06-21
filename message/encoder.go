@@ -110,7 +110,9 @@ func (enc *Encoder) encodeWinAckSize(m *WinAckSize) error {
 	buf := make([]byte, 4)
 	binary.BigEndian.PutUint32(buf, m.Size) // [0:4]
 
-	enc.w.Write(buf) // TODO: error check
+	if _, err := enc.w.Write(buf); err != nil { // TODO: length check
+		return err
+	}
 
 	return nil
 }
