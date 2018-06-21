@@ -20,7 +20,7 @@ type commonMessageHandler struct {
 func (h *commonMessageHandler) Handle(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
 	switch msg := msg.(type) {
 	case *message.SetChunkSize:
-		return h.conn.streamer.SetReadChunkSize(msg.ChunkSize)
+		return h.conn.streamer.SetPeerChunkSize(msg.ChunkSize)
 
 	case *message.WinAckSize:
 		return h.conn.streamer.SetPeerWinAckSize(msg.Size)

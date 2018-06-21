@@ -149,7 +149,7 @@ func (cs *ChunkStreamer) Sched(writer *ChunkStreamWriter) error {
 	return cs.writerSched.sched(writer)
 }
 
-func (cs *ChunkStreamer) SetReadChunkSize(chunkSize uint32) error {
+func (cs *ChunkStreamer) SetPeerChunkSize(chunkSize uint32) error {
 	if chunkSize > MaxChunkSize {
 		chunkSize = MaxChunkSize
 	}
