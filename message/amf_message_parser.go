@@ -8,7 +8,6 @@
 package message
 
 import (
-	"errors"
 	"log"
 )
 
@@ -29,10 +28,6 @@ func parseAMFMessage(d AMFDecoder, name string, v *AMFConvertible) error {
 
 		*v = &data
 
-	case "@setDataFrame":
-		// TODO: implement
-		log.Println("Ignored data message: @setDataFrame")
-
 	case "connect":
 		var object map[string]interface{}
 		if err := d.Decode(&object); err != nil {
@@ -46,9 +41,6 @@ func parseAMFMessage(d AMFDecoder, name string, v *AMFConvertible) error {
 		}
 
 		*v = &cmd
-
-	case "releaseStream":
-		log.Printf("ignored releaseStream")
 
 	case "createStream":
 		var object interface{}
@@ -84,15 +76,17 @@ func parseAMFMessage(d AMFDecoder, name string, v *AMFConvertible) error {
 		}
 		*v = &cmd
 
-	case "FCPublish":
-		log.Printf("Ignored FCPublish")
-
-	case "_result":
-		// TODO: implement
-		log.Println("Ignored _result")
-
 	default:
-		return errors.New("Not supported amf packed message: " + name)
+		objs := make([]interface{}, 0)
+		for {
+			var tmp interface{}
+			if err := d.Decode(&tmp); err != nil {
+				break
+			}
+			objs = append(objs, tmp)
+		}
+		log.Printf("Ignored unknown amf packed message: Name = %s, Objs = %+v", name, objs)
+		return nil
 	}
 
 	return nil
