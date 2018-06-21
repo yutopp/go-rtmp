@@ -142,12 +142,23 @@ func TestChunkBasicHeader(t *testing.T) {
 }
 
 func TestChunkBasicHeaderError(t *testing.T) {
-	buf := new(bytes.Buffer)
-	err := encodeChunkBasicHeader(buf, &chunkBasicHeader{
-		fmt:           3,
-		chunkStreamID: 65600,
+	t.Run("Out of range(over)", func(t *testing.T) {
+		buf := new(bytes.Buffer)
+		err := encodeChunkBasicHeader(buf, &chunkBasicHeader{
+			fmt:           3,
+			chunkStreamID: 65600,
+		})
+		assert.EqualError(t, err, "Chunk stream id is out of range: 65600 must be in range [2, 65599]")
 	})
-	assert.NotNil(t, err)
+
+	t.Run("Out of range(under)", func(t *testing.T) {
+		buf := new(bytes.Buffer)
+		err := encodeChunkBasicHeader(buf, &chunkBasicHeader{
+			fmt:           3,
+			chunkStreamID: 1,
+		})
+		assert.EqualError(t, err, "Chunk stream id is out of range: 1 must be in range [2, 65599]")
+	})
 }
 
 func TestChunkMessageHeader(t *testing.T) {

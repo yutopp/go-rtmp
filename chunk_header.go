@@ -74,7 +74,7 @@ func encodeChunkBasicHeader(w io.Writer, mh *chunkBasicHeader) error {
 		return err
 
 	default:
-		return fmt.Errorf("Chunk stream id exceeded limits: %d > 65599", mh.chunkStreamID)
+		return fmt.Errorf("Chunk stream id is out of range: %d must be in range [2, 65599]", mh.chunkStreamID)
 	}
 }
 
