@@ -94,7 +94,18 @@ func (dec *Decoder) decodeSetChunkSize(msg *Message) error {
 }
 
 func (dec *Decoder) decodeAbortMessage(msg *Message) error {
-	return fmt.Errorf("Not implemented: AbortMessage")
+	buf := make([]byte, 4)
+	if _, err := io.ReadAtLeast(dec.r, buf, 4); err != nil {
+		return err
+	}
+
+	chunkStreamID := binary.BigEndian.Uint32(buf)
+
+	*msg = &AbortMessage{
+		ChunkStreamID: chunkStreamID,
+	}
+
+	return nil
 }
 
 func (dec *Decoder) decodeAck(msg *Message) error {

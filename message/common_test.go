@@ -22,10 +22,22 @@ var testCases = []testCase{
 			ChunkSize: 1024,
 		},
 		Binary: []byte{
-			// ChunkSize 1024 (31bit, BigEndian)
+			// ChunkSize 1024 (*31bit*, BigEndian)
 			0x00, 0x00, 0x04, 0x00,
 		},
 	},
+	testCase{
+		Name:   "AbortMessage",
+		TypeID: TypeIDAbortMessage,
+		Value: &AbortMessage{
+			ChunkStreamID: 1024,
+		},
+		Binary: []byte{
+			// ChunkStreamID 1024 (32bit, BigEndian)
+			0x00, 0x00, 0x04, 0x00,
+		},
+	},
+
 	testCase{
 		Name:   "Ack",
 		TypeID: TypeIDAck,

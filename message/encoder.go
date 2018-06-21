@@ -80,7 +80,14 @@ func (enc *Encoder) encodeSetChunkSize(m *SetChunkSize) error {
 }
 
 func (enc *Encoder) encodeAbortMessage(m *AbortMessage) error {
-	return fmt.Errorf("Not implemented: AbortMessage")
+	buf := make([]byte, 4)
+	binary.BigEndian.PutUint32(buf, m.ChunkStreamID) // [0:4]
+
+	if _, err := enc.w.Write(buf); err != nil { // TODO: length check
+		return err
+	}
+
+	return nil
 }
 
 func (enc *Encoder) encodeAck(m *Ack) error {
