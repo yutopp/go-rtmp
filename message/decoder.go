@@ -10,7 +10,6 @@ package message
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -21,12 +20,16 @@ import (
 type Decoder struct {
 	r      io.Reader
 	typeID TypeID
+
+	amfMessageParser amfMessageParserFunc
 }
 
 func NewDecoder(r io.Reader, typeID TypeID) *Decoder {
 	return &Decoder{
 		r:      r,
 		typeID: typeID,
+
+		amfMessageParser: parseAMFMessage,
 	}
 }
 
@@ -192,7 +195,7 @@ func (dec *Decoder) decodeDataMessageAMF3(msg *Message) error {
 }
 
 func (dec *Decoder) decodeSharedObjectMessageAMF3(msg *Message) error {
-	return fmt.Errorf("Not implemented: DataMessageAMF3")
+	return fmt.Errorf("Not implemented: SharedObjectMessageAMF3")
 }
 
 func (dec *Decoder) decodeCommandMessageAMF3(msg *Message) error {
@@ -201,6 +204,7 @@ func (dec *Decoder) decodeCommandMessageAMF3(msg *Message) error {
 
 func (dec *Decoder) decodeDataMessageAMF0(msg *Message) error {
 	d := amf0.NewDecoder(dec.r)
+
 	var body DataMessageAMF0
 	if err := dec.decodeDataMessage(d, &body.DataMessage); err != nil {
 		return err
@@ -212,11 +216,12 @@ func (dec *Decoder) decodeDataMessageAMF0(msg *Message) error {
 }
 
 func (dec *Decoder) decodeSharedObjectMessageAMF0(msg *Message) error {
-	return fmt.Errorf("Not implemented: DataMessageAMF0")
+	return fmt.Errorf("Not implemented: SharedObjectMessageAMF0")
 }
 
 func (dec *Decoder) decodeCommandMessageAMF0(msg *Message) error {
 	d := amf0.NewDecoder(dec.r)
+
 	var body CommandMessageAMF0
 	if err := dec.decodeCommandMessage(d, &body.CommandMessage); err != nil {
 		return err
@@ -231,33 +236,19 @@ func (dec *Decoder) decodeAggregateMessage(msg *Message) error {
 	return fmt.Errorf("Not implemented: AggregateMessage")
 }
 
-// TODO: support amf3
-func (dec *Decoder) decodeDataMessage(d *amf0.Decoder, dataMsg *DataMessage) error {
+func (dec *Decoder) decodeDataMessage(d AMFDecoder, dataMsg *DataMessage) error {
 	var name string
 	if err := d.Decode(&name); err != nil {
 		return err
 	}
-	log.Printf("name = %+v", name)
+	log.Printf("(data1) name = %+v", name)
 
-	var data interface{}
-	switch name {
-	case "onMetaData":
-		var metadata map[string]interface{}
-		if err := d.Decode(&metadata); err != nil {
-			return err
-		}
-		log.Printf("onMetaData: metadata = %+v", metadata)
-		data = &NetStreamOnMetaData{
-			MetaData: metadata,
-		}
-
-	case "@setDataFrame":
-		// TODO: implement
-		log.Println("Ignored data message: @setDataFrame")
-
-	default:
-		return errors.New("Not supported data message: " + name)
+	var data AMFConvertible
+	if err := dec.amfMessageParser(d, name, &data); err != nil {
+		return err
 	}
+
+	log.Printf("(data2) name = %+v", name)
 
 	*dataMsg = DataMessage{
 		Name: name,
@@ -267,8 +258,7 @@ func (dec *Decoder) decodeDataMessage(d *amf0.Decoder, dataMsg *DataMessage) err
 	return nil
 }
 
-// TODO: support amf3
-func (dec *Decoder) decodeCommandMessage(d *amf0.Decoder, cmdMsg *CommandMessage) error {
+func (dec *Decoder) decodeCommandMessage(d AMFDecoder, cmdMsg *CommandMessage) error {
 	var name string
 	if err := d.Decode(&name); err != nil {
 		return err
@@ -282,74 +272,15 @@ func (dec *Decoder) decodeCommandMessage(d *amf0.Decoder, cmdMsg *CommandMessage
 
 	log.Printf("transactionID = %+v", transactionID)
 
-	var args AMFConvertible
-	switch name {
-	case "connect":
-		var object map[string]interface{}
-		if err := d.Decode(&object); err != nil {
-			return err
-		}
-		log.Printf("command: object = %+v", object)
-
-		var cmd NetConnectionConnect
-		if err := cmd.FromArgs(object); err != nil {
-			return err
-		}
-
-		args = &cmd
-
-	case "releaseStream":
-		log.Printf("ignored releaseStream")
-
-	case "createStream":
-		var object interface{}
-		if err := d.Decode(&object); err != nil {
-			return err
-		}
-		log.Printf("createStream: object = %+v", object)
-
-		var cmd NetConnectionCreateStream
-		if err := cmd.FromArgs(object); err != nil {
-			return err
-		}
-
-		args = &cmd
-
-	case "publish":
-		var commandObject interface{}
-		if err := d.Decode(&commandObject); err != nil {
-			return err
-		}
-		var publishingName string
-		if err := d.Decode(&publishingName); err != nil {
-			return err
-		}
-		var publishingType string
-		if err := d.Decode(&publishingType); err != nil {
-			return err
-		}
-
-		var cmd NetStreamPublish
-		if err := cmd.FromArgs(commandObject, publishingName, publishingType); err != nil {
-			return err
-		}
-		args = &cmd
-
-	case "FCPublish":
-		log.Printf("Ignored FCPublish")
-
-	case "_result":
-		// TODO: implement
-		log.Println("Ignored _result")
-
-	default:
-		return errors.New("Not supported command: " + name)
+	var cmd AMFConvertible
+	if err := dec.amfMessageParser(d, name, &cmd); err != nil {
+		return err
 	}
 
 	*cmdMsg = CommandMessage{
 		CommandName:   name,
 		TransactionID: transactionID,
-		Command:       args,
+		Command:       cmd,
 	}
 
 	return nil

@@ -10,6 +10,7 @@ package message
 import (
 	"bytes"
 	"github.com/stretchr/testify/assert"
+	"log"
 	"testing"
 )
 
@@ -25,10 +26,17 @@ func TestDecodeCommon(t *testing.T) {
 
 			buf := bytes.NewBuffer(bin)
 			dec := NewDecoder(buf, tc.TypeID)
+			dec.amfMessageParser = mockedParseAMFMessage
+
 			var msg Message
 			err := dec.Decode(&msg)
 			assert.Nil(t, err)
 			assert.Equal(t, tc.Value, msg)
 		})
 	}
+}
+
+func mockedParseAMFMessage(d AMFDecoder, name string, v *AMFConvertible) error {
+	log.Printf("mockmock: %s", name)
+	return nil
 }

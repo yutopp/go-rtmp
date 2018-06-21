@@ -116,7 +116,7 @@ func (m *VideoMessage) TypeID() TypeID {
 // DataMessage (15, 18)
 type DataMessage struct {
 	Name string
-	Data interface{}
+	Data AMFConvertible
 }
 
 type DataMessageAMF3 struct {

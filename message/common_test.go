@@ -90,8 +90,30 @@ var testCases = []testCase{
 		},
 		Binary: []byte("video data"),
 	},
+	// TODO: DataMessageAMF3
+	// TODO: TypeIDSharedObjectMessageAMF3
+	// TODO: TypeIDCommandMessageAMF3
 	testCase{
-		Name:   "",
+		Name:   "DataMessageAMF0",
+		TypeID: TypeIDDataMessageAMF0,
+		Value: &DataMessageAMF0{
+			DataMessage: DataMessage{
+				Name: "test",
+				Data: nil,
+			},
+		},
+		Binary: []byte{
+			// Name: AMF0 / string marker
+			0x02,
+			// Name: AMF0 / string Length 4
+			0x00, 0x04,
+			// Name: AMF0 / "test" string
+			0x74, 0x65, 0x73, 0x74,
+		},
+	},
+	// TODO: TypeIDSharedObjectMessageAMF0
+	testCase{
+		Name:   "CommandMessageAMF0",
 		TypeID: TypeIDCommandMessageAMF0,
 		Value: &CommandMessageAMF0{
 			CommandMessage: CommandMessage{
@@ -113,4 +135,5 @@ var testCases = []testCase{
 			0x40, 0x24, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		},
 	},
+	// TODO: TypeIDAggregateMessage
 }

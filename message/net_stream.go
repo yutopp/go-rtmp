@@ -55,5 +55,15 @@ func (t *NetStreamOnStatus) ToArgs() ([]interface{}, error) {
 
 //
 type NetStreamOnMetaData struct {
-	MetaData map[string]interface{} // TODO: to more detailed data
+	RawFields map[string]interface{} // TODO: to more detailed data
+}
+
+func (t *NetStreamOnMetaData) FromArgs(args ...interface{}) error {
+	t.RawFields = args[0].(map[string]interface{})
+
+	return nil
+}
+
+func (t *NetStreamOnMetaData) ToArgs() ([]interface{}, error) {
+	panic("Not implemented")
 }

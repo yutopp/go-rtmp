@@ -18,11 +18,15 @@ import (
 
 type Encoder struct {
 	w io.Writer
+
+	amfMessageComposer amfMessageComposerFunc
 }
 
 func NewEncoder(w io.Writer) *Encoder {
 	return &Encoder{
 		w: w,
+
+		amfMessageComposer: composeAMFMessage,
 	}
 }
 
@@ -158,41 +162,46 @@ func (enc *Encoder) encodeCommandMessageAMF3(m *CommandMessageAMF3) error {
 }
 
 func (enc *Encoder) encodeDataMessageAMF0(m *DataMessageAMF0) error {
-	return fmt.Errorf("Not implemented: DataMessageAMF0")
+	e := amf0.NewEncoder(enc.w)
+	return enc.encodeDataMessage(e, &m.DataMessage)
 }
 
 func (enc *Encoder) encodeSharedObjectMessageAMF0(m *SharedObjectMessageAMF0) error {
 	return fmt.Errorf("Not implemented: SharedObjectMessageAMF0")
 }
 
-// TODO: support amf3
 func (enc *Encoder) encodeCommandMessageAMF0(m *CommandMessageAMF0) error {
-	amfEnc := amf0.NewEncoder(enc.w)
-	if err := amfEnc.Encode(m.CommandName); err != nil {
-		return err
-	}
-	if err := amfEnc.Encode(m.TransactionID); err != nil {
-		return err
-	}
+	e := amf0.NewEncoder(enc.w)
+	return enc.encodeCommandMessage(e, &m.CommandMessage)
+}
 
-	if m.Command == nil {
-		return nil // Do nothing
-	}
+func (enc *Encoder) encodeAggregateMessage(m *AggregateMessage) error {
+	return fmt.Errorf("Not implemented: AggregateMessage")
+}
 
-	args, err := m.Command.ToArgs()
-	if err != nil {
+func (enc *Encoder) encodeDataMessage(e AMFEncoder, dataMsg *DataMessage) error {
+	if err := e.Encode(dataMsg.Name); err != nil {
 		return err
 	}
 
-	for _, arg := range args {
-		if err := amfEnc.Encode(arg); err != nil {
-			return err
-		}
+	if err := enc.amfMessageComposer(e, dataMsg.Data); err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func (enc *Encoder) encodeAggregateMessage(m *AggregateMessage) error {
-	return fmt.Errorf("Not implemented: AggregateMessage")
+func (enc *Encoder) encodeCommandMessage(e AMFEncoder, cmdMsg *CommandMessage) error {
+	if err := e.Encode(cmdMsg.CommandName); err != nil {
+		return err
+	}
+	if err := e.Encode(cmdMsg.TransactionID); err != nil {
+		return err
+	}
+
+	if err := enc.amfMessageComposer(e, cmdMsg.Command); err != nil {
+		return err
+	}
+
+	return nil
 }

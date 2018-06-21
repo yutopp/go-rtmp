@@ -11,3 +11,11 @@ type AMFConvertible interface {
 	FromArgs(args ...interface{}) error
 	ToArgs() ([]interface{}, error)
 }
+
+type AMFEncoder interface {
+	Encode(interface{}) error
+}
+
+type AMFDecoder interface {
+	Decode(interface{}) error
+}
