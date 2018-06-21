@@ -21,6 +21,15 @@ import (
 const MaxChunkSize = 0xffffff // 5.4.1
 const DefaultChunkSize = 128
 
+type streamState struct {
+	chunkSize  uint32
+	windowSize uint32
+
+	// TODO: bandwidth
+	// windowSize uint32
+	// limitType  message.LimitType
+}
+
 type ChunkStreamer struct {
 	r *ChunkStreamerReader
 	w *ChunkStreamerWriter
@@ -30,15 +39,9 @@ type ChunkStreamer struct {
 
 	writerSched *chunkStreamerWriterSched
 
-	readChunkSize  uint32
-	writeChunkSize uint32
-
-	windowSize uint32
-	limitType  message.LimitType
-	lastAck    uint32
-
-	peerWindowSize uint32
-	peerLimitType  message.LimitType
+	selfState streamState
+	peerState streamState
+	lastAck   uint32
 
 	err  error
 	done chan (interface{})
@@ -63,13 +66,14 @@ func NewChunkStreamer(r io.Reader, w io.Writer) *ChunkStreamer {
 			writers:  make(map[int]*ChunkStreamWriter),
 		},
 
-		readChunkSize:  DefaultChunkSize,
-		writeChunkSize: DefaultChunkSize,
-
-		windowSize: 100, // TODO: fix
-		limitType:  message.LimitTypeHard,
-
-		peerWindowSize: math.MaxUint32,
+		selfState: streamState{
+			chunkSize:  DefaultChunkSize,
+			windowSize: math.MaxUint32,
+		},
+		peerState: streamState{
+			chunkSize:  DefaultChunkSize,
+			windowSize: math.MaxUint32,
+		},
 
 		done: make(chan interface{}),
 	}
@@ -121,7 +125,7 @@ again:
 	if err != nil {
 		return nil, err
 	}
-	if cs.r.totalReadBytes > uint64(cs.peerWindowSize/2) { // TODO: fix size
+	if cs.r.totalReadBytes > uint64(cs.peerState.windowSize/2) { // TODO: fix size
 		if err := cs.sendAck(); err != nil {
 			return nil, err
 		}
@@ -150,7 +154,13 @@ func (cs *ChunkStreamer) SetReadChunkSize(chunkSize uint32) error {
 		chunkSize = MaxChunkSize
 	}
 
-	cs.readChunkSize = chunkSize
+	cs.peerState.chunkSize = chunkSize
+
+	return nil
+}
+
+func (cs *ChunkStreamer) SetPeerWinAckSize(size uint32) error {
+	cs.peerState.windowSize = size
 
 	return nil
 }
@@ -215,8 +225,8 @@ func (cs *ChunkStreamer) readChunk() (bool, *ChunkStreamReader, error) {
 		panic("invalid state") // TODO fix
 	}
 
-	if uint32(expectLen) > cs.readChunkSize {
-		expectLen = int(cs.readChunkSize)
+	if uint32(expectLen) > cs.peerState.chunkSize {
+		expectLen = int(cs.peerState.chunkSize)
 	}
 	log.Printf("(READ) Length = %d", expectLen)
 
@@ -244,8 +254,8 @@ func (cs *ChunkStreamer) writeChunk(writer *ChunkStreamWriter) (bool, error) {
 	//log.Printf("(WRITE) Buffer: %+v", writer.buf.Bytes())
 
 	expectLen := writer.buf.Len()
-	if uint32(expectLen) > cs.writeChunkSize {
-		expectLen = int(cs.writeChunkSize)
+	if uint32(expectLen) > cs.selfState.chunkSize {
+		expectLen = int(cs.selfState.chunkSize)
 	}
 
 	if err := encodeChunkBasicHeader(cs.w, &writer.basicHeader); err != nil {

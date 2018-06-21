@@ -78,7 +78,7 @@ handleCommand:
 
 		// TODO: fix
 		if err := stream.Write(chunkStreamID, timestamp, &message.WinAckSize{
-			Size: h.conn.streamer.windowSize,
+			Size: h.conn.streamer.selfState.windowSize,
 		}); err != nil {
 			return err
 		}

@@ -22,6 +22,9 @@ func (h *commonMessageHandler) Handle(chunkStreamID int, timestamp uint32, msg m
 	case *message.SetChunkSize:
 		return h.conn.streamer.SetReadChunkSize(msg.ChunkSize)
 
+	case *message.WinAckSize:
+		return h.conn.streamer.SetPeerWinAckSize(msg.Size)
+
 	default:
 		log.Printf("Unexpected message(common): Message = %+v", msg)
 		return nil
