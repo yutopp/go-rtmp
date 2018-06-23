@@ -15,19 +15,6 @@ type amfMessageParserFunc func(d AMFDecoder, name string, v *AMFConvertible) err
 
 func parseAMFMessage(d AMFDecoder, name string, v *AMFConvertible) error {
 	switch name {
-	case "onMetaData":
-		var metadata map[string]interface{}
-		if err := d.Decode(&metadata); err != nil {
-			return err
-		}
-
-		var data NetStreamOnMetaData
-		if err := data.FromArgs(metadata); err != nil {
-			return err
-		}
-
-		*v = &data
-
 	case "connect":
 		var object map[string]interface{}
 		if err := d.Decode(&object); err != nil {
@@ -55,6 +42,37 @@ func parseAMFMessage(d AMFDecoder, name string, v *AMFConvertible) error {
 		}
 
 		*v = &cmd
+
+	case "onMetaData":
+		var metadata map[string]interface{}
+		if err := d.Decode(&metadata); err != nil {
+			return err
+		}
+
+		var data NetStreamOnMetaData
+		if err := data.FromArgs(metadata); err != nil {
+			return err
+		}
+
+		*v = &data
+
+	case "deleteStream":
+		var unknownArg0 interface{} // maybe nil
+		if err := d.Decode(&unknownArg0); err != nil {
+			return err
+		}
+
+		var streamID uint32
+		if err := d.Decode(&streamID); err != nil {
+			return err
+		}
+
+		var data NetStreamDeleteStream
+		if err := data.FromArgs(unknownArg0, streamID); err != nil {
+			return err
+		}
+
+		*v = &data
 
 	case "publish":
 		var commandObject interface{}

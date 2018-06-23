@@ -67,3 +67,19 @@ func (t *NetStreamOnMetaData) FromArgs(args ...interface{}) error {
 func (t *NetStreamOnMetaData) ToArgs() ([]interface{}, error) {
 	panic("Not implemented")
 }
+
+//
+type NetStreamDeleteStream struct {
+	StreamID uint32
+}
+
+func (t *NetStreamDeleteStream) FromArgs(args ...interface{}) error {
+	// args[0] is unknown, ignore
+	t.StreamID = args[1].(uint32)
+
+	return nil
+}
+
+func (t *NetStreamDeleteStream) ToArgs() ([]interface{}, error) {
+	panic("Not implemented")
+}
