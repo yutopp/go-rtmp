@@ -20,6 +20,12 @@
   version = "v1.0.0"
 
 [[projects]]
+  name = "github.com/sirupsen/logrus"
+  packages = ["."]
+  revision = "c155da19408a8799da419ed3eeb0cb5db0ad5dbc"
+  version = "v1.0.5"
+
+[[projects]]
   name = "github.com/stretchr/testify"
   packages = ["assert"]
   revision = "f35b8ab0b5a2cef36673838d662e249dd9c94686"
@@ -34,12 +40,24 @@
 [[projects]]
   branch = "master"
   name = "github.com/yutopp/go-flv"
-  packages = [".","tag"]
+  packages = ["tag"]
   revision = "ad3c32361ad14336ef85ebd80c7744fefde42683"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/crypto"
+  packages = ["ssh/terminal"]
+  revision = "a49355c7e3f8fe157a85be2f77e6e269a0f89602"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/sys"
+  packages = ["unix","windows"]
+  revision = "63fc586f45fe72d95d5240a5d5eb95e6503907d3"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0372f8a1d76906ed4c669cddc8132d3ff37e89a122648bd149f507e30998665f"
+  inputs-digest = "36f6f9e7546772483d493eb77d242d1d5d0d88e54450db473a99b8494ca3f1a8"
   solver-name = "gps-cdcl"
   solver-version = 1
