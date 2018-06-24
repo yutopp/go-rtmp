@@ -8,47 +8,49 @@
 package rtmp
 
 import (
-	"log"
+	"github.com/sirupsen/logrus"
 
 	"github.com/yutopp/go-rtmp/message"
 )
 
-var _ streamHandler = (*netConnectionMessageHandler)(nil)
+var _ streamHandler = (*controlStreamHandler)(nil)
 
-type netConnectionState uint8
+type controlStreamState uint8
 
 const (
-	netConnectionStateNotConnected netConnectionState = iota
-	netConnectionStateConnected
+	controlStreamStateNotConnected controlStreamState = iota
+	controlStreamStateConnected
 )
 
-// netConnectionMessageHandler Handle messages which are categorised as NetConnection.
+// controlStreamHandler Handle messages which are categorised as control messages.
 //   transitions:
-//     = netConnectionStateNotConnected
-//       | "connect" -> netConnectionStateConnected
+//     = controlStreamStateNotConnected
+//       | "connect" -> controlStreamStateConnected
 //       | _         -> self
 //
-//     = netConnectionStateConnected
+//     = controlStreamStateConnected
 //       | _ -> self
 //
-type netConnectionMessageHandler struct {
+type controlStreamHandler struct {
 	conn           *Conn
-	state          netConnectionState
+	state          controlStreamState
 	defaultHandler streamHandler
+
+	logger *logrus.Entry
 }
 
-func (h *netConnectionMessageHandler) Handle(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
+func (h *controlStreamHandler) Handle(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
 	switch h.state {
-	case netConnectionStateNotConnected:
+	case controlStreamStateNotConnected:
 		return h.handleConnect(chunkStreamID, timestamp, msg, stream)
-	case netConnectionStateConnected:
+	case controlStreamStateConnected:
 		return h.handleCreateStream(chunkStreamID, timestamp, msg, stream)
 	default:
 		panic("Unreachable!")
 	}
 }
 
-func (h *netConnectionMessageHandler) handleConnect(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
+func (h *controlStreamHandler) handleConnect(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
 	var cmdMsgWrapper amfWrapperFunc
 	var cmdMsg *message.CommandMessage
 	switch msg := msg.(type) {
@@ -63,14 +65,14 @@ func (h *netConnectionMessageHandler) handleConnect(chunkStreamID int, timestamp
 		goto handleCommand
 
 	default:
-		log.Printf("Message unhandled(netConnection): Message = %+v, State = %d", msg, h.state)
+		h.logger.Printf("Message unhandled(netConnection): Message = %+v, State = %d", msg, h.state)
 		return h.defaultHandler.Handle(chunkStreamID, timestamp, msg, stream)
 	}
 
 handleCommand:
 	switch cmd := cmdMsg.Command.(type) {
 	case *message.NetConnectionConnect:
-		log.Printf("connect: %+v", msg)
+		h.logger.Printf("connect: %+v", msg)
 
 		if err := h.conn.handler.OnConnect(timestamp, cmd); err != nil {
 			return err
@@ -113,24 +115,24 @@ handleCommand:
 				},
 			}
 		})
-		log.Printf("conn: %+v", m.(*message.CommandMessageAMF0).Command)
+		h.logger.Printf("conn: %+v", m.(*message.CommandMessageAMF0).Command)
 		if err := stream.Write(chunkStreamID, timestamp, m); err != nil {
 			return err
 		}
-		log.Printf("connected")
+		h.logger.Printf("connected")
 
-		h.state = netConnectionStateConnected
+		h.state = controlStreamStateConnected
 
 		return nil
 
 	default:
-		log.Printf("Unexpected command(netConnection): Command = %+v, State = %d", cmdMsg, h.state)
+		h.logger.Printf("Unexpected command(netConnection): Command = %+v, State = %d", cmdMsg, h.state)
 		return nil
 	}
 
 }
 
-func (h *netConnectionMessageHandler) handleCreateStream(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
+func (h *controlStreamHandler) handleCreateStream(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
 	var cmdMsgWrapper amfWrapperFunc
 	var cmdMsg *message.CommandMessage
 	switch msg := msg.(type) {
@@ -145,25 +147,28 @@ func (h *netConnectionMessageHandler) handleCreateStream(chunkStreamID int, time
 		goto handleCommand
 
 	default:
-		log.Printf("Message unhandled(netConnection): Message = %+v, State = %d", msg, h.state)
+		h.logger.Printf("Message unhandled(netConnection): Message = %+v, State = %d", msg, h.state)
 		return h.defaultHandler.Handle(chunkStreamID, timestamp, msg, stream)
 	}
 
 handleCommand:
 	switch cmd := cmdMsg.Command.(type) {
 	case *message.NetConnectionCreateStream:
-		log.Printf("Stream creating...: %+v", cmd)
+		h.logger.Printf("Stream creating...: %+v", cmd)
 
-		// Create a stream which handles NetStream(publish, play, etc...)
-		streamID, err := h.conn.createStreamIfAvailable(&netStreamMessageHandler{
+		// Create a stream which handles messages for data(play, publish, video, audio, etc...)
+		handler := &dataStreamHandler{
 			conn:           h.conn,
 			defaultHandler: h.defaultHandler,
-		})
+		}
+		streamID, err := h.conn.createStreamIfAvailable(handler)
 		if err != nil {
 			// TODO: send failed _result
-			log.Printf("Failed to create stream: Err = %+v", err)
+			h.logger.Printf("Failed to create stream: Err = %+v", err)
 			return nil
 		}
+
+		handler.logger = h.logger.WithField("StreamID", streamID)
 
 		// TODO: fix
 		m := cmdMsgWrapper(func(cmsg *message.CommandMessage) {
@@ -180,12 +185,12 @@ handleCommand:
 			return err
 		}
 
-		log.Printf("Stream created: StreamID: %d", streamID)
+		h.logger.Printf("Stream created: StreamID: %d", streamID)
 
 		return nil
 
 	default:
-		log.Printf("Unexpected command(netConnection): Command = %+v, State = %d", cmdMsg, h.state)
+		h.logger.Printf("Unexpected command(netConnection): Command = %+v, State = %d", cmdMsg, h.state)
 		return nil
 	}
 }

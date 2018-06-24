@@ -46,7 +46,7 @@ type ChunkStreamer struct {
 	err  error
 	done chan (interface{})
 
-	netConnectionWriter func(chunkStreamID int, timestamp uint32, msg message.Message) error
+	controlStreamWriter func(chunkStreamID int, timestamp uint32, msg message.Message) error
 }
 
 func NewChunkStreamer(r io.Reader, w io.Writer) *ChunkStreamer {
@@ -347,7 +347,7 @@ func (cs *ChunkStreamer) prepareChunkWriter(chunkStreamID int) *ChunkStreamWrite
 func (cs *ChunkStreamer) sendAck() error {
 	log.Printf("Sending Ack...")
 	// TODO: chunk stream id and fix timestamp
-	return cs.netConnectionWriter(2, 0, &message.Ack{
+	return cs.controlStreamWriter(2, 0, &message.Ack{
 		SequenceNumber: uint32(cs.r.totalReadBytes),
 	})
 }

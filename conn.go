@@ -11,6 +11,7 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"net"
 
 	"github.com/yutopp/go-rtmp/handshake"
@@ -26,6 +27,8 @@ type Conn struct {
 	streams    map[uint32]*Stream
 	maxStreams uint32
 	handler    Handler
+
+	logger *logrus.Logger
 }
 
 func NewConn(rwc net.Conn, handler Handler) *Conn {
@@ -34,6 +37,8 @@ func NewConn(rwc net.Conn, handler Handler) *Conn {
 		handler:    handler,
 		streams:    make(map[uint32]*Stream),
 		maxStreams: 10, // TODO: fix
+
+		logger: logrus.New(), // TODO: fix
 	}
 }
 
@@ -57,18 +62,19 @@ func (c *Conn) Serve() (err error) {
 	c.bufw = bufio.NewWriterSize(c.rwc, 4*1024) // TODO: fix buffer size
 	c.streamer = NewChunkStreamer(c.bufr, c.bufw)
 
-	// StreamID 0 is default NetConnection stream
-	const DefaultNetConnectionStreamID = 0
-	if err := c.createStream(DefaultNetConnectionStreamID, &netConnectionMessageHandler{
+	// StreamID 0 is default control stream
+	const DefaultControlStreamID = 0
+	if err := c.createStream(DefaultControlStreamID, &controlStreamHandler{
 		conn: c,
 		defaultHandler: &commonMessageHandler{
 			conn: c,
 		},
+		logger: c.logger.WithField("StreamID", DefaultControlStreamID),
 	}); err != nil {
 		return err
 	}
 
-	c.streamer.netConnectionWriter = c.streams[DefaultNetConnectionStreamID].Write
+	c.streamer.controlStreamWriter = c.streams[DefaultControlStreamID].Write
 
 	var streamFragment StreamFragment
 	for {

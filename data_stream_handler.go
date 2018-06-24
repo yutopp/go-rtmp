@@ -8,52 +8,54 @@
 package rtmp
 
 import (
-	"log"
+	"github.com/sirupsen/logrus"
 
 	"github.com/yutopp/go-rtmp/message"
 )
 
-var _ streamHandler = (*netStreamMessageHandler)(nil)
+var _ streamHandler = (*dataStreamHandler)(nil)
 
-type netStreamState uint8
+type dataStreamState uint8
 
 const (
-	netStreamStateNotInAction netStreamState = iota
-	netStreamStateHasPublisher
-	netStreamStateHasPlayer
+	dataStreamStateNotInAction dataStreamState = iota
+	dataStreamStateHasPublisher
+	dataStreamStateHasPlayer
 )
 
-// netStreamMessageHandler Handle messages which are categorised as NetStream.
+// dataStreamHandler Handle messages which are categorised as NetStream.
 //   transitions:
-//     = netStreamStateNotInAction
-//       | "publish" -> netStreamStateHasPublisher
-//       | "play"    -> netStreamStateHasPlayer (Not implemented)
+//     = dataStreamStateNotInAction
+//       | "publish" -> dataStreamStateHasPublisher
+//       | "play"    -> dataStreamStateHasPlayer (Not implemented)
 //       | _         -> self
 //
-//     = netStreamStateHasPublisher
+//     = dataStreamStateHasPublisher
 //       | _ -> self
 //
-//     = netStreamStateHasPlayer
+//     = dataStreamStateHasPlayer
 //       | _ -> self
 //
-type netStreamMessageHandler struct {
+type dataStreamHandler struct {
 	conn           *Conn
-	state          netStreamState
+	state          dataStreamState
 	defaultHandler streamHandler
+
+	logger *logrus.Entry
 }
 
-func (h *netStreamMessageHandler) Handle(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
+func (h *dataStreamHandler) Handle(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
 	switch h.state {
-	case netStreamStateNotInAction:
+	case dataStreamStateNotInAction:
 		return h.handleAction(chunkStreamID, timestamp, msg, stream)
-	case netStreamStateHasPublisher:
+	case dataStreamStateHasPublisher:
 		return h.handlePublisher(chunkStreamID, timestamp, msg, stream)
 	default:
 		panic("Unreachable!")
 	}
 }
 
-func (h *netStreamMessageHandler) handleAction(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
+func (h *dataStreamHandler) handleAction(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
 	var cmdMsgWrapper amfWrapperFunc
 	var cmdMsg *message.CommandMessage
 	switch msg := msg.(type) {
@@ -68,14 +70,14 @@ func (h *netStreamMessageHandler) handleAction(chunkStreamID int, timestamp uint
 		goto handleCommand
 
 	default:
-		log.Printf("Message unhandled(netStream): Message = %+v, State = %d", msg, h.state)
+		h.logger.Printf("Message unhandled(netStream): Message = %+v, State = %d", msg, h.state)
 		return h.defaultHandler.Handle(chunkStreamID, timestamp, msg, stream)
 	}
 
 handleCommand:
 	switch cmd := cmdMsg.Command.(type) {
 	case *message.NetStreamPublish:
-		log.Printf("Publisher is comming: %+v", cmd)
+		h.logger.Printf("Publisher is comming: %+v", cmd)
 
 		if err := h.conn.handler.OnPublish(timestamp, cmd); err != nil {
 			return err
@@ -98,26 +100,26 @@ handleCommand:
 		if err := stream.Write(chunkStreamID, timestamp, m); err != nil {
 			return err
 		}
-		log.Printf("Publisher accepted")
+		h.logger.Printf("Publisher accepted")
 
-		h.state = netStreamStateHasPublisher
+		h.state = dataStreamStateHasPublisher
 
 		return nil
 
 	default:
-		log.Printf("Unexpected command(netStream): Command = %+v, State = %d", cmdMsg, h.state)
+		h.logger.Printf("Unexpected command(netStream): Command = %+v, State = %d", cmdMsg, h.state)
 		return nil
 	}
 }
 
-func (h *netStreamMessageHandler) handlePublisher(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
+func (h *dataStreamHandler) handlePublisher(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
 	switch msg := msg.(type) {
 	case *message.AudioMessage:
 		return h.conn.handler.OnAudio(timestamp, msg.Payload)
 	case *message.VideoMessage:
 		return h.conn.handler.OnVideo(timestamp, msg.Payload)
 	default:
-		log.Printf("Message unhandled(netStream): Message = %+v, State = %d", msg, h.state)
+		h.logger.Printf("Message unhandled(netStream): Message = %+v, State = %d", msg, h.state)
 		return h.defaultHandler.Handle(chunkStreamID, timestamp, msg, stream)
 	}
 }
