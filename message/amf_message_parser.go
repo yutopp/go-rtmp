@@ -57,8 +57,8 @@ func parseAMFMessage(d AMFDecoder, name string, v *AMFConvertible) error {
 		*v = &data
 
 	case "deleteStream":
-		var unknownArg0 interface{} // maybe nil
-		if err := d.Decode(&unknownArg0); err != nil {
+		var commandObject interface{} // maybe nil
+		if err := d.Decode(&commandObject); err != nil {
 			return err
 		}
 
@@ -68,7 +68,7 @@ func parseAMFMessage(d AMFDecoder, name string, v *AMFConvertible) error {
 		}
 
 		var data NetStreamDeleteStream
-		if err := data.FromArgs(unknownArg0, streamID); err != nil {
+		if err := data.FromArgs(commandObject, streamID); err != nil {
 			return err
 		}
 
