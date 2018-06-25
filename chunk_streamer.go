@@ -10,8 +10,8 @@ package rtmp
 import (
 	"bytes"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"io"
-	"log"
 	"math"
 	"sync"
 
@@ -47,6 +47,8 @@ type ChunkStreamer struct {
 	done chan (interface{})
 
 	controlStreamWriter func(chunkStreamID int, timestamp uint32, msg message.Message) error
+
+	logger *logrus.Logger
 }
 
 func NewChunkStreamer(r io.Reader, w io.Writer) *ChunkStreamer {
@@ -76,6 +78,8 @@ func NewChunkStreamer(r io.Reader, w io.Writer) *ChunkStreamer {
 		},
 
 		done: make(chan interface{}),
+
+		logger: logrus.StandardLogger(),
 	}
 	cs.writerSched.streamer = cs
 	go cs.schedWriteLoop()
@@ -183,13 +187,13 @@ func (cs *ChunkStreamer) readChunk() (bool, *ChunkStreamReader, error) {
 	if err := decodeChunkBasicHeader(cs.r, &bh); err != nil {
 		return false, nil, err
 	}
-	log.Printf("(READ) BasicHeader = %+v", bh)
+	cs.logger.Debugf("(READ) BasicHeader = %+v", bh)
 
 	var mh chunkMessageHeader
 	if err := decodeChunkMessageHeader(cs.r, bh.fmt, &mh); err != nil {
 		return false, nil, err
 	}
-	log.Printf("(READ) MessageHeader = %+v", mh)
+	cs.logger.Debugf("(READ) MessageHeader = %+v", mh)
 
 	reader := cs.prepareChunkReader(bh.chunkStreamID)
 	reader.basicHeader = bh
@@ -218,7 +222,7 @@ func (cs *ChunkStreamer) readChunk() (bool, *ChunkStreamReader, error) {
 		panic("unsupported chunk") // TODO: fix
 	}
 
-	log.Printf("(READ) MessageLength = %d, Current = %d", reader.messageLength, reader.buf.Len())
+	cs.logger.Debugf("(READ) MessageLength = %d, Current = %d", reader.messageLength, reader.buf.Len())
 
 	expectLen := int(reader.messageLength) - reader.buf.Len()
 	if expectLen <= 0 {
@@ -228,13 +232,13 @@ func (cs *ChunkStreamer) readChunk() (bool, *ChunkStreamReader, error) {
 	if uint32(expectLen) > cs.peerState.chunkSize {
 		expectLen = int(cs.peerState.chunkSize)
 	}
-	log.Printf("(READ) Length = %d", expectLen)
+	cs.logger.Debugf("(READ) Length = %d", expectLen)
 
 	_, err := io.CopyN(reader.buf, cs.r, int64(expectLen))
 	if err != nil {
 		return false, nil, err
 	}
-	//log.Printf("(READ) Buffer: %+v", reader.buf.Bytes())
+	//cs.logger.Debugf("(READ) Buffer: %+v", reader.buf.Bytes())
 
 	if int(reader.messageLength)-reader.buf.Len() != 0 {
 		// fragmented
@@ -250,8 +254,8 @@ func (cs *ChunkStreamer) readChunk() (bool, *ChunkStreamReader, error) {
 func (cs *ChunkStreamer) writeChunk(writer *ChunkStreamWriter) (bool, error) {
 	cs.updateWriterHeader(writer)
 
-	log.Printf("(WRITE) Headers: Basic = %+v / Message = %+v", writer.basicHeader, writer.messageHeader)
-	//log.Printf("(WRITE) Buffer: %+v", writer.buf.Bytes())
+	cs.logger.Debugf("(WRITE) Headers: Basic = %+v / Message = %+v", writer.basicHeader, writer.messageHeader)
+	//cs.logger.Debugf("(WRITE) Buffer: %+v", writer.buf.Bytes())
 
 	expectLen := writer.buf.Len()
 	if uint32(expectLen) > cs.selfState.chunkSize {
@@ -345,7 +349,7 @@ func (cs *ChunkStreamer) prepareChunkWriter(chunkStreamID int) *ChunkStreamWrite
 }
 
 func (cs *ChunkStreamer) sendAck() error {
-	log.Printf("Sending Ack...")
+	cs.logger.Infof("Sending Ack...")
 	// TODO: chunk stream id and fix timestamp
 	return cs.controlStreamWriter(2, 0, &message.Ack{
 		SequenceNumber: uint32(cs.r.totalReadBytes),

@@ -61,6 +61,7 @@ func (c *Conn) Serve() (err error) {
 	c.bufr = bufio.NewReaderSize(c.rwc, 4*1024) // TODO: fix buffer size
 	c.bufw = bufio.NewWriterSize(c.rwc, 4*1024) // TODO: fix buffer size
 	c.streamer = NewChunkStreamer(c.bufr, c.bufw)
+	c.streamer.logger = c.logger
 
 	// StreamID 0 is default control stream
 	const DefaultControlStreamID = 0
