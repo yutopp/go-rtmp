@@ -78,10 +78,13 @@ func main() {
 		log.Panicf("Failed: %+v", err)
 	}
 
-	srv := &rtmp.Server{}
-	if err := srv.Serve(listner, func() rtmp.Handler {
-		return &Handler{}
-	}); err != nil {
+	srv := rtmp.NewServer(&rtmp.ServerConfig{
+		HandlerFactory: func() rtmp.Handler {
+			return &Handler{}
+		},
+		Conn: nil,
+	})
+	if err := srv.Serve(listner); err != nil {
 		log.Panicf("Failed: %+v", err)
 	}
 }

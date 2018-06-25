@@ -20,25 +20,41 @@ import (
 // Server Connection
 // TODO: rename or add prefix (Server/Client)
 type Conn struct {
-	rwc        net.Conn
-	bufr       *bufio.Reader
-	bufw       *bufio.Writer
-	streamer   *ChunkStreamer
-	streams    map[uint32]*Stream
-	maxStreams uint32
-	handler    Handler
+	rwc      net.Conn
+	bufr     *bufio.Reader
+	bufw     *bufio.Writer
+	streamer *ChunkStreamer
+	streams  map[uint32]*Stream
+	handler  Handler
 
+	config *ConnConfig
 	logger *logrus.Logger
 }
 
-func NewConn(rwc net.Conn, handler Handler) *Conn {
-	return &Conn{
-		rwc:        rwc,
-		handler:    handler,
-		streams:    make(map[uint32]*Stream),
-		maxStreams: 10, // TODO: fix
+type ConnConfig struct {
+	MaxStreams uint32
 
-		logger: logrus.New(), // TODO: fix
+	Logger *logrus.Logger
+}
+
+var defaultConfig = &ConnConfig{
+	MaxStreams: 10,
+
+	Logger: logrus.StandardLogger(),
+}
+
+func NewConn(rwc net.Conn, handler Handler, config *ConnConfig) *Conn {
+	if config == nil {
+		config = defaultConfig
+	}
+
+	return &Conn{
+		rwc:     rwc,
+		handler: handler,
+		streams: make(map[uint32]*Stream),
+
+		config: config,
+		logger: config.Logger,
 	}
 }
 
@@ -133,14 +149,14 @@ func (c *Conn) createStream(streamID uint32, handler streamHandler) error {
 }
 
 func (c *Conn) createStreamIfAvailable(handler streamHandler) (uint32, error) {
-	for i := uint32(0); i < c.maxStreams; i++ {
+	for i := uint32(0); i < c.config.MaxStreams; i++ {
 		if err := c.createStream(i, handler); err != nil {
 			continue
 		}
 		return i, nil
 	}
 
-	return 0, fmt.Errorf("Creating streams limit exceeded: Limit = %d", c.maxStreams)
+	return 0, fmt.Errorf("Creating streams limit exceeded: Limit = %d", c.config.MaxStreams)
 }
 
 // TODO: implement

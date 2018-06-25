@@ -13,9 +13,21 @@ import (
 )
 
 type Server struct {
+	config *ServerConfig
 }
 
-func (srv *Server) Serve(l net.Listener, handherFactory HandlerFactory) error {
+type ServerConfig struct {
+	HandlerFactory
+	Conn *ConnConfig
+}
+
+func NewServer(config *ServerConfig) *Server {
+	return &Server{
+		config: config,
+	}
+}
+
+func (srv *Server) Serve(l net.Listener) error {
 	defer l.Close()
 
 	for {
@@ -24,7 +36,7 @@ func (srv *Server) Serve(l net.Listener, handherFactory HandlerFactory) error {
 			continue
 		}
 
-		c := srv.newConn(rwc, handherFactory())
+		c := srv.newConn(rwc, srv.config.HandlerFactory(), srv.config.Conn)
 		go func() {
 			// TODO: fix
 			if err := c.Serve(); err != nil {
@@ -34,8 +46,8 @@ func (srv *Server) Serve(l net.Listener, handherFactory HandlerFactory) error {
 	}
 }
 
-func (srv *Server) newConn(rwc net.Conn, handler Handler) *Conn {
-	conn := NewConn(rwc, handler)
+func (srv *Server) newConn(rwc net.Conn, handler Handler, config *ConnConfig) *Conn {
+	conn := NewConn(rwc, handler, config)
 
 	return conn
 }
