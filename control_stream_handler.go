@@ -189,6 +189,18 @@ handleCommand:
 
 		return nil
 
+	case *message.NetStreamDeleteStream:
+		h.logger.Infof("Stream deleteing...: StreamID = %d", cmd.StreamID)
+		if err := h.conn.deleteStream(cmd.StreamID); err != nil {
+			return err
+		}
+
+		// server does not send any response(7.2.2.3)
+
+		h.logger.Printf("Stream deleted: StreamID: %d", cmd.StreamID)
+
+		return nil
+
 	default:
 		h.logger.Printf("Unexpected command(netConnection): Command = %+v, State = %d", cmdMsg, h.state)
 		return nil
