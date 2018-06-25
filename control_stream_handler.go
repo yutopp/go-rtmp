@@ -36,7 +36,7 @@ type controlStreamHandler struct {
 	state          controlStreamState
 	defaultHandler streamHandler
 
-	logger *logrus.Entry
+	logger *logrus.Logger
 }
 
 func (h *controlStreamHandler) Handle(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
@@ -51,6 +51,12 @@ func (h *controlStreamHandler) Handle(chunkStreamID int, timestamp uint32, msg m
 }
 
 func (h *controlStreamHandler) handleConnect(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
+	l := h.logger.WithFields(logrus.Fields{
+		"stream_id": stream.streamID,
+		"state":     h.state,
+		"handler":   "control",
+	})
+
 	var cmdMsgWrapper amfWrapperFunc
 	var cmdMsg *message.CommandMessage
 	switch msg := msg.(type) {
@@ -65,14 +71,14 @@ func (h *controlStreamHandler) handleConnect(chunkStreamID int, timestamp uint32
 		goto handleCommand
 
 	default:
-		h.logger.Printf("Message unhandled(netConnection): Message = %+v, State = %d", msg, h.state)
+		l.Info("Message unhandled: Msg = %+v", msg)
 		return h.defaultHandler.Handle(chunkStreamID, timestamp, msg, stream)
 	}
 
 handleCommand:
 	switch cmd := cmdMsg.Command.(type) {
 	case *message.NetConnectionConnect:
-		h.logger.Printf("connect: %+v", msg)
+		l.Info("Connect")
 
 		if err := h.conn.handler.OnConnect(timestamp, cmd); err != nil {
 			return err
@@ -115,24 +121,31 @@ handleCommand:
 				},
 			}
 		})
-		h.logger.Printf("conn: %+v", m.(*message.CommandMessageAMF0).Command)
+		l.Infof("Conn: %+v", m.(*message.CommandMessageAMF0).Command)
+
 		if err := stream.Write(chunkStreamID, timestamp, m); err != nil {
 			return err
 		}
-		h.logger.Printf("connected")
+		l.Info("Connected")
 
 		h.state = controlStreamStateConnected
 
 		return nil
 
 	default:
-		h.logger.Printf("Unexpected command(netConnection): Command = %+v, State = %d", cmdMsg, h.state)
+		l.Infof("Unexpected command: Command = %+v", cmdMsg)
 		return nil
 	}
 
 }
 
 func (h *controlStreamHandler) handleCreateStream(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
+	l := h.logger.WithFields(logrus.Fields{
+		"stream_id": stream.streamID,
+		"state":     h.state,
+		"handler":   "control",
+	})
+
 	var cmdMsgWrapper amfWrapperFunc
 	var cmdMsg *message.CommandMessage
 	switch msg := msg.(type) {
@@ -147,28 +160,27 @@ func (h *controlStreamHandler) handleCreateStream(chunkStreamID int, timestamp u
 		goto handleCommand
 
 	default:
-		h.logger.Printf("Message unhandled(netConnection): Message = %+v, State = %d", msg, h.state)
+		l.Infof("Message unhandled: Msg = %+v", msg)
 		return h.defaultHandler.Handle(chunkStreamID, timestamp, msg, stream)
 	}
 
 handleCommand:
 	switch cmd := cmdMsg.Command.(type) {
 	case *message.NetConnectionCreateStream:
-		h.logger.Printf("Stream creating...: %+v", cmd)
+		l.Infof("Stream creating...: %+v", cmd)
 
 		// Create a stream which handles messages for data(play, publish, video, audio, etc...)
-		handler := &dataStreamHandler{
+		streamID, err := h.conn.createStreamIfAvailable(&dataStreamHandler{
 			conn:           h.conn,
 			defaultHandler: h.defaultHandler,
-		}
-		streamID, err := h.conn.createStreamIfAvailable(handler)
+			logger:         h.logger,
+		})
 		if err != nil {
 			// TODO: send failed _result
-			h.logger.Printf("Failed to create stream: Err = %+v", err)
+			l.Errorf("Stream creating...: Err = %+v", err)
+
 			return nil
 		}
-
-		handler.logger = h.logger.WithField("StreamID", streamID)
 
 		// TODO: fix
 		m := cmdMsgWrapper(func(cmsg *message.CommandMessage) {
@@ -185,24 +197,25 @@ handleCommand:
 			return err
 		}
 
-		h.logger.Printf("Stream created: StreamID: %d", streamID)
+		l.Infof("Stream created...: NewStreamID = %d", streamID)
 
 		return nil
 
 	case *message.NetStreamDeleteStream:
-		h.logger.Infof("Stream deleteing...: StreamID = %d", cmd.StreamID)
+		l.Infof("Stream deleting...: TargetStreamID = %d", cmd.StreamID)
+
 		if err := h.conn.deleteStream(cmd.StreamID); err != nil {
 			return err
 		}
 
 		// server does not send any response(7.2.2.3)
 
-		h.logger.Printf("Stream deleted: StreamID: %d", cmd.StreamID)
+		l.Infof("Stream deleted: TargetStreamID = %d", cmd.StreamID)
 
 		return nil
 
 	default:
-		h.logger.Printf("Unexpected command(netConnection): Command = %+v, State = %d", cmdMsg, h.state)
+		l.Infof("Unexpected command: Command = %+v", cmdMsg)
 		return nil
 	}
 }

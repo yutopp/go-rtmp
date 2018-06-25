@@ -69,7 +69,7 @@ func (c *Conn) Serve() (err error) {
 		defaultHandler: &commonMessageHandler{
 			conn: c,
 		},
-		logger: c.logger.WithField("StreamID", DefaultControlStreamID),
+		logger: c.logger,
 	}); err != nil {
 		return err
 	}

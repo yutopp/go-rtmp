@@ -41,7 +41,7 @@ type dataStreamHandler struct {
 	state          dataStreamState
 	defaultHandler streamHandler
 
-	logger *logrus.Entry
+	logger *logrus.Logger
 }
 
 func (h *dataStreamHandler) Handle(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
@@ -56,6 +56,12 @@ func (h *dataStreamHandler) Handle(chunkStreamID int, timestamp uint32, msg mess
 }
 
 func (h *dataStreamHandler) handleAction(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
+	l := h.logger.WithFields(logrus.Fields{
+		"stream_id": stream.streamID,
+		"state":     h.state,
+		"handler":   "data",
+	})
+
 	var cmdMsgWrapper amfWrapperFunc
 	var cmdMsg *message.CommandMessage
 	switch msg := msg.(type) {
@@ -70,14 +76,14 @@ func (h *dataStreamHandler) handleAction(chunkStreamID int, timestamp uint32, ms
 		goto handleCommand
 
 	default:
-		h.logger.Printf("Message unhandled(netStream): Message = %+v, State = %d", msg, h.state)
+		l.Infof("Message unhandled: Msg = %+v", msg)
 		return h.defaultHandler.Handle(chunkStreamID, timestamp, msg, stream)
 	}
 
 handleCommand:
 	switch cmd := cmdMsg.Command.(type) {
 	case *message.NetStreamPublish:
-		h.logger.Printf("Publisher is comming: %+v", cmd)
+		l.Infof("Publisher is comming: %+v", cmd)
 
 		if err := h.conn.handler.OnPublish(timestamp, cmd); err != nil {
 			return err
@@ -100,26 +106,34 @@ handleCommand:
 		if err := stream.Write(chunkStreamID, timestamp, m); err != nil {
 			return err
 		}
-		h.logger.Printf("Publisher accepted")
+		l.Infof("Publisher accepted")
 
 		h.state = dataStreamStateHasPublisher
 
 		return nil
 
 	default:
-		h.logger.Printf("Unexpected command(netStream): Command = %+v, State = %d", cmdMsg, h.state)
+		l.Infof("Unexpected command: Command = %+v", cmdMsg)
 		return nil
 	}
 }
 
 func (h *dataStreamHandler) handlePublisher(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
+	l := h.logger.WithFields(logrus.Fields{
+		"stream_id": stream.streamID,
+		"state":     h.state,
+		"handler":   "data",
+	})
+
 	switch msg := msg.(type) {
 	case *message.AudioMessage:
 		return h.conn.handler.OnAudio(timestamp, msg.Payload)
+
 	case *message.VideoMessage:
 		return h.conn.handler.OnVideo(timestamp, msg.Payload)
+
 	default:
-		h.logger.Printf("Message unhandled(netStream): Message = %+v, State = %d", msg, h.state)
+		l.Infof("Message unhandled: Msg = %+v", msg)
 		return h.defaultHandler.Handle(chunkStreamID, timestamp, msg, stream)
 	}
 }
