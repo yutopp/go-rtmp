@@ -38,10 +38,10 @@
   revision = "17cedd46b508c2a54f8e1c06b106fd44c8b5d5ee"
 
 [[projects]]
-  branch = "master"
   name = "github.com/yutopp/go-flv"
   packages = ["tag"]
-  revision = "ad3c32361ad14336ef85ebd80c7744fefde42683"
+  revision = "a6198afba551448b23d8060023a31fd50dc1c315"
+  version = "v0.1.0"
 
 [[projects]]
   branch = "master"
@@ -53,7 +53,7 @@
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix","windows"]
-  revision = "63fc586f45fe72d95d5240a5d5eb95e6503907d3"
+  revision = "c4afb3effaa53fd9a06ca61262dc7ce8df4c081b"
 
 [solve-meta]
   analyzer-name = "dep"
