@@ -30,7 +30,8 @@ func (h *Handler) OnPlay(timestamp uint32, args []interface{}) error {
 
 func (h *Handler) OnAudio(timestamp uint32, payload []byte) error {
 	buf := bytes.NewBuffer(payload)
-	audio, err := flvtag.DecodeAudioData(buf)
+	audio := &flvtag.AudioData{}
+	err := flvtag.DecodeAudioData(buf, audio)
 	if err != nil {
 		return err
 	}
@@ -50,7 +51,8 @@ func (h *Handler) OnAudio(timestamp uint32, payload []byte) error {
 
 func (h *Handler) OnVideo(timestamp uint32, payload []byte) error {
 	buf := bytes.NewBuffer(payload)
-	video, err := flvtag.DecodeVideoData(buf)
+	video := &flvtag.VideoData{}
+	err := flvtag.DecodeVideoData(buf, video)
 	if err != nil {
 		return err
 	}
