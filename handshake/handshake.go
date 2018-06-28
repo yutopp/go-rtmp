@@ -29,7 +29,7 @@ type S2C2 struct {
 	Random [1528]byte
 }
 
-var Version = [4]byte{0, 0, 0, 0} // TODO: fix
+var Version = [4]byte{0, 0, 0, 3}
 
 var timeNow = time.Now // For mock
 
