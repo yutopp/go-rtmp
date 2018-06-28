@@ -29,6 +29,8 @@ type S2C2 struct {
 	Random [1528]byte
 }
 
+var RTMPVersion = 3
+
 var Version = [4]byte{0, 0, 0, 0} // TODO: fix
 
 var timeNow = time.Now // For mock
@@ -46,7 +48,7 @@ func HandshakeWithClient(r io.Reader, w io.Writer) error {
 	// TODO: check c0 RTMP version
 
 	// Send S0
-	s0 := S0C0(0)
+	s0 := S0C0(RTMPVersion)
 	if err := e.EncodeS0C0(&s0); err != nil {
 		return err
 	}
