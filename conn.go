@@ -113,7 +113,9 @@ func (c *Conn) Serve() (err error) {
 }
 
 func (c *Conn) Close() error {
-	_ = c.streamer.Close()
+	if c.streamer != nil {
+		_ = c.streamer.Close()
+	}
 	return c.rwc.Close()
 }
 
