@@ -35,7 +35,11 @@ var Version = [4]byte{0, 0, 0, 0} // TODO: fix
 
 var timeNow = time.Now // For mock
 
-func HandshakeWithClient(r io.Reader, w io.Writer) error {
+type Config struct {
+	SkipHandshakeVerification bool
+}
+
+func HandshakeWithClient(r io.Reader, w io.Writer, config *Config) error {
 	d := NewDecoder(r)
 	e := NewEncoder(w)
 
@@ -87,6 +91,10 @@ func HandshakeWithClient(r io.Reader, w io.Writer) error {
 	var c2 S2C2
 	if err := d.DecodeS2C2(&c2); err != nil {
 		return err
+	}
+
+	if config.SkipHandshakeVerification {
+		return nil
 	}
 
 	// Check random echo

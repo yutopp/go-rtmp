@@ -32,7 +32,8 @@ type Conn struct {
 }
 
 type ConnConfig struct {
-	MaxStreams uint32
+	SkipHandshakeVerification bool
+	MaxStreams                uint32
 
 	Logger *logrus.Logger
 }
@@ -70,7 +71,9 @@ func (c *Conn) Serve() (err error) {
 	}()
 	defer c.Close()
 
-	if err := handshake.HandshakeWithClient(c.rwc, c.rwc); err != nil {
+	if err := handshake.HandshakeWithClient(c.rwc, c.rwc, &handshake.Config{
+		SkipHandshakeVerification: c.config.SkipHandshakeVerification,
+	}); err != nil {
 		return err
 	}
 
