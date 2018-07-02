@@ -15,6 +15,7 @@ type Handler interface {
 	OnConnect(timestamp uint32, cmd *message.NetConnectionConnect) error
 	OnPublish(timestamp uint32, cmd *message.NetStreamPublish) error
 	OnPlay(timestamp uint32, args []interface{}) error
+	OnSetDataFrame(timestamp uint32, payload []byte) error
 	OnAudio(timestamp uint32, payload []byte) error
 	OnVideo(timestamp uint32, payload []byte) error
 }

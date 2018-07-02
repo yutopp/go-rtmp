@@ -154,7 +154,7 @@ handleCommand:
 		if df == nil {
 			return errors.New("setDataFrame has nil value")
 		}
-		return nil
+		return h.conn.handler.OnSetDataFrame(timestamp, df.Payload)
 
 	default:
 		l.Infof("Ignore unknown data message: Msg = %+v", dataMsg)

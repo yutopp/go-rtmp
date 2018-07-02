@@ -2,7 +2,7 @@ package main
 
 import (
 	"bytes"
-	"errors"
+	"github.com/pkg/errors"
 	flvtag "github.com/yutopp/go-flv/tag"
 	"github.com/yutopp/go-rtmp"
 	rtmpmsg "github.com/yutopp/go-rtmp/message"
@@ -26,6 +26,18 @@ func (h *Handler) OnPublish(timestamp uint32, cmd *rtmpmsg.NetStreamPublish) err
 
 func (h *Handler) OnPlay(timestamp uint32, args []interface{}) error {
 	return errors.New("Not supported")
+}
+
+func (h *Handler) OnSetDataFrame(timestamp uint32, payload []byte) error {
+	buf := bytes.NewReader(payload)
+	var script flvtag.ScriptData
+	if err := flvtag.DecodeScriptData(buf, &script); err != nil {
+		return errors.Wrap(err, "Failed to decode script data")
+	}
+
+	log.Printf("SetDataFrame: Script = %+v", script)
+
+	return nil
 }
 
 func (h *Handler) OnAudio(timestamp uint32, payload []byte) error {
