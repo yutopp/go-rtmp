@@ -18,6 +18,7 @@ type Handler interface {
 	OnSetDataFrame(timestamp uint32, payload []byte) error
 	OnAudio(timestamp uint32, payload []byte) error
 	OnVideo(timestamp uint32, payload []byte) error
+	OnClose()
 }
 
 type HandlerFactory func() Handler

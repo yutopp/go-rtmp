@@ -70,6 +70,7 @@ func (c *Conn) Serve() (err error) {
 		}
 	}()
 	defer c.Close()
+	defer c.handler.OnClose()
 
 	if err := handshake.HandshakeWithClient(c.rwc, c.rwc, &handshake.Config{
 		SkipHandshakeVerification: c.config.SkipHandshakeVerification,

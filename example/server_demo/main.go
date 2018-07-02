@@ -81,6 +81,10 @@ func (h *Handler) OnVideo(timestamp uint32, payload []byte) error {
 	return nil
 }
 
+func (h *Handler) OnClose() {
+	log.Printf("OnClose")
+}
+
 func main() {
 	tcpAddr, err := net.ResolveTCPAddr("tcp", ":1935")
 	if err != nil {
