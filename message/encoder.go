@@ -163,7 +163,7 @@ func (enc *Encoder) encodeCommandMessageAMF3(m *CommandMessageAMF3) error {
 
 func (enc *Encoder) encodeDataMessageAMF0(m *DataMessageAMF0) error {
 	e := amf0.NewEncoder(enc.w)
-	return enc.encodeDataMessage(e, &m.DataMessage)
+	return enc.encodeDataMessage(enc.w, e, &m.DataMessage)
 }
 
 func (enc *Encoder) encodeSharedObjectMessageAMF0(m *SharedObjectMessageAMF0) error {
@@ -172,26 +172,26 @@ func (enc *Encoder) encodeSharedObjectMessageAMF0(m *SharedObjectMessageAMF0) er
 
 func (enc *Encoder) encodeCommandMessageAMF0(m *CommandMessageAMF0) error {
 	e := amf0.NewEncoder(enc.w)
-	return enc.encodeCommandMessage(e, &m.CommandMessage)
+	return enc.encodeCommandMessage(enc.w, e, &m.CommandMessage)
 }
 
 func (enc *Encoder) encodeAggregateMessage(m *AggregateMessage) error {
 	return fmt.Errorf("Not implemented: AggregateMessage")
 }
 
-func (enc *Encoder) encodeDataMessage(e AMFEncoder, dataMsg *DataMessage) error {
+func (enc *Encoder) encodeDataMessage(w io.Writer, e AMFEncoder, dataMsg *DataMessage) error {
 	if err := e.Encode(dataMsg.Name); err != nil {
 		return err
 	}
 
-	if err := enc.amfMessageComposer(e, dataMsg.Data); err != nil {
+	if err := enc.amfMessageComposer(w, e, dataMsg.Data); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (enc *Encoder) encodeCommandMessage(e AMFEncoder, cmdMsg *CommandMessage) error {
+func (enc *Encoder) encodeCommandMessage(w io.Writer, e AMFEncoder, cmdMsg *CommandMessage) error {
 	if err := e.Encode(cmdMsg.CommandName); err != nil {
 		return err
 	}
@@ -199,7 +199,7 @@ func (enc *Encoder) encodeCommandMessage(e AMFEncoder, cmdMsg *CommandMessage) e
 		return err
 	}
 
-	if err := enc.amfMessageComposer(e, cmdMsg.Command); err != nil {
+	if err := enc.amfMessageComposer(w, e, cmdMsg.Command); err != nil {
 		return err
 	}
 

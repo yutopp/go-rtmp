@@ -10,6 +10,7 @@ package message
 import (
 	"bytes"
 	"github.com/stretchr/testify/assert"
+	"io"
 	"log"
 	"testing"
 )
@@ -36,7 +37,7 @@ func TestDecodeCommon(t *testing.T) {
 	}
 }
 
-func mockedParseAMFMessage(d AMFDecoder, name string, v *AMFConvertible) error {
+func mockedParseAMFMessage(r io.Reader, d AMFDecoder, name string, v *AMFConvertible) error {
 	log.Printf("mockmock: %s", name)
 	return nil
 }

@@ -8,12 +8,14 @@
 package message
 
 import (
+	"bytes"
+	"io"
 	"log"
 )
 
-type amfMessageParserFunc func(d AMFDecoder, name string, v *AMFConvertible) error
+type amfMessageParserFunc func(r io.Reader, d AMFDecoder, name string, v *AMFConvertible) error
 
-func parseAMFMessage(d AMFDecoder, name string, v *AMFConvertible) error {
+func parseAMFMessage(r io.Reader, d AMFDecoder, name string, v *AMFConvertible) error {
 	switch name {
 	case "connect":
 		var object map[string]interface{}
@@ -42,19 +44,6 @@ func parseAMFMessage(d AMFDecoder, name string, v *AMFConvertible) error {
 		}
 
 		*v = &cmd
-
-	case "onMetaData":
-		var metadata map[string]interface{}
-		if err := d.Decode(&metadata); err != nil {
-			return err
-		}
-
-		var data NetStreamOnMetaData
-		if err := data.FromArgs(metadata); err != nil {
-			return err
-		}
-
-		*v = &data
 
 	case "deleteStream":
 		var commandObject interface{} // maybe nil
@@ -90,6 +79,18 @@ func parseAMFMessage(d AMFDecoder, name string, v *AMFConvertible) error {
 
 		var cmd NetStreamPublish
 		if err := cmd.FromArgs(commandObject, publishingName, publishingType); err != nil {
+			return err
+		}
+		*v = &cmd
+
+	case "@setDataFrame":
+		buf := new(bytes.Buffer)
+		if _, err := io.Copy(buf, r); err != nil {
+			return err
+		}
+
+		var cmd NetStreamSetDataFrame
+		if err := cmd.FromArgs(buf.Bytes()); err != nil {
 			return err
 		}
 		*v = &cmd

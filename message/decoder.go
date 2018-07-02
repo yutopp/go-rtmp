@@ -206,7 +206,7 @@ func (dec *Decoder) decodeDataMessageAMF0(msg *Message) error {
 	d := amf0.NewDecoder(dec.r)
 
 	var body DataMessageAMF0
-	if err := dec.decodeDataMessage(d, &body.DataMessage); err != nil {
+	if err := dec.decodeDataMessage(dec.r, d, &body.DataMessage); err != nil {
 		return err
 	}
 
@@ -223,7 +223,7 @@ func (dec *Decoder) decodeCommandMessageAMF0(msg *Message) error {
 	d := amf0.NewDecoder(dec.r)
 
 	var body CommandMessageAMF0
-	if err := dec.decodeCommandMessage(d, &body.CommandMessage); err != nil {
+	if err := dec.decodeCommandMessage(dec.r, d, &body.CommandMessage); err != nil {
 		return err
 	}
 
@@ -236,7 +236,7 @@ func (dec *Decoder) decodeAggregateMessage(msg *Message) error {
 	return fmt.Errorf("Not implemented: AggregateMessage")
 }
 
-func (dec *Decoder) decodeDataMessage(d AMFDecoder, dataMsg *DataMessage) error {
+func (dec *Decoder) decodeDataMessage(r io.Reader, d AMFDecoder, dataMsg *DataMessage) error {
 	var name string
 	if err := d.Decode(&name); err != nil {
 		return err
@@ -244,7 +244,7 @@ func (dec *Decoder) decodeDataMessage(d AMFDecoder, dataMsg *DataMessage) error 
 	log.Printf("(data1) name = %+v", name)
 
 	var data AMFConvertible
-	if err := dec.amfMessageParser(d, name, &data); err != nil {
+	if err := dec.amfMessageParser(r, d, name, &data); err != nil {
 		return err
 	}
 
@@ -258,7 +258,7 @@ func (dec *Decoder) decodeDataMessage(d AMFDecoder, dataMsg *DataMessage) error 
 	return nil
 }
 
-func (dec *Decoder) decodeCommandMessage(d AMFDecoder, cmdMsg *CommandMessage) error {
+func (dec *Decoder) decodeCommandMessage(r io.Reader, d AMFDecoder, cmdMsg *CommandMessage) error {
 	var name string
 	if err := d.Decode(&name); err != nil {
 		return err
@@ -273,7 +273,7 @@ func (dec *Decoder) decodeCommandMessage(d AMFDecoder, cmdMsg *CommandMessage) e
 	log.Printf("transactionID = %+v", transactionID)
 
 	var cmd AMFConvertible
-	if err := dec.amfMessageParser(d, name, &cmd); err != nil {
+	if err := dec.amfMessageParser(r, d, name, &cmd); err != nil {
 		return err
 	}
 

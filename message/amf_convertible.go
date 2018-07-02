@@ -7,15 +7,22 @@
 
 package message
 
+type AMFType uint8
+
+const (
+	AMFType0 AMFType = iota
+	AMDType3
+)
+
 type AMFConvertible interface {
 	FromArgs(args ...interface{}) error
-	ToArgs() ([]interface{}, error)
-}
-
-type AMFEncoder interface {
-	Encode(interface{}) error
+	ToArgs(ty AMFType) ([]interface{}, error)
 }
 
 type AMFDecoder interface {
 	Decode(interface{}) error
+}
+
+type AMFEncoder interface {
+	Encode(interface{}) error
 }

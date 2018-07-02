@@ -8,6 +8,7 @@
 package rtmp
 
 import (
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"github.com/yutopp/go-rtmp/message"
@@ -125,6 +126,7 @@ func (h *dataStreamHandler) handlePublisher(chunkStreamID int, timestamp uint32,
 		"handler":   "data",
 	})
 
+	var dataMsg *message.DataMessage
 	switch msg := msg.(type) {
 	case *message.AudioMessage:
 		return h.conn.handler.OnAudio(timestamp, msg.Payload)
@@ -132,8 +134,30 @@ func (h *dataStreamHandler) handlePublisher(chunkStreamID int, timestamp uint32,
 	case *message.VideoMessage:
 		return h.conn.handler.OnVideo(timestamp, msg.Payload)
 
+	case *message.DataMessageAMF0:
+		dataMsg = &msg.DataMessage
+		goto handleCommand
+
+	case *message.DataMessageAMF3:
+		dataMsg = &msg.DataMessage
+		goto handleCommand
+
 	default:
 		l.Infof("Message unhandled: Msg = %+v", msg)
 		return h.defaultHandler.Handle(chunkStreamID, timestamp, msg, stream)
+	}
+
+handleCommand:
+	switch dataMsg.Name {
+	case "@setDataFrame":
+		df := dataMsg.Data.(*message.NetStreamSetDataFrame)
+		if df == nil {
+			return errors.New("setDataFrame has nil value")
+		}
+		return nil
+
+	default:
+		l.Infof("Ignore unknown data message: Msg = %+v", dataMsg)
+		return nil
 	}
 }

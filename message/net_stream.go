@@ -22,7 +22,7 @@ func (t *NetStreamPublish) FromArgs(args ...interface{}) error {
 	return nil
 }
 
-func (t *NetStreamPublish) ToArgs() ([]interface{}, error) {
+func (t *NetStreamPublish) ToArgs(ty AMFType) ([]interface{}, error) {
 	panic("Not implemented")
 }
 
@@ -41,7 +41,7 @@ func (t *NetStreamOnStatus) FromArgs(args ...interface{}) error {
 	panic("Not implemented")
 }
 
-func (t *NetStreamOnStatus) ToArgs() ([]interface{}, error) {
+func (t *NetStreamOnStatus) ToArgs(ty AMFType) ([]interface{}, error) {
 	info := make(map[string]interface{})
 	info["level"] = t.InfoObject.Level
 	info["code"] = t.InfoObject.Code
@@ -51,21 +51,6 @@ func (t *NetStreamOnStatus) ToArgs() ([]interface{}, error) {
 		nil, // Always nil
 		info,
 	}, nil
-}
-
-//
-type NetStreamOnMetaData struct {
-	RawFields map[string]interface{} // TODO: to more detailed data
-}
-
-func (t *NetStreamOnMetaData) FromArgs(args ...interface{}) error {
-	t.RawFields = args[0].(map[string]interface{})
-
-	return nil
-}
-
-func (t *NetStreamOnMetaData) ToArgs() ([]interface{}, error) {
-	panic("Not implemented")
 }
 
 //
@@ -80,6 +65,21 @@ func (t *NetStreamDeleteStream) FromArgs(args ...interface{}) error {
 	return nil
 }
 
-func (t *NetStreamDeleteStream) ToArgs() ([]interface{}, error) {
+func (t *NetStreamDeleteStream) ToArgs(ty AMFType) ([]interface{}, error) {
+	panic("Not implemented")
+}
+
+//
+type NetStreamSetDataFrame struct {
+	Payload []byte
+}
+
+func (t *NetStreamSetDataFrame) FromArgs(args ...interface{}) error {
+	t.Payload = args[0].([]byte)
+
+	return nil
+}
+
+func (t *NetStreamSetDataFrame) ToArgs(ty AMFType) ([]interface{}, error) {
 	panic("Not implemented")
 }
