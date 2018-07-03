@@ -38,10 +38,10 @@
   revision = "6680b8ea410e1a4755946613797f982455705ed9"
 
 [[projects]]
-  branch = "master"
   name = "github.com/yutopp/go-flv"
   packages = [".","tag"]
   revision = "a59a8cac83da8dc432342d84098546d7571ac9c1"
+  version = "v0.1.4"
 
 [[projects]]
   branch = "master"
