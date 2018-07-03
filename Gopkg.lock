@@ -35,13 +35,13 @@
   branch = "master"
   name = "github.com/yutopp/go-amf0"
   packages = ["."]
-  revision = "17cedd46b508c2a54f8e1c06b106fd44c8b5d5ee"
+  revision = "6680b8ea410e1a4755946613797f982455705ed9"
 
 [[projects]]
+  branch = "master"
   name = "github.com/yutopp/go-flv"
-  packages = ["tag"]
-  revision = "a6198afba551448b23d8060023a31fd50dc1c315"
-  version = "v0.1.0"
+  packages = [".","tag"]
+  revision = "a59a8cac83da8dc432342d84098546d7571ac9c1"
 
 [[projects]]
   branch = "master"
@@ -53,11 +53,11 @@
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix","windows"]
-  revision = "c4afb3effaa53fd9a06ca61262dc7ce8df4c081b"
+  revision = "7138fd3d9dc8335c567ca206f4333fb75eb05d56"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "36f6f9e7546772483d493eb77d242d1d5d0d88e54450db473a99b8494ca3f1a8"
+  inputs-digest = "85c24c066a4ea59bb0cee8af4adeb1de1069ec0fc7d2ea01ffdf65cc1267f11b"
   solver-name = "gps-cdcl"
   solver-version = 1
