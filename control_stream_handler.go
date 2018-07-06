@@ -136,7 +136,6 @@ handleCommand:
 		l.Infof("Unexpected command: Command = %+v", cmdMsg)
 		return nil
 	}
-
 }
 
 func (h *controlStreamHandler) handleCreateStream(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
@@ -168,6 +167,10 @@ handleCommand:
 	switch cmd := cmdMsg.Command.(type) {
 	case *message.NetConnectionCreateStream:
 		l.Infof("Stream creating...: %+v", cmd)
+
+		if err := h.conn.handler.OnCreateStream(timestamp, cmd); err != nil {
+			return err
+		}
 
 		// Create a stream which handles messages for data(play, publish, video, audio, etc...)
 		streamID, err := h.conn.createStreamIfAvailable(&dataStreamHandler{

@@ -13,6 +13,7 @@ import (
 
 type Handler interface {
 	OnConnect(timestamp uint32, cmd *message.NetConnectionConnect) error
+	OnCreateStream(timestamp uint32, cmd *message.NetConnectionCreateStream) error
 	OnPublish(timestamp uint32, cmd *message.NetStreamPublish) error
 	OnPlay(timestamp uint32, args []interface{}) error
 	OnSetDataFrame(timestamp uint32, payload []byte) error
@@ -29,6 +30,10 @@ type NopHandler struct {
 }
 
 func (h *NopHandler) OnConnect(timestamp uint32, cmd *message.NetConnectionConnect) error {
+	return nil
+}
+
+func (h *NopHandler) OnCreateStream(timestamp uint32, cmd *message.NetConnectionCreateStream) error {
 	return nil
 }
 

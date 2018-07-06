@@ -22,6 +22,11 @@ func (h *Handler) OnConnect(timestamp uint32, cmd *rtmpmsg.NetConnectionConnect)
 	return nil
 }
 
+func (h *Handler) OnCreateStream(timestamp uint32, cmd *rtmpmsg.NetConnectionCreateStream) error {
+	log.Printf("OnCreateStream: %+v", cmd)
+	return nil
+}
+
 func (h *Handler) OnPublish(timestamp uint32, cmd *rtmpmsg.NetStreamPublish) error {
 	log.Printf("OnPublish: %+v", cmd)
 
