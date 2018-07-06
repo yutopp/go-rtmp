@@ -18,7 +18,7 @@ func main() {
 	}
 
 	srv := rtmp.NewServer(&rtmp.ServerConfig{
-		HandlerFactory: func() rtmp.Handler {
+		HandlerFactory: func(_ *rtmp.Conn) rtmp.Handler {
 			return &Handler{}
 		},
 		Conn: nil,

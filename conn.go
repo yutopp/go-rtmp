@@ -38,8 +38,6 @@ type ConnConfig struct {
 
 	ReaderBufferSize int
 	WriterBufferSize int
-
-	Logger logrus.FieldLogger
 }
 
 func (cb *ConnConfig) normalize() *ConnConfig {
@@ -57,14 +55,10 @@ func (cb *ConnConfig) normalize() *ConnConfig {
 		c.WriterBufferSize = 4 * 1024 // Default value
 	}
 
-	if c.Logger == nil {
-		c.Logger = logrus.StandardLogger() // Default value
-	}
-
 	return &c
 }
 
-func NewConn(rwc io.ReadWriteCloser, handler Handler, config *ConnConfig) *Conn {
+func NewConn(rwc io.ReadWriteCloser, config *ConnConfig) *Conn {
 	if config == nil {
 		config = &ConnConfig{}
 	}
@@ -72,12 +66,20 @@ func NewConn(rwc io.ReadWriteCloser, handler Handler, config *ConnConfig) *Conn 
 
 	return &Conn{
 		rwc:     rwc,
-		handler: handler,
+		handler: &NopHandler{},
 		streams: make(map[uint32]*Stream),
 
 		config: config,
-		logger: config.Logger,
+		logger: logrus.StandardLogger(),
 	}
+}
+
+func (c *Conn) SetHandler(h Handler) {
+	c.handler = h
+}
+
+func (c *Conn) SetLogger(l logrus.FieldLogger) {
+	c.logger = l
 }
 
 func (c *Conn) Serve() (err error) {

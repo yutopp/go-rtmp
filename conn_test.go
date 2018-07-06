@@ -15,9 +15,8 @@ import (
 
 func TestConnStreams(t *testing.T) {
 	b := &rwcMock{}
-	handler := &NopHandler{}
 
-	conn := NewConn(b, handler, &ConnConfig{
+	conn := NewConn(b, &ConnConfig{
 		MaxStreams: 1,
 	})
 

@@ -22,7 +22,7 @@ type Handler interface {
 	OnClose()
 }
 
-type HandlerFactory func() Handler
+type HandlerFactory func(conn *Conn) Handler
 
 var _ Handler = (*NopHandler)(nil)
 
