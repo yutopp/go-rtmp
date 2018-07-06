@@ -35,20 +35,40 @@ type ConnConfig struct {
 	SkipHandshakeVerification bool
 	MaxStreams                uint32
 
+	ReaderBufferSize int
+	WriterBufferSize int
+	
 	Logger *logrus.Logger
 }
 
-var defaultConfig = &ConnConfig{
-	MaxStreams: 10,
+func (cb *ConnConfig) normalize() *ConnConfig {
+	c := ConnConfig(*cb)
 
-	Logger: logrus.StandardLogger(),
+	if c.MaxStreams == 0 {
+		c.MaxStreams = 10 // Default value
+	}
+
+	if c.ReaderBufferSize == 0 {
+		c.ReaderBufferSize = 4 * 1024 // Default value
+	}
+
+	if c.WriterBufferSize == 0 {
+		c.WriterBufferSize = 4 * 1024 // Default value
+	}
+	
+	if c.Logger == nil {
+		c.Logger = logrus.StandardLogger() // Default value
+	}
+
+	return &c
 }
 
 func NewConn(rwc net.Conn, handler Handler, config *ConnConfig) *Conn {
 	if config == nil {
-		config = defaultConfig
+		config = &ConnConfig{}
 	}
-
+	config = config.normalize()
+	
 	return &Conn{
 		rwc:     rwc,
 		handler: handler,
@@ -78,8 +98,9 @@ func (c *Conn) Serve() (err error) {
 		return err
 	}
 
-	c.bufr = bufio.NewReaderSize(c.rwc, 4*1024) // TODO: fix buffer size
-	c.bufw = bufio.NewWriterSize(c.rwc, 4*1024) // TODO: fix buffer size
+	c.bufr = bufio.NewReaderSize(c.rwc, c.config.ReaderBufferSize)
+	c.bufw = bufio.NewWriterSize(c.rwc, c.config.WriterBufferSize)
+	
 	c.streamer = NewChunkStreamer(c.bufr, c.bufw)
 	c.streamer.logger = c.logger
 
