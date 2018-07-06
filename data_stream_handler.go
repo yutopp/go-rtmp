@@ -42,7 +42,7 @@ type dataStreamHandler struct {
 	state          dataStreamState
 	defaultHandler streamHandler
 
-	logger *logrus.Logger
+	logger logrus.FieldLogger
 }
 
 func (h *dataStreamHandler) Handle(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {

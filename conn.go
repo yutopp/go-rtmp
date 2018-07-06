@@ -29,7 +29,7 @@ type Conn struct {
 	handler  Handler
 
 	config *ConnConfig
-	logger *logrus.Logger
+	logger logrus.FieldLogger
 }
 
 type ConnConfig struct {
@@ -39,7 +39,7 @@ type ConnConfig struct {
 	ReaderBufferSize int
 	WriterBufferSize int
 
-	Logger *logrus.Logger
+	Logger logrus.FieldLogger
 }
 
 func (cb *ConnConfig) normalize() *ConnConfig {

@@ -48,7 +48,7 @@ type ChunkStreamer struct {
 
 	controlStreamWriter func(chunkStreamID int, timestamp uint32, msg message.Message) error
 
-	logger *logrus.Logger
+	logger logrus.FieldLogger
 }
 
 func NewChunkStreamer(r io.Reader, w io.Writer) *ChunkStreamer {

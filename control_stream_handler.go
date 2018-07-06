@@ -36,7 +36,7 @@ type controlStreamHandler struct {
 	state          controlStreamState
 	defaultHandler streamHandler
 
-	logger *logrus.Logger
+	logger logrus.FieldLogger
 }
 
 func (h *controlStreamHandler) Handle(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
