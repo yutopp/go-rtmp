@@ -22,3 +22,35 @@ type Handler interface {
 }
 
 type HandlerFactory func() Handler
+
+var _ Handler = (*NopHandler)(nil)
+
+type NopHandler struct {
+}
+
+func (h *NopHandler) OnConnect(timestamp uint32, cmd *message.NetConnectionConnect) error {
+	return nil
+}
+
+func (h *NopHandler) OnPublish(timestamp uint32, cmd *message.NetStreamPublish) error {
+	return nil
+}
+
+func (h *NopHandler) OnPlay(timestamp uint32, args []interface{}) error {
+	return nil
+}
+
+func (h *NopHandler) OnSetDataFrame(timestamp uint32, payload []byte) error {
+	return nil
+}
+
+func (h *NopHandler) OnAudio(timestamp uint32, payload []byte) error {
+	return nil
+}
+
+func (h *NopHandler) OnVideo(timestamp uint32, payload []byte) error {
+	return nil
+}
+
+func (h *NopHandler) OnClose() {
+}
