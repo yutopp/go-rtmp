@@ -32,9 +32,8 @@ const (
 //       | _ -> self
 //
 type controlStreamHandler struct {
-	conn           *Conn
-	state          controlStreamState
-	defaultHandler streamHandler
+	conn  *Conn
+	state controlStreamState
 
 	logger logrus.FieldLogger
 }
@@ -43,8 +42,10 @@ func (h *controlStreamHandler) Handle(chunkStreamID int, timestamp uint32, msg m
 	switch h.state {
 	case controlStreamStateNotConnected:
 		return h.handleConnect(chunkStreamID, timestamp, msg, stream)
+
 	case controlStreamStateConnected:
 		return h.handleCreateStream(chunkStreamID, timestamp, msg, stream)
+
 	default:
 		panic("Unreachable!")
 	}
@@ -70,9 +71,20 @@ func (h *controlStreamHandler) handleConnect(chunkStreamID int, timestamp uint32
 		cmdMsg = &msg.CommandMessage
 		goto handleCommand
 
+	case *message.SetChunkSize:
+		l.Infof("SetChunkSize: Msg = %+v", msg)
+
+		return h.conn.streamer.SetPeerChunkSize(msg.ChunkSize)
+
+	case *message.WinAckSize:
+		l.Infof("WinAckSize: Msg = %+v", msg)
+
+		return h.conn.streamer.SetPeerWinAckSize(msg.Size)
+
 	default:
-		l.Info("Message unhandled: Msg = %+v", msg)
-		return h.defaultHandler.Handle(chunkStreamID, timestamp, msg, stream)
+		l.Warnf("Message unhandled: Msg = %+v", msg)
+
+		return nil
 	}
 
 handleCommand:
@@ -133,7 +145,8 @@ handleCommand:
 		return nil
 
 	default:
-		l.Infof("Unexpected command: Command = %+v", cmdMsg)
+		l.Warnf("Unexpected command: Command = %+v", cmdMsg)
+
 		return nil
 	}
 }
@@ -159,8 +172,9 @@ func (h *controlStreamHandler) handleCreateStream(chunkStreamID int, timestamp u
 		goto handleCommand
 
 	default:
-		l.Infof("Message unhandled: Msg = %+v", msg)
-		return h.defaultHandler.Handle(chunkStreamID, timestamp, msg, stream)
+		l.Warnf("Message unhandled: Msg = %+v", msg)
+
+		return nil
 	}
 
 handleCommand:
@@ -174,9 +188,8 @@ handleCommand:
 
 		// Create a stream which handles messages for data(play, publish, video, audio, etc...)
 		streamID, err := h.conn.createStreamIfAvailable(&dataStreamHandler{
-			conn:           h.conn,
-			defaultHandler: h.defaultHandler,
-			logger:         h.logger,
+			conn:   h.conn,
+			logger: h.logger,
 		})
 		if err != nil {
 			// TODO: send failed _result
@@ -218,7 +231,8 @@ handleCommand:
 		return nil
 
 	default:
-		l.Infof("Unexpected command: Command = %+v", cmdMsg)
+		l.Warnf("Unexpected command: Command = %+v", cmdMsg)
+
 		return nil
 	}
 }

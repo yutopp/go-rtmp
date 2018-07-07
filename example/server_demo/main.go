@@ -1,9 +1,11 @@
 package main
 
 import (
-	"github.com/yutopp/go-rtmp"
+	"github.com/sirupsen/logrus"
 	"log"
 	"net"
+
+	"github.com/yutopp/go-rtmp"
 )
 
 func main() {
@@ -18,7 +20,11 @@ func main() {
 	}
 
 	srv := rtmp.NewServer(&rtmp.ServerConfig{
-		HandlerFactory: func(_ *rtmp.Conn) rtmp.Handler {
+		HandlerFactory: func(conn *rtmp.Conn) rtmp.Handler {
+			l := logrus.StandardLogger()
+			l.SetLevel(logrus.DebugLevel)
+			conn.SetLogger(l)
+
 			return &Handler{}
 		},
 		Conn: nil,

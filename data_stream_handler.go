@@ -38,9 +38,8 @@ const (
 //       | _ -> self
 //
 type dataStreamHandler struct {
-	conn           *Conn
-	state          dataStreamState
-	defaultHandler streamHandler
+	conn  *Conn
+	state dataStreamState
 
 	logger logrus.FieldLogger
 }
@@ -49,8 +48,10 @@ func (h *dataStreamHandler) Handle(chunkStreamID int, timestamp uint32, msg mess
 	switch h.state {
 	case dataStreamStateNotInAction:
 		return h.handleAction(chunkStreamID, timestamp, msg, stream)
+
 	case dataStreamStateHasPublisher:
 		return h.handlePublisher(chunkStreamID, timestamp, msg, stream)
+
 	default:
 		panic("Unreachable!")
 	}
@@ -77,8 +78,9 @@ func (h *dataStreamHandler) handleAction(chunkStreamID int, timestamp uint32, ms
 		goto handleCommand
 
 	default:
-		l.Infof("Message unhandled: Msg = %+v", msg)
-		return h.defaultHandler.Handle(chunkStreamID, timestamp, msg, stream)
+		l.Warnf("Message unhandled: Msg = %+v", msg)
+
+		return nil
 	}
 
 handleCommand:
@@ -114,7 +116,8 @@ handleCommand:
 		return nil
 
 	default:
-		l.Infof("Unexpected command: Command = %+v", cmdMsg)
+		l.Warnf("Unexpected command: Command = %+v", cmdMsg)
+
 		return nil
 	}
 }
@@ -143,8 +146,9 @@ func (h *dataStreamHandler) handlePublisher(chunkStreamID int, timestamp uint32,
 		goto handleCommand
 
 	default:
-		l.Infof("Message unhandled: Msg = %+v", msg)
-		return h.defaultHandler.Handle(chunkStreamID, timestamp, msg, stream)
+		l.Warnf("Message unhandled: Msg = %+v", msg)
+
+		return nil
 	}
 
 handleCommand:
@@ -157,7 +161,8 @@ handleCommand:
 		return h.conn.handler.OnSetDataFrame(timestamp, df.Payload)
 
 	default:
-		l.Infof("Ignore unknown data message: Msg = %+v", dataMsg)
+		l.Warnf("Ignore unknown data message: Msg = %+v", dataMsg)
+
 		return nil
 	}
 }

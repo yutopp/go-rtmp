@@ -108,10 +108,7 @@ func (c *Conn) Serve() (err error) {
 	// StreamID 0 is default control stream
 	const DefaultControlStreamID = 0
 	if err := c.createStream(DefaultControlStreamID, &controlStreamHandler{
-		conn: c,
-		defaultHandler: &commonMessageHandler{
-			conn: c,
-		},
+		conn:   c,
 		logger: c.logger,
 	}); err != nil {
 		return err
