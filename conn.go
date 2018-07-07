@@ -92,8 +92,6 @@ func (c *Conn) Serve() (err error) {
 			err = errors.WithStack(errTmp)
 		}
 	}()
-	defer c.Close()
-	defer c.handler.OnClose()
 
 	if err := handshake.HandshakeWithClient(c.rwc, c.rwc, &handshake.Config{
 		SkipHandshakeVerification: c.config.SkipHandshakeVerification,
@@ -141,9 +139,14 @@ func (c *Conn) Serve() (err error) {
 }
 
 func (c *Conn) Close() error {
+	if c.handler != nil {
+		c.handler.OnClose()
+	}
+
 	if c.streamer != nil {
 		_ = c.streamer.Close()
 	}
+
 	return c.rwc.Close()
 }
 

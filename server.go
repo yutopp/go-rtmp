@@ -9,6 +9,7 @@ package rtmp
 
 import (
 	"net"
+	"time"
 )
 
 type Server struct {
@@ -17,7 +18,9 @@ type Server struct {
 
 type ServerConfig struct {
 	HandlerFactory
-	Conn *ConnConfig
+	ReadTimeout  time.Duration
+	WriteTimeout time.Duration
+	Conn         *ConnConfig
 }
 
 func NewServer(config *ServerConfig) *Server {
@@ -35,20 +38,24 @@ func (srv *Server) Serve(l net.Listener) error {
 			continue
 		}
 
-		c := srv.newConn(rwc, srv.config.Conn)
-		handler := srv.config.HandlerFactory(c)
-		c.SetHandler(handler)
-		go func() {
-			// TODO: fix
-			if err := c.Serve(); err != nil {
-				c.logger.Printf("Serve error: Err = %+v", err)
-			}
-		}()
+		go srv.handleConn(rwc)
 	}
 }
 
-func (srv *Server) newConn(rwc net.Conn, config *ConnConfig) *Conn {
-	conn := NewConn(rwc, config)
+func (srv *Server) handleConn(conn net.Conn) {
+	c := NewConn(&rwcHasTimeout{
+		conn:         conn,
+		readTimeout:  srv.config.ReadTimeout,
+		writeTimeout: srv.config.WriteTimeout,
+		now:          time.Now,
+	}, srv.config.Conn)
+	defer c.Close()
 
-	return conn
+	handler := srv.config.HandlerFactory(c)
+	c.SetHandler(handler)
+
+	// TODO: fix
+	if err := c.Serve(); err != nil {
+		c.logger.Printf("Serve error: Err = %+v", err)
+	}
 }
