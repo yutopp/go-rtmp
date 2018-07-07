@@ -22,7 +22,7 @@ func main() {
 	srv := rtmp.NewServer(&rtmp.ServerConfig{
 		HandlerFactory: func(conn *rtmp.Conn) rtmp.Handler {
 			l := logrus.StandardLogger()
-			l.SetLevel(logrus.DebugLevel)
+			//l.SetLevel(logrus.DebugLevel)
 			conn.SetLogger(l)
 
 			return &Handler{}

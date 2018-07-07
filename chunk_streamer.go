@@ -96,7 +96,15 @@ func (cs *ChunkStreamer) Read(sf *StreamFragment) (int, uint32, error) {
 
 	dec := message.NewDecoder(reader, message.TypeID(reader.messageTypeID))
 	if err := dec.Decode(&sf.Message); err != nil {
-		return 0, 0, err
+		switch err := err.(type) {
+		case *message.UnknownAMFParseError:
+			// ignore unknown amf object
+			cs.logger.Warnf("Ignored unknown amf packed message: Err = %+v", err)
+		default:
+			return 0, 0, err
+		}
+
+		sf.Message = nil // clean
 	}
 
 	sf.StreamID = reader.messageStreamID

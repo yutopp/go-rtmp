@@ -11,7 +11,6 @@ import (
 	"bytes"
 	"github.com/stretchr/testify/assert"
 	"io"
-	"log"
 	"testing"
 )
 
@@ -27,7 +26,9 @@ func TestDecodeCommon(t *testing.T) {
 
 			buf := bytes.NewBuffer(bin)
 			dec := NewDecoder(buf, tc.TypeID)
-			dec.amfMessageParser = mockedParseAMFMessage
+			dec.amfMessageParser = func(r io.Reader, d AMFDecoder, name string, v *AMFConvertible) error {
+				return mockedParseAMFMessage(t, r, d, name, v)
+			}
 
 			var msg Message
 			err := dec.Decode(&msg)
@@ -37,7 +38,7 @@ func TestDecodeCommon(t *testing.T) {
 	}
 }
 
-func mockedParseAMFMessage(r io.Reader, d AMFDecoder, name string, v *AMFConvertible) error {
-	log.Printf("mockmock: %s", name)
+func mockedParseAMFMessage(t *testing.T, r io.Reader, d AMFDecoder, name string, v *AMFConvertible) error {
+	t.Logf("mockmock: %s", name)
 	return nil
 }

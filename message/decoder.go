@@ -12,7 +12,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"log"
 
 	"github.com/yutopp/go-amf0"
 )
@@ -241,14 +240,11 @@ func (dec *Decoder) decodeDataMessage(r io.Reader, d AMFDecoder, dataMsg *DataMe
 	if err := d.Decode(&name); err != nil {
 		return err
 	}
-	log.Printf("(data1) name = %+v", name)
 
 	var data AMFConvertible
 	if err := dec.amfMessageParser(r, d, name, &data); err != nil {
 		return err
 	}
-
-	log.Printf("(data2) name = %+v", name)
 
 	*dataMsg = DataMessage{
 		Name: name,
@@ -263,14 +259,11 @@ func (dec *Decoder) decodeCommandMessage(r io.Reader, d AMFDecoder, cmdMsg *Comm
 	if err := d.Decode(&name); err != nil {
 		return err
 	}
-	log.Printf("name = %+v", name)
 
 	var transactionID int64
 	if err := d.Decode(&transactionID); err != nil {
 		return err
 	}
-
-	log.Printf("transactionID = %+v", transactionID)
 
 	var cmd AMFConvertible
 	if err := dec.amfMessageParser(r, d, name, &cmd); err != nil {

@@ -9,8 +9,8 @@ package message
 
 import (
 	"bytes"
+	"github.com/pkg/errors"
 	"io"
-	"log"
 )
 
 type amfMessageParserFunc func(r io.Reader, d AMFDecoder, name string, v *AMFConvertible) error
@@ -20,13 +20,12 @@ func parseAMFMessage(r io.Reader, d AMFDecoder, name string, v *AMFConvertible) 
 	case "connect":
 		var object map[string]interface{}
 		if err := d.Decode(&object); err != nil {
-			return err
+			return errors.Wrap(err, "Failed to decode 'command' args[0]")
 		}
-		log.Printf("command: object = %+v", object)
 
 		var cmd NetConnectionConnect
 		if err := cmd.FromArgs(object); err != nil {
-			return err
+			return errors.Wrap(err, "Failed to reconstruct 'command'")
 		}
 
 		*v = &cmd
@@ -34,13 +33,12 @@ func parseAMFMessage(r io.Reader, d AMFDecoder, name string, v *AMFConvertible) 
 	case "createStream":
 		var object interface{}
 		if err := d.Decode(&object); err != nil {
-			return err
+			return errors.Wrap(err, "Failed to decode 'createStream' args[0]")
 		}
-		log.Printf("createStream: object = %+v", object)
 
 		var cmd NetConnectionCreateStream
 		if err := cmd.FromArgs(object); err != nil {
-			return err
+			return errors.Wrap(err, "Failed to reconstruct 'createStream'")
 		}
 
 		*v = &cmd
@@ -48,17 +46,17 @@ func parseAMFMessage(r io.Reader, d AMFDecoder, name string, v *AMFConvertible) 
 	case "deleteStream":
 		var commandObject interface{} // maybe nil
 		if err := d.Decode(&commandObject); err != nil {
-			return err
+			return errors.Wrap(err, "Failed to decode 'deleteStream' args[0]")
 		}
 
 		var streamID uint32
 		if err := d.Decode(&streamID); err != nil {
-			return err
+			return errors.Wrap(err, "Failed to decode 'deleteStream' args[1]")
 		}
 
 		var data NetStreamDeleteStream
 		if err := data.FromArgs(commandObject, streamID); err != nil {
-			return err
+			return errors.Wrap(err, "Failed to reconstruct 'deleteStream'")
 		}
 
 		*v = &data
@@ -66,33 +64,35 @@ func parseAMFMessage(r io.Reader, d AMFDecoder, name string, v *AMFConvertible) 
 	case "publish":
 		var commandObject interface{}
 		if err := d.Decode(&commandObject); err != nil {
-			return err
+			return errors.Wrap(err, "Failed to decode 'publish' args[0]")
 		}
 		var publishingName string
 		if err := d.Decode(&publishingName); err != nil {
-			return err
+			return errors.Wrap(err, "Failed to decode 'publish' args[1]")
 		}
 		var publishingType string
 		if err := d.Decode(&publishingType); err != nil {
-			return err
+			return errors.Wrap(err, "Failed to decode 'publish' args[2]")
 		}
 
 		var cmd NetStreamPublish
 		if err := cmd.FromArgs(commandObject, publishingName, publishingType); err != nil {
-			return err
+			return errors.Wrap(err, "Failed to reconstruct 'publish'")
 		}
+
 		*v = &cmd
 
 	case "@setDataFrame":
 		buf := new(bytes.Buffer)
 		if _, err := io.Copy(buf, r); err != nil {
-			return err
+			return errors.Wrap(err, "Failed to decode '@setDataFrame' args[0]")
 		}
 
 		var cmd NetStreamSetDataFrame
 		if err := cmd.FromArgs(buf.Bytes()); err != nil {
-			return err
+			return errors.Wrap(err, "Failed to reconstruct '@setDataFrame'")
 		}
+
 		*v = &cmd
 
 	default:
@@ -104,8 +104,11 @@ func parseAMFMessage(r io.Reader, d AMFDecoder, name string, v *AMFConvertible) 
 			}
 			objs = append(objs, tmp)
 		}
-		log.Printf("Ignored unknown amf packed message: Name = %s, Objs = %+v", name, objs)
-		return nil
+
+		return &UnknownAMFParseError{
+			Name: name,
+			Objs: objs,
+		}
 	}
 
 	return nil
