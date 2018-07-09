@@ -7,16 +7,19 @@
 
 package rtmp
 
-import (
-	"github.com/yutopp/go-rtmp/message"
-)
+// Command =
+//   | *message.NetConnectionConnect
+//   | *message.NetConnectionCreateStream
+//   | *message.NetStreamPublish
+type Command interface{}
+
+// Data =
+//   | *message.NetStreamSetDataFrame
+type Data interface{}
 
 type Handler interface {
-	OnConnect(timestamp uint32, cmd *message.NetConnectionConnect) error
-	OnCreateStream(timestamp uint32, cmd *message.NetConnectionCreateStream) error
-	OnPublish(timestamp uint32, cmd *message.NetStreamPublish) error
-	OnPlay(timestamp uint32, args []interface{}) error
-	OnSetDataFrame(timestamp uint32, payload []byte) error
+	OnCommand(timestamp uint32, cmd Command) error
+	OnData(timestamp uint32, data Data) error
 	OnAudio(timestamp uint32, payload []byte) error
 	OnVideo(timestamp uint32, payload []byte) error
 	OnClose()
@@ -29,23 +32,11 @@ var _ Handler = (*NopHandler)(nil)
 type NopHandler struct {
 }
 
-func (h *NopHandler) OnConnect(timestamp uint32, cmd *message.NetConnectionConnect) error {
+func (h *NopHandler) OnCommand(timestamp uint32, cmd Command) error {
 	return nil
 }
 
-func (h *NopHandler) OnCreateStream(timestamp uint32, cmd *message.NetConnectionCreateStream) error {
-	return nil
-}
-
-func (h *NopHandler) OnPublish(timestamp uint32, cmd *message.NetStreamPublish) error {
-	return nil
-}
-
-func (h *NopHandler) OnPlay(timestamp uint32, args []interface{}) error {
-	return nil
-}
-
-func (h *NopHandler) OnSetDataFrame(timestamp uint32, payload []byte) error {
+func (h *NopHandler) OnData(timestamp uint32, cmd Data) error {
 	return nil
 }
 
