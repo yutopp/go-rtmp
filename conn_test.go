@@ -17,7 +17,9 @@ func TestConnStreams(t *testing.T) {
 	b := &rwcMock{}
 
 	conn := NewConn(b, &ConnConfig{
-		MaxStreams: 1,
+		ControlState: StreamControlStateConfig{
+			MaxMessageStreams: 1,
+		},
 	})
 
 	sid, err := conn.createStreamIfAvailable(nil)

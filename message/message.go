@@ -87,7 +87,7 @@ const (
 )
 
 type SetPeerBandwidth struct {
-	Size  uint32
+	Size  int32
 	Limit LimitType
 }
 

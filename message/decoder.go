@@ -150,7 +150,7 @@ func (dec *Decoder) decodeSetPeerBandwidth(msg *Message) error {
 		return err
 	}
 
-	size := binary.BigEndian.Uint32(buf[0:4])
+	size := int32(binary.BigEndian.Uint32(buf[0:4]))
 	limit := LimitType(buf[4])
 
 	*msg = &SetPeerBandwidth{

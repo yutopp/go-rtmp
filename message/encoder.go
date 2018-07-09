@@ -123,7 +123,7 @@ func (enc *Encoder) encodeWinAckSize(m *WinAckSize) error {
 
 func (enc *Encoder) encodeSetPeerBandwidth(m *SetPeerBandwidth) error {
 	buf := make([]byte, 5)
-	binary.BigEndian.PutUint32(buf, m.Size) // [0:4]
+	binary.BigEndian.PutUint32(buf, uint32(m.Size)) // [0:4]
 	buf[4] = byte(m.Limit)
 
 	if _, err := enc.w.Write(buf); err != nil { // TODO: length check

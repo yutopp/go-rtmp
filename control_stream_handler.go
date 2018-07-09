@@ -73,13 +73,12 @@ func (h *controlStreamHandler) handleConnect(chunkStreamID int, timestamp uint32
 
 	case *message.SetChunkSize:
 		l.Infof("SetChunkSize: Msg = %+v", msg)
-
-		return h.conn.streamer.SetPeerChunkSize(msg.ChunkSize)
+		return h.conn.streamer.PeerState().SetChunkSize(msg.ChunkSize)
 
 	case *message.WinAckSize:
 		l.Infof("WinAckSize: Msg = %+v", msg)
 
-		return h.conn.streamer.SetPeerWinAckSize(msg.Size)
+		return h.conn.streamer.PeerState().SetAckWindowSize(msg.Size)
 
 	default:
 		l.Warnf("Message unhandled: Msg = %+v", msg)
@@ -98,15 +97,15 @@ handleCommand:
 
 		// TODO: fix
 		if err := stream.Write(chunkStreamID, timestamp, &message.WinAckSize{
-			Size: h.conn.streamer.selfState.windowSize,
+			Size: h.conn.streamer.SelfState().AckWindowSize(),
 		}); err != nil {
 			return err
 		}
 
 		// TODO: fix
 		if err := stream.Write(chunkStreamID, timestamp, &message.SetPeerBandwidth{
-			Size:  1 * 1024 * 1024,
-			Limit: 1,
+			Size:  h.conn.streamer.SelfState().BandwidthWindowSize(),
+			Limit: h.conn.streamer.SelfState().BandwidthLimitType(),
 		}); err != nil {
 			return err
 		}

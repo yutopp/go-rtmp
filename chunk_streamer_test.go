@@ -23,7 +23,7 @@ func TestStreamerSingleChunk(t *testing.T) {
 	inbuf := bufio.NewReaderSize(buf, 2048)
 	outbuf := bufio.NewWriterSize(buf, 2048)
 
-	streamer := NewChunkStreamer(inbuf, outbuf)
+	streamer := NewChunkStreamer(inbuf, outbuf, nil)
 
 	chunkStreamID := 2
 	msg := &message.VideoMessage{
@@ -73,7 +73,7 @@ func TestStreamerMultipleChunk(t *testing.T) {
 	inbuf := bufio.NewReaderSize(buf, 2048)
 	outbuf := bufio.NewWriterSize(buf, 2048)
 
-	streamer := NewChunkStreamer(inbuf, outbuf)
+	streamer := NewChunkStreamer(inbuf, outbuf, nil)
 
 	chunkStreamID := 2
 	msg := &message.VideoMessage{
@@ -199,7 +199,7 @@ func TestStreamerChunkExample1(t *testing.T) {
 			inbuf := bufio.NewReaderSize(buf, 2048)
 			outbuf := bufio.NewWriterSize(buf, 2048)
 
-			streamer := NewChunkStreamer(inbuf, outbuf)
+			streamer := NewChunkStreamer(inbuf, outbuf, nil)
 
 			for i, wc := range tc.writeCases {
 				t.Run(fmt.Sprintf("Write: %d", i), func(t *testing.T) {
@@ -246,7 +246,7 @@ func TestWriteToInvalidWriter(t *testing.T) {
 	buf := bytes.NewBuffer(make([]byte, 0, 2048))
 	inbuf := bufio.NewReaderSize(buf, 2048)
 
-	streamer := NewChunkStreamer(inbuf, &AlwaysErrorWriter{})
+	streamer := NewChunkStreamer(inbuf, &AlwaysErrorWriter{}, nil)
 
 	// Write some data
 	chunkStreamID := 10

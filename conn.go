@@ -12,7 +12,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"io"
-	"sync"
 
 	"github.com/yutopp/go-rtmp/handshake"
 )
@@ -24,8 +23,7 @@ type Conn struct {
 	bufr     *bufio.Reader
 	bufw     *bufio.Writer
 	streamer *ChunkStreamer
-	streams  map[uint32]*Stream
-	streamsM sync.Mutex
+	streams  *streams
 	handler  Handler
 
 	config *ConnConfig
@@ -34,26 +32,33 @@ type Conn struct {
 
 type ConnConfig struct {
 	SkipHandshakeVerification bool
-	MaxStreams                uint32
+
+	MaxBitrate uint32
 
 	ReaderBufferSize int
 	WriterBufferSize int
+
+	ControlState StreamControlStateConfig
+	//DefaultReadTimeout time.Duration
+	//DefaultWriteTimeout time.Duration
 }
 
 func (cb *ConnConfig) normalize() *ConnConfig {
 	c := ConnConfig(*cb)
 
-	if c.MaxStreams == 0 {
-		c.MaxStreams = 10 // Default value
+	if c.MaxBitrate == 0 {
+		c.MaxBitrate = 10 * 1024 * 1024 * 8 // 10MBps (Default)
 	}
 
 	if c.ReaderBufferSize == 0 {
-		c.ReaderBufferSize = 4 * 1024 // Default value
+		c.ReaderBufferSize = 4 * 1024 // 4KB (Default)
 	}
 
 	if c.WriterBufferSize == 0 {
-		c.WriterBufferSize = 4 * 1024 // Default value
+		c.WriterBufferSize = 4 * 1024 // 4KB (Default)
 	}
+
+	c.ControlState = *c.ControlState.normalize()
 
 	return &c
 }
@@ -64,14 +69,16 @@ func NewConn(rwc io.ReadWriteCloser, config *ConnConfig) *Conn {
 	}
 	config = config.normalize()
 
-	return &Conn{
+	conn := &Conn{
 		rwc:     rwc,
 		handler: &NopHandler{},
-		streams: make(map[uint32]*Stream),
 
 		config: config,
 		logger: logrus.StandardLogger(),
 	}
+	conn.streams = newStreams(conn, &config.ControlState)
+
+	return conn
 }
 
 func (c *Conn) SetHandler(h Handler) {
@@ -102,7 +109,7 @@ func (c *Conn) Serve() (err error) {
 	c.bufr = bufio.NewReaderSize(c.rwc, c.config.ReaderBufferSize)
 	c.bufw = bufio.NewWriterSize(c.rwc, c.config.WriterBufferSize)
 
-	c.streamer = NewChunkStreamer(c.bufr, c.bufw)
+	c.streamer = NewChunkStreamer(c.bufr, c.bufw, &c.config.ControlState)
 	c.streamer.logger = c.logger
 
 	// StreamID 0 is default control stream
@@ -114,7 +121,11 @@ func (c *Conn) Serve() (err error) {
 		return err
 	}
 
-	c.streamer.controlStreamWriter = c.streams[DefaultControlStreamID].Write
+	defaultStream, ok := c.streams.At(DefaultControlStreamID)
+	if !ok {
+		return errors.New("Unexpected: default stream is not found")
+	}
+	c.streamer.controlStreamWriter = defaultStream.Write
 
 	var streamFragment StreamFragment
 	for {
@@ -148,7 +159,7 @@ func (c *Conn) Close() error {
 }
 
 func (c *Conn) handleStreamFragment(chunkStreamID int, timestamp uint32, sf *StreamFragment) error {
-	stream, ok := c.streams[sf.StreamID]
+	stream, ok := c.streams.At(sf.StreamID)
 	if !ok {
 		return errors.Errorf("Specified stream is not created yet: StreamID = %d", sf.StreamID)
 	}
@@ -161,47 +172,13 @@ func (c *Conn) handleStreamFragment(chunkStreamID int, timestamp uint32, sf *Str
 }
 
 func (c *Conn) createStream(streamID uint32, handler streamHandler) error {
-	c.streamsM.Lock()
-	defer c.streamsM.Unlock()
-
-	_, ok := c.streams[streamID]
-	if ok {
-		return errors.Errorf("Stream already exists: StreamID = %d", streamID)
-	}
-
-	c.streams[streamID] = &Stream{
-		streamID: streamID,
-		handler:  handler,
-		conn:     c,
-		fragment: StreamFragment{
-			StreamID: streamID,
-		},
-	}
-
-	return nil
+	return c.streams.Create(streamID, handler)
 }
 
 func (c *Conn) createStreamIfAvailable(handler streamHandler) (uint32, error) {
-	for i := uint32(0); i < c.config.MaxStreams; i++ {
-		if err := c.createStream(i, handler); err != nil {
-			continue
-		}
-		return i, nil
-	}
-
-	return 0, errors.Errorf("Creating streams limit exceeded: Limit = %d", c.config.MaxStreams)
+	return c.streams.CreateIfAvailable(handler)
 }
 
 func (c *Conn) deleteStream(streamID uint32) error {
-	c.streamsM.Lock()
-	defer c.streamsM.Unlock()
-
-	_, ok := c.streams[streamID]
-	if !ok {
-		return errors.Errorf("Stream not exists: StreamID = %d", streamID)
-	}
-
-	delete(c.streams, streamID)
-
-	return nil
+	return c.streams.Delete(streamID)
 }

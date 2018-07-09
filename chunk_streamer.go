@@ -18,18 +18,6 @@ import (
 	"github.com/yutopp/go-rtmp/message"
 )
 
-const MaxChunkSize = 0xffffff // 5.4.1
-const DefaultChunkSize = 128
-
-type streamState struct {
-	chunkSize  uint32
-	windowSize uint32
-
-	// TODO: bandwidth
-	// windowSize uint32
-	// limitType  message.LimitType
-}
-
 type ChunkStreamer struct {
 	r *ChunkStreamerReader
 	w *ChunkStreamerWriter
@@ -39,9 +27,8 @@ type ChunkStreamer struct {
 
 	writerSched *chunkStreamerWriterSched
 
-	selfState streamState
-	peerState streamState
-	lastAck   uint32
+	selfState *StreamControlState
+	peerState *StreamControlState
 
 	err  error
 	done chan (interface{})
@@ -51,7 +38,7 @@ type ChunkStreamer struct {
 	logger logrus.FieldLogger
 }
 
-func NewChunkStreamer(r io.Reader, w io.Writer) *ChunkStreamer {
+func NewChunkStreamer(r io.Reader, w io.Writer, config *StreamControlStateConfig) *ChunkStreamer {
 	cs := &ChunkStreamer{
 		r: &ChunkStreamerReader{
 			reader: r,
@@ -68,14 +55,8 @@ func NewChunkStreamer(r io.Reader, w io.Writer) *ChunkStreamer {
 			writers:  make(map[int]*ChunkStreamWriter),
 		},
 
-		selfState: streamState{
-			chunkSize:  DefaultChunkSize,
-			windowSize: math.MaxUint32,
-		},
-		peerState: streamState{
-			chunkSize:  DefaultChunkSize,
-			windowSize: math.MaxUint32,
-		},
+		selfState: NewStreamControlState(config),
+		peerState: NewStreamControlState(config),
 
 		done: make(chan interface{}),
 
@@ -137,7 +118,7 @@ again:
 	if err != nil {
 		return nil, err
 	}
-	if cs.r.totalReadBytes > uint64(cs.peerState.windowSize/2) { // TODO: fix size
+	if cs.r.totalReadBytes > uint64(cs.peerState.ackWindowSize/2) { // TODO: fix size
 		if err := cs.sendAck(); err != nil {
 			return nil, err
 		}
@@ -161,20 +142,12 @@ func (cs *ChunkStreamer) Sched(writer *ChunkStreamWriter) error {
 	return cs.writerSched.sched(writer)
 }
 
-func (cs *ChunkStreamer) SetPeerChunkSize(chunkSize uint32) error {
-	if chunkSize > MaxChunkSize {
-		chunkSize = MaxChunkSize
-	}
-
-	cs.peerState.chunkSize = chunkSize
-
-	return nil
+func (cs *ChunkStreamer) SelfState() *StreamControlState {
+	return cs.selfState
 }
 
-func (cs *ChunkStreamer) SetPeerWinAckSize(size uint32) error {
-	cs.peerState.windowSize = size
-
-	return nil
+func (cs *ChunkStreamer) PeerState() *StreamControlState {
+	return cs.peerState
 }
 
 func (cs *ChunkStreamer) Done() <-chan interface{} {
