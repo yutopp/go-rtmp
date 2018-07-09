@@ -14,6 +14,7 @@ import (
 	"io"
 
 	"github.com/yutopp/go-rtmp/handshake"
+	"github.com/yutopp/go-rtmp/message"
 )
 
 // Server Connection
@@ -136,6 +137,12 @@ func (c *Conn) Serve() (err error) {
 		default:
 			chunkStreamID, timestamp, err := c.streamer.Read(&streamFragment)
 			if err != nil {
+				switch err := err.(type) {
+				case *message.UnknownAMFParseError:
+					// Ignore unknown amf object
+					c.logger.Warnf("Ignored unknown amf packed message: Err = %+v", err)
+					continue
+				}
 				return err
 			}
 
