@@ -34,7 +34,7 @@ type Conn struct {
 type ConnConfig struct {
 	SkipHandshakeVerification bool
 
-	MaxBitrate uint32
+	MaxBitrateKbps uint32
 
 	ReaderBufferSize int
 	WriterBufferSize int
@@ -47,8 +47,8 @@ type ConnConfig struct {
 func (cb *ConnConfig) normalize() *ConnConfig {
 	c := ConnConfig(*cb)
 
-	if c.MaxBitrate == 0 {
-		c.MaxBitrate = 10 * 1024 * 1024 * 8 // 10MBps (Default)
+	if c.MaxBitrateKbps == 0 {
+		c.MaxBitrateKbps = 8 * 1024 // 8MBps (Default)
 	}
 
 	if c.ReaderBufferSize == 0 {
@@ -110,7 +110,11 @@ func (c *Conn) Serve() (err error) {
 	c.bufr = bufio.NewReaderSize(c.rwc, c.config.ReaderBufferSize)
 	c.bufw = bufio.NewWriterSize(c.rwc, c.config.WriterBufferSize)
 
-	c.streamer = NewChunkStreamer(c.bufr, c.bufw, &c.config.ControlState)
+	c.streamer = NewChunkStreamer(
+		NewBitrateRejectorReader(c.bufr, c.config.MaxBitrateKbps),
+		c.bufw,
+		&c.config.ControlState,
+	)
 	c.streamer.logger = c.logger
 
 	// StreamID 0 is default control stream
