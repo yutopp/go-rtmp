@@ -132,6 +132,22 @@ func (c *Conn) Serve() (err error) {
 	}
 	c.streamer.controlStreamWriter = defaultStream.Write
 
+	return c.serveLoop()
+}
+
+func (c *Conn) Close() error {
+	if c.handler != nil {
+		c.handler.OnClose()
+	}
+
+	if c.streamer != nil {
+		_ = c.streamer.Close()
+	}
+
+	return c.rwc.Close()
+}
+
+func (c *Conn) serveLoop() error {
 	var streamFragment StreamFragment
 	for {
 		select {
@@ -155,18 +171,6 @@ func (c *Conn) Serve() (err error) {
 			}
 		}
 	}
-}
-
-func (c *Conn) Close() error {
-	if c.handler != nil {
-		c.handler.OnClose()
-	}
-
-	if c.streamer != nil {
-		_ = c.streamer.Close()
-	}
-
-	return c.rwc.Close()
 }
 
 func (c *Conn) handleStreamFragment(chunkStreamID int, timestamp uint32, sf *StreamFragment) error {
