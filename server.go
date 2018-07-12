@@ -8,6 +8,7 @@
 package rtmp
 
 import (
+	"io"
 	"net"
 	"time"
 )
@@ -54,8 +55,11 @@ func (srv *Server) handleConn(conn net.Conn) {
 	handler := srv.config.HandlerFactory(c)
 	c.SetHandler(handler)
 
-	// TODO: fix
 	if err := c.Serve(); err != nil {
-		c.logger.Printf("Serve error: Err = %+v", err)
+		if err == io.EOF {
+			c.logger.Infof("Server closed")
+			return
+		}
+		c.logger.Errorf("Server closed by error: Err = %+v", err)
 	}
 }
