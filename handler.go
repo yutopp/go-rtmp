@@ -18,6 +18,7 @@ type Command interface{}
 type Data interface{}
 
 type Handler interface {
+	OnInit(conn *Conn)
 	OnCommand(timestamp uint32, cmd Command) error
 	OnData(timestamp uint32, data Data) error
 	OnAudio(timestamp uint32, payload []byte) error
@@ -30,6 +31,9 @@ type HandlerFactory func(conn *Conn) Handler
 var _ Handler = (*NopHandler)(nil)
 
 type NopHandler struct {
+}
+
+func (h *NopHandler) OnInit(conn *Conn) {
 }
 
 func (h *NopHandler) OnCommand(timestamp uint32, cmd Command) error {

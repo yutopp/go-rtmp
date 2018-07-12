@@ -137,6 +137,10 @@ func (c *Conn) Serve() (err error) {
 	}
 	c.streamer.controlStreamWriter = defaultStream.Write
 
+	if c.handler != nil {
+		c.handler.OnInit(c)
+	}
+
 	return c.serveLoop()
 }
 
