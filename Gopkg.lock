@@ -8,6 +8,18 @@
   version = "v1.1.0"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/hashicorp/errwrap"
+  packages = ["."]
+  revision = "7554cd9344cec97297fa6649b055a8c98c2a1e55"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/hashicorp/go-multierror"
+  packages = ["."]
+  revision = "b7773ae218740a7be65057fc60b366a49b538a44"
+
+[[projects]]
   name = "github.com/pkg/errors"
   packages = ["."]
   revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
@@ -53,11 +65,11 @@
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix","windows"]
-  revision = "7138fd3d9dc8335c567ca206f4333fb75eb05d56"
+  revision = "1b2967e3c290b7c545b3db0deeda16e9be4f98a2"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "85c24c066a4ea59bb0cee8af4adeb1de1069ec0fc7d2ea01ffdf65cc1267f11b"
+  inputs-digest = "bec4729e1f9d0df3bd578c14dc65c1ebad8b7b4d87c6ab00b57454b300821838"
   solver-name = "gps-cdcl"
   solver-version = 1

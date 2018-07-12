@@ -9,9 +9,11 @@ package rtmp
 
 import (
 	"bufio"
+	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"io"
+	"sync"
 
 	"github.com/yutopp/go-rtmp/handshake"
 	"github.com/yutopp/go-rtmp/message"
@@ -29,6 +31,9 @@ type Conn struct {
 
 	config *ConnConfig
 	logger logrus.FieldLogger
+
+	m        sync.Mutex
+	isClosed bool
 }
 
 type ConnConfig struct {
@@ -136,15 +141,30 @@ func (c *Conn) Serve() (err error) {
 }
 
 func (c *Conn) Close() error {
+	c.m.Lock()
+	defer c.m.Unlock()
+
+	if c.isClosed {
+		return nil
+	}
+	c.isClosed = true
+
 	if c.handler != nil {
 		c.handler.OnClose()
 	}
 
+	var result error
 	if c.streamer != nil {
-		_ = c.streamer.Close()
+		if err := c.streamer.Close(); err != nil {
+			result = multierror.Append(result, err)
+		}
 	}
 
-	return c.rwc.Close()
+	if err := c.rwc.Close(); err != nil {
+		result = multierror.Append(result, err)
+	}
+
+	return result
 }
 
 func (c *Conn) serveLoop() error {
