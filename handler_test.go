@@ -67,7 +67,7 @@ type testHandler struct {
 	closer chan struct{}
 }
 
-func (h *testHandler) OnInit(conn *Conn) {
+func (h *testHandler) OnServe() {
 	for _, s := range []*StreamControlState{h.conn.streamer.PeerState(), h.conn.streamer.SelfState()} {
 		assert.Equal(h.t, uint32(1234), s.ChunkSize())
 		assert.Equal(h.t, uint32(1234), s.AckWindowSize())

@@ -20,7 +20,7 @@ type Handler struct {
 	flvEnc  *flv.Encoder
 }
 
-func (h *Handler) OnInit(_ *rtmp.Conn) {
+func (h *Handler) OnServe() {
 }
 
 func (h *Handler) OnCommand(timestamp uint32, cmd rtmp.Command) error {
