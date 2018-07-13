@@ -27,7 +27,12 @@ func main() {
 
 			return &Handler{}
 		},
-		Conn: nil,
+		Conn: &rtmp.ConnConfig{
+			MaxBitrateKbps: 6 * 1024,
+			ControlState: rtmp.StreamControlStateConfig{
+				DefaultBandwidthWindowSize: 6 * 1024 * 1024 / 8,
+			},
+		},
 	})
 	if err := srv.Serve(listner); err != nil {
 		log.Panicf("Failed: %+v", err)

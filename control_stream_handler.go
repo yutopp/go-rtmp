@@ -96,6 +96,7 @@ handleCommand:
 		}
 
 		// TODO: fix
+		l.Infof("Set win ack size: Size = %+v", h.conn.streamer.SelfState().AckWindowSize())
 		if err := stream.Write(chunkStreamID, timestamp, &message.WinAckSize{
 			Size: h.conn.streamer.SelfState().AckWindowSize(),
 		}); err != nil {
@@ -103,6 +104,10 @@ handleCommand:
 		}
 
 		// TODO: fix
+		l.Infof("Set peer bandwidth: Size = %+v, Limit = %+v",
+			h.conn.streamer.SelfState().BandwidthWindowSize(),
+			h.conn.streamer.SelfState().BandwidthLimitType(),
+		)
 		if err := stream.Write(chunkStreamID, timestamp, &message.SetPeerBandwidth{
 			Size:  h.conn.streamer.SelfState().BandwidthWindowSize(),
 			Limit: h.conn.streamer.SelfState().BandwidthLimitType(),
