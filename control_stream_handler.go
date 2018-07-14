@@ -224,6 +224,10 @@ handleCommand:
 	case *message.NetStreamDeleteStream:
 		l.Infof("Stream deleting...: TargetStreamID = %d", cmd.StreamID)
 
+		if err := h.conn.handler.OnCommand(timestamp, cmd); err != nil {
+			return err
+		}
+
 		if err := h.conn.deleteStream(cmd.StreamID); err != nil {
 			return err
 		}

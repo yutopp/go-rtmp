@@ -10,6 +10,7 @@ package rtmp
 // Command =
 //   | *message.NetConnectionConnect
 //   | *message.NetConnectionCreateStream
+//   | *message.NetStreamDeleteStream
 //   | *message.NetStreamPublish
 type Command interface{}
 
