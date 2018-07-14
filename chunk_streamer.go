@@ -31,7 +31,7 @@ type ChunkStreamer struct {
 	peerState *StreamControlState
 
 	err  error
-	done chan (interface{})
+	done chan struct{}
 
 	controlStreamWriter func(chunkStreamID int, timestamp uint32, msg message.Message) error
 
@@ -51,14 +51,15 @@ func NewChunkStreamer(r io.Reader, w io.Writer, config *StreamControlStateConfig
 		writers: make(map[int]*ChunkStreamWriter),
 
 		writerSched: &chunkStreamerWriterSched{
-			isActive: make(chan bool, 1),
 			writers:  make(map[int]*ChunkStreamWriter),
+			activeCh: make(chan bool, 1),
+			closeCh:  make(chan struct{}),
 		},
 
 		selfState: NewStreamControlState(config),
 		peerState: NewStreamControlState(config),
 
-		done: make(chan interface{}),
+		done: make(chan struct{}),
 
 		logger: logrus.StandardLogger(),
 	}
@@ -131,7 +132,7 @@ func (cs *ChunkStreamer) NewChunkWriter(chunkStreamID int) (*ChunkStreamWriter, 
 }
 
 func (cs *ChunkStreamer) Sched(writer *ChunkStreamWriter) error {
-	return cs.writerSched.sched(writer)
+	return cs.writerSched.Sched(writer)
 }
 
 func (cs *ChunkStreamer) SelfState() *StreamControlState {
@@ -142,7 +143,7 @@ func (cs *ChunkStreamer) PeerState() *StreamControlState {
 	return cs.peerState
 }
 
-func (cs *ChunkStreamer) Done() <-chan interface{} {
+func (cs *ChunkStreamer) Done() <-chan struct{} {
 	return cs.done
 }
 
@@ -151,7 +152,7 @@ func (cs *ChunkStreamer) Err() error {
 }
 
 func (cs *ChunkStreamer) Close() error {
-	return nil
+	return cs.writerSched.Close()
 }
 
 // returns nil reader when chunk is fragmented.
@@ -289,7 +290,7 @@ func (cs *ChunkStreamer) updateWriterHeader(writer *ChunkStreamWriter) {
 
 func (cs *ChunkStreamer) schedWriteLoop() {
 	defer close(cs.done)
-	cs.err = cs.writerSched.run()
+	cs.err = cs.writerSched.Run()
 }
 
 func (cs *ChunkStreamer) prepareChunkReader(chunkStreamID int) *ChunkStreamReader {
@@ -331,12 +332,15 @@ func (cs *ChunkStreamer) sendAck() error {
 
 type chunkStreamerWriterSched struct {
 	streamer *ChunkStreamer
-	isActive chan bool
-	m        sync.Mutex
 	writers  map[int]*ChunkStreamWriter
+	m        sync.Mutex
+
+	activeCh chan bool
+	closeCh  chan struct{}
+	isClosed bool
 }
 
-func (sched *chunkStreamerWriterSched) sched(writer *ChunkStreamWriter) error {
+func (sched *chunkStreamerWriterSched) Sched(writer *ChunkStreamWriter) error {
 	sched.m.Lock()
 	defer sched.m.Unlock()
 
@@ -348,14 +352,12 @@ func (sched *chunkStreamerWriterSched) sched(writer *ChunkStreamWriter) error {
 	writer.m.Lock()
 	sched.writers[writer.basicHeader.chunkStreamID] = writer
 
-	if len(sched.writers) > 0 {
-		sched.isActive <- true
-	}
+	sched.activate()
 
 	return nil
 }
 
-func (sched *chunkStreamerWriterSched) unSched(writer *ChunkStreamWriter) error {
+func (sched *chunkStreamerWriterSched) UnSched(writer *ChunkStreamWriter) error {
 	// Lock must be taken before calling this function.
 
 	_, ok := sched.writers[writer.basicHeader.chunkStreamID]
@@ -369,7 +371,7 @@ func (sched *chunkStreamerWriterSched) unSched(writer *ChunkStreamWriter) error 
 	return nil
 }
 
-func (sched *chunkStreamerWriterSched) run() (err error) {
+func (sched *chunkStreamerWriterSched) Run() (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			errTmp, ok := r.(error)
@@ -382,13 +384,28 @@ func (sched *chunkStreamerWriterSched) run() (err error) {
 
 	for {
 		select {
-		case <-sched.isActive:
-			err = sched.runActives()
-			if err != nil {
-				return
+		case <-sched.activeCh:
+			if err := sched.runActives(); err != nil {
+				return err
 			}
+		case <-sched.closeCh:
+			return nil
 		}
 	}
+}
+
+func (sched *chunkStreamerWriterSched) Close() error {
+	sched.m.Lock()
+	defer sched.m.Unlock()
+
+	if sched.isClosed {
+		return nil
+	}
+	sched.isClosed = true
+
+	close(sched.closeCh)
+
+	return nil
 }
 
 func (sched *chunkStreamerWriterSched) runActives() error {
@@ -398,16 +415,20 @@ func (sched *chunkStreamerWriterSched) runActives() error {
 	for _, writer := range sched.writers {
 		isCompleted, err := sched.streamer.writeChunk(writer)
 		if isCompleted || err != nil {
-			_ = sched.unSched(writer) // TODO: error check
+			_ = sched.UnSched(writer) // TODO: error check
 			if err != nil {
 				return err
 			}
 		}
 	}
 
-	if len(sched.writers) > 0 {
-		sched.isActive <- true
-	}
+	sched.activate()
 
 	return nil
+}
+
+func (sched *chunkStreamerWriterSched) activate() {
+	if len(sched.writers) > 0 {
+		sched.activeCh <- true
+	}
 }
