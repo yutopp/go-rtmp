@@ -31,7 +31,7 @@ type ChunkStreamer struct {
 	peerState *StreamControlState
 
 	err  error
-	done chan (interface{})
+	done chan struct{}
 
 	controlStreamWriter func(chunkStreamID int, timestamp uint32, msg message.Message) error
 
@@ -59,7 +59,7 @@ func NewChunkStreamer(r io.Reader, w io.Writer, config *StreamControlStateConfig
 		selfState: NewStreamControlState(config),
 		peerState: NewStreamControlState(config),
 
-		done: make(chan interface{}),
+		done: make(chan struct{}),
 
 		logger: logrus.StandardLogger(),
 	}
@@ -143,7 +143,7 @@ func (cs *ChunkStreamer) PeerState() *StreamControlState {
 	return cs.peerState
 }
 
-func (cs *ChunkStreamer) Done() <-chan interface{} {
+func (cs *ChunkStreamer) Done() <-chan struct{} {
 	return cs.done
 }
 
