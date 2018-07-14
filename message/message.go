@@ -70,7 +70,7 @@ func (m *UserCtrl) TypeID() TypeID {
 
 // WinAckSize (5)
 type WinAckSize struct {
-	Size uint32
+	Size int32
 }
 
 func (m *WinAckSize) TypeID() TypeID {

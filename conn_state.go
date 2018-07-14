@@ -19,7 +19,7 @@ const MaxChunkSize = 0xffffff // 5.4.1
 
 type StreamControlState struct {
 	chunkSize           uint32
-	ackWindowSize       uint32
+	ackWindowSize       int32
 	bandwidthWindowSize int32
 	bandwidthLimitType  message.LimitType
 
@@ -33,8 +33,8 @@ type StreamControlStateConfig struct {
 	MaxChunkSize     uint32
 	MaxChunkStreams  uint32
 
-	DefaultAckWindowSize uint32
-	MaxAckWindowSize     uint32
+	DefaultAckWindowSize int32
+	MaxAckWindowSize     int32
 
 	DefaultBandwidthWindowSize int32
 	DefaultBandwidthLimitType  message.LimitType
@@ -64,11 +64,11 @@ func (cb *StreamControlStateConfig) normalize() *StreamControlStateConfig {
 	// ack
 
 	if c.DefaultAckWindowSize == 0 {
-		c.DefaultAckWindowSize = math.MaxUint32
+		c.DefaultAckWindowSize = math.MaxInt32
 	}
 
 	if c.MaxAckWindowSize == 0 {
-		c.MaxAckWindowSize = math.MaxUint32
+		c.MaxAckWindowSize = math.MaxInt32
 	}
 
 	// bandwidth
@@ -129,11 +129,11 @@ func (s *StreamControlState) SetChunkSize(chunkSize uint32) error {
 	return nil
 }
 
-func (s *StreamControlState) AckWindowSize() uint32 {
+func (s *StreamControlState) AckWindowSize() int32 {
 	return s.ackWindowSize
 }
 
-func (s *StreamControlState) SetAckWindowSize(ackWindowSize uint32) error {
+func (s *StreamControlState) SetAckWindowSize(ackWindowSize int32) error {
 	if ackWindowSize > s.config.MaxAckWindowSize {
 		return errors.Errorf("Exceeded configured max ack window size: Limit = %d, Value = %d", s.config.MaxAckWindowSize, ackWindowSize)
 	}

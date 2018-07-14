@@ -135,7 +135,7 @@ func (dec *Decoder) decodeWinAckSize(msg *Message) error {
 		return err
 	}
 
-	size := binary.BigEndian.Uint32(buf)
+	size := int32(binary.BigEndian.Uint32(buf))
 
 	*msg = &WinAckSize{
 		Size: size,

@@ -112,7 +112,7 @@ func (enc *Encoder) encodeUserCtrl(msg *UserCtrl) error {
 
 func (enc *Encoder) encodeWinAckSize(m *WinAckSize) error {
 	buf := make([]byte, 4)
-	binary.BigEndian.PutUint32(buf, m.Size) // [0:4]
+	binary.BigEndian.PutUint32(buf, uint32(m.Size)) // [0:4]
 
 	if _, err := enc.w.Write(buf); err != nil { // TODO: length check
 		return err
