@@ -8,6 +8,12 @@
   version = "v1.1.0"
 
 [[projects]]
+  name = "github.com/fortytw2/leaktest"
+  packages = ["."]
+  revision = "a5ef70473c97b71626b9abeda80ee92ba2a7de9e"
+  version = "v1.2.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/hashicorp/errwrap"
   packages = ["."]
@@ -70,6 +76,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "bec4729e1f9d0df3bd578c14dc65c1ebad8b7b4d87c6ab00b57454b300821838"
+  inputs-digest = "ba45d87b476dd35b5a9ce6d1a5405e68e62a828d1252b7270445ed7bd55274ba"
   solver-name = "gps-cdcl"
   solver-version = 1

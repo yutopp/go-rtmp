@@ -11,6 +11,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"github.com/fortytw2/leaktest"
 	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
@@ -265,4 +266,19 @@ type AlwaysErrorWriter struct{}
 
 func (w *AlwaysErrorWriter) Write(buf []byte) (int, error) {
 	return 0, fmt.Errorf("Always error!")
+}
+
+func TestChunkStreamerHasNoLeaksOfGoroutines(t *testing.T) {
+	defer leaktest.Check(t)()
+
+	buf := new(bytes.Buffer)
+	inbuf := bufio.NewReaderSize(buf, 2048)
+	outbuf := bufio.NewWriterSize(buf, 2048)
+
+	streamer := NewChunkStreamer(inbuf, outbuf, nil)
+
+	err := streamer.Close()
+	assert.Nil(t, err)
+
+	<-streamer.Done()
 }
