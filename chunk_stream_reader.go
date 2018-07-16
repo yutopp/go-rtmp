@@ -22,7 +22,7 @@ type ChunkStreamReader struct {
 	messageTypeID   byte
 	messageStreamID uint32
 
-	buf *bytes.Buffer
+	buf bytes.Buffer
 }
 
 func (r *ChunkStreamReader) Read(b []byte) (int, error) {

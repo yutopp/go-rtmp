@@ -8,7 +8,6 @@
 package rtmp
 
 import (
-	"bytes"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"io"
@@ -208,7 +207,7 @@ func (cs *ChunkStreamer) readChunk() (bool, *ChunkStreamReader, error) {
 	}
 	cs.logger.Debugf("(READ) Length = %d", expectLen)
 
-	_, err := io.CopyN(reader.buf, cs.r, int64(expectLen))
+	_, err := io.CopyN(&reader.buf, cs.r, int64(expectLen))
 	if err != nil {
 		return false, nil, err
 	}
@@ -296,9 +295,7 @@ func (cs *ChunkStreamer) schedWriteLoop() {
 func (cs *ChunkStreamer) prepareChunkReader(chunkStreamID int) *ChunkStreamReader {
 	reader, ok := cs.readers[chunkStreamID]
 	if !ok {
-		reader = &ChunkStreamReader{
-			buf: new(bytes.Buffer),
-		}
+		reader = &ChunkStreamReader{}
 		cs.readers[chunkStreamID] = reader
 	}
 
