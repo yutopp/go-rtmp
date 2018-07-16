@@ -31,7 +31,7 @@ type StreamControlState struct {
 type StreamControlStateConfig struct {
 	DefaultChunkSize uint32
 	MaxChunkSize     uint32
-	MaxChunkStreams  uint32
+	MaxChunkStreams  int
 
 	DefaultAckWindowSize int32
 	MaxAckWindowSize     int32

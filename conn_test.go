@@ -77,7 +77,7 @@ func TestConnConfig(t *testing.T) {
 
 	assert.Equal(t, uint32(1234), conn.config.ControlState.DefaultChunkSize)
 	assert.Equal(t, uint32(1234), conn.config.ControlState.MaxChunkSize)
-	assert.Equal(t, uint32(1234), conn.config.ControlState.MaxChunkStreams)
+	assert.Equal(t, 1234, conn.config.ControlState.MaxChunkStreams)
 
 	assert.Equal(t, int32(1234), conn.config.ControlState.DefaultAckWindowSize)
 	assert.Equal(t, int32(1234), conn.config.ControlState.MaxAckWindowSize)

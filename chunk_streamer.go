@@ -34,10 +34,15 @@ type ChunkStreamer struct {
 
 	controlStreamWriter func(chunkStreamID int, timestamp uint32, msg message.Message) error
 
+	config *StreamControlStateConfig
 	logger logrus.FieldLogger
 }
 
 func NewChunkStreamer(r io.Reader, w io.Writer, config *StreamControlStateConfig) *ChunkStreamer {
+	if config == nil {
+		config = defaultStreamControlStateConfig
+	}
+
 	cs := &ChunkStreamer{
 		r: &ChunkStreamerReader{
 			reader: r,
@@ -60,6 +65,7 @@ func NewChunkStreamer(r io.Reader, w io.Writer, config *StreamControlStateConfig
 
 		done: make(chan struct{}),
 
+		config: config,
 		logger: logrus.StandardLogger(),
 	}
 	cs.writerSched.streamer = cs
@@ -123,7 +129,11 @@ again:
 }
 
 func (cs *ChunkStreamer) NewChunkWriter(chunkStreamID int) (*ChunkStreamWriter, error) {
-	writer := cs.prepareChunkWriter(chunkStreamID)
+	writer, err := cs.prepareChunkWriter(chunkStreamID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to prepare chunk writer")
+	}
+
 	writer.m.Lock()
 	defer writer.m.Unlock()
 
@@ -168,7 +178,11 @@ func (cs *ChunkStreamer) readChunk() (bool, *ChunkStreamReader, error) {
 	}
 	cs.logger.Debugf("(READ) MessageHeader = %+v", mh)
 
-	reader := cs.prepareChunkReader(bh.chunkStreamID)
+	reader, err := cs.prepareChunkReader(bh.chunkStreamID)
+	if err != nil {
+		return false, nil, errors.Wrapf(err, "Failed to prepare chunk reader")
+	}
+
 	reader.basicHeader = bh
 	reader.messageHeader = mh
 
@@ -207,8 +221,7 @@ func (cs *ChunkStreamer) readChunk() (bool, *ChunkStreamReader, error) {
 	}
 	cs.logger.Debugf("(READ) Length = %d", expectLen)
 
-	_, err := io.CopyN(&reader.buf, cs.r, int64(expectLen))
-	if err != nil {
+	if _, err := io.CopyN(&reader.buf, cs.r, int64(expectLen)); err != nil {
 		return false, nil, err
 	}
 	//cs.logger.Debugf("(READ) Buffer: %+v", reader.buf.Bytes())
@@ -292,19 +305,33 @@ func (cs *ChunkStreamer) schedWriteLoop() {
 	cs.err = cs.writerSched.Run()
 }
 
-func (cs *ChunkStreamer) prepareChunkReader(chunkStreamID int) *ChunkStreamReader {
+func (cs *ChunkStreamer) prepareChunkReader(chunkStreamID int) (*ChunkStreamReader, error) {
 	reader, ok := cs.readers[chunkStreamID]
 	if !ok {
+		if len(cs.readers) >= cs.config.MaxChunkStreams {
+			return nil, errors.Errorf(
+				"Creating chunk streams limit exceeded(Reader): Limit = %d",
+				cs.config.MaxChunkStreams,
+			)
+		}
+
 		reader = &ChunkStreamReader{}
 		cs.readers[chunkStreamID] = reader
 	}
 
-	return reader
+	return reader, nil
 }
 
-func (cs *ChunkStreamer) prepareChunkWriter(chunkStreamID int) *ChunkStreamWriter {
+func (cs *ChunkStreamer) prepareChunkWriter(chunkStreamID int) (*ChunkStreamWriter, error) {
 	writer, ok := cs.writers[chunkStreamID]
 	if !ok {
+		if len(cs.writers) >= cs.config.MaxChunkStreams {
+			return nil, errors.Errorf(
+				"Creating chunk streams limit exceeded(Writer): Limit = %d",
+				cs.config.MaxChunkStreams,
+			)
+		}
+
 		writer = &ChunkStreamWriter{
 			basicHeader: chunkBasicHeader{
 				chunkStreamID: chunkStreamID,
@@ -316,7 +343,7 @@ func (cs *ChunkStreamer) prepareChunkWriter(chunkStreamID int) *ChunkStreamWrite
 		cs.writers[chunkStreamID] = writer
 	}
 
-	return writer
+	return writer, nil
 }
 
 func (cs *ChunkStreamer) sendAck() error {
