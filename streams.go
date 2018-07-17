@@ -42,6 +42,12 @@ func (ss *streams) Create(streamID uint32, handler streamHandler) error {
 	if ok {
 		return errors.Errorf("Stream already exists: StreamID = %d", streamID)
 	}
+	if len(ss.streams) >= ss.config.MaxMessageStreams {
+		return errors.Errorf(
+			"Creating message streams limit exceeded: Limit = %d",
+			ss.config.MaxMessageStreams,
+		)
+	}
 
 	ss.streams[streamID] = &Stream{
 		streamID: streamID,
@@ -56,11 +62,11 @@ func (ss *streams) Create(streamID uint32, handler streamHandler) error {
 }
 
 func (ss *streams) CreateIfAvailable(handler streamHandler) (uint32, error) {
-	for i := uint32(0); i < ss.config.MaxMessageStreams; i++ {
-		if err := ss.Create(i, handler); err != nil {
+	for i := 0; i < ss.config.MaxMessageStreams; i++ {
+		if err := ss.Create(uint32(i), handler); err != nil {
 			continue
 		}
-		return i, nil
+		return uint32(i), nil
 	}
 
 	return 0, errors.Errorf("Creating streams limit exceeded: Limit = %d", ss.config.MaxMessageStreams)

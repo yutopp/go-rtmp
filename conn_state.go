@@ -40,8 +40,8 @@ type StreamControlStateConfig struct {
 	DefaultBandwidthLimitType  message.LimitType
 	MaxBandwidthWindowSize     int32
 
-	MaxMessageStreams uint32
 	MaxMessageSize    uint32
+	MaxMessageStreams int
 }
 
 func (cb *StreamControlStateConfig) normalize() *StreamControlStateConfig {

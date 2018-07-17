@@ -86,8 +86,8 @@ func TestConnConfig(t *testing.T) {
 	assert.Equal(t, message.LimitTypeHard, conn.config.ControlState.DefaultBandwidthLimitType)
 	assert.Equal(t, int32(1234), conn.config.ControlState.MaxBandwidthWindowSize)
 
-	assert.Equal(t, uint32(1234), conn.config.ControlState.MaxMessageStreams)
 	assert.Equal(t, uint32(1234), conn.config.ControlState.MaxMessageSize)
+	assert.Equal(t, 1234, conn.config.ControlState.MaxMessageStreams)
 }
 
 type rwcMock struct {
