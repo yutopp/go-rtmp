@@ -282,3 +282,30 @@ func TestChunkStreamerHasNoLeaksOfGoroutines(t *testing.T) {
 
 	<-streamer.Done()
 }
+
+func TestChunkStreamerStreamsLimitation(t *testing.T) {
+	buf := new(bytes.Buffer)
+	inbuf := bufio.NewReaderSize(buf, 2048)
+	outbuf := bufio.NewWriterSize(buf, 2048)
+
+	streamer := NewChunkStreamer(inbuf, outbuf, &StreamControlStateConfig{
+		MaxChunkStreams: 1,
+	})
+	defer streamer.Close()
+
+	{
+		_, err := streamer.prepareChunkReader(0)
+		assert.Nil(t, err)
+
+		_, err = streamer.prepareChunkReader(1)
+		assert.EqualError(t, err, "Creating chunk streams limit exceeded(Reader): Limit = 1")
+	}
+
+	{
+		_, err := streamer.prepareChunkWriter(0)
+		assert.Nil(t, err)
+
+		_, err = streamer.prepareChunkWriter(1)
+		assert.EqualError(t, err, "Creating chunk streams limit exceeded(Writer): Limit = 1")
+	}
+}
