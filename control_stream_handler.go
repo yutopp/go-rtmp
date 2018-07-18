@@ -71,17 +71,8 @@ func (h *controlStreamHandler) handleConnect(chunkStreamID int, timestamp uint32
 		cmdMsg = &msg.CommandMessage
 		goto handleCommand
 
-	case *message.SetChunkSize:
-		l.Infof("SetChunkSize: Msg = %+v", msg)
-		return h.conn.streamer.PeerState().SetChunkSize(msg.ChunkSize)
-
-	case *message.WinAckSize:
-		l.Infof("WinAckSize: Msg = %+v", msg)
-
-		return h.conn.streamer.PeerState().SetAckWindowSize(msg.Size)
-
 	default:
-		l.Warnf("Message unhandled: Msg = %+v", msg)
+		l.Warnf("Message unhandled: Msg = %#v", msg)
 
 		return nil
 	}
@@ -137,7 +128,7 @@ handleCommand:
 				},
 			}
 		})
-		l.Infof("Conn: %+v", m.(*message.CommandMessageAMF0).Command)
+		l.Infof("Conn: %#v", m.(*message.CommandMessageAMF0).Command)
 
 		if err := stream.Write(chunkStreamID, timestamp, m); err != nil {
 			return err
@@ -149,7 +140,7 @@ handleCommand:
 		return nil
 
 	default:
-		l.Warnf("Unexpected command: Command = %+v", cmdMsg)
+		l.Warnf("Unexpected command: Command = %#v", cmdMsg)
 
 		return nil
 	}
@@ -175,8 +166,17 @@ func (h *controlStreamHandler) handleCreateStream(chunkStreamID int, timestamp u
 		cmdMsg = &msg.CommandMessage
 		goto handleCommand
 
+	case *message.SetChunkSize:
+		l.Infof("Handle SetChunkSize: Msg = %#v", msg)
+		return h.conn.streamer.PeerState().SetChunkSize(msg.ChunkSize)
+
+	case *message.WinAckSize:
+		l.Infof("Handle WinAckSize: Msg = %#v", msg)
+
+		return h.conn.streamer.PeerState().SetAckWindowSize(msg.Size)
+
 	default:
-		l.Warnf("Message unhandled: Msg = %+v", msg)
+		l.Warnf("Message unhandled: Msg = %#v", msg)
 
 		return nil
 	}
@@ -184,7 +184,7 @@ func (h *controlStreamHandler) handleCreateStream(chunkStreamID int, timestamp u
 handleCommand:
 	switch cmd := cmdMsg.Command.(type) {
 	case *message.NetConnectionCreateStream:
-		l.Infof("Stream creating...: %+v", cmd)
+		l.Infof("Stream creating...: %#v", cmd)
 
 		if err := h.conn.handler.OnCommand(timestamp, cmd); err != nil {
 			return err
@@ -197,7 +197,7 @@ handleCommand:
 		})
 		if err != nil {
 			// TODO: send failed _result
-			l.Errorf("Stream creating...: Err = %+v", err)
+			l.Errorf("Stream creating...: Err = %#v", err)
 
 			return nil
 		}
@@ -239,7 +239,7 @@ handleCommand:
 		return nil
 
 	default:
-		l.Warnf("Unexpected command: Command = %+v", cmdMsg)
+		l.Warnf("Unexpected command: Command = %#v", cmdMsg)
 
 		return nil
 	}

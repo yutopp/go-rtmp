@@ -78,7 +78,7 @@ func (h *dataStreamHandler) handleAction(chunkStreamID int, timestamp uint32, ms
 		goto handleCommand
 
 	default:
-		l.Warnf("Message unhandled: Msg = %+v", msg)
+		l.Warnf("Message unhandled: Msg = %#v", msg)
 
 		return nil
 	}
@@ -86,7 +86,7 @@ func (h *dataStreamHandler) handleAction(chunkStreamID int, timestamp uint32, ms
 handleCommand:
 	switch cmd := cmdMsg.Command.(type) {
 	case *message.NetStreamPublish:
-		l.Infof("Publisher is comming: %+v", cmd)
+		l.Infof("Publisher is comming: %#v", cmd)
 
 		if err := h.conn.handler.OnCommand(timestamp, cmd); err != nil {
 			return err
@@ -116,7 +116,7 @@ handleCommand:
 		return nil
 
 	default:
-		l.Warnf("Unexpected command: Command = %+v", cmdMsg)
+		l.Warnf("Unexpected command: Command = %#v", cmdMsg)
 
 		return nil
 	}
@@ -146,7 +146,7 @@ func (h *dataStreamHandler) handlePublisher(chunkStreamID int, timestamp uint32,
 		goto handleCommand
 
 	default:
-		l.Warnf("Message unhandled: Msg = %+v", msg)
+		l.Warnf("Message unhandled: Msg = %#v", msg)
 
 		return nil
 	}
@@ -161,7 +161,7 @@ handleCommand:
 		return h.conn.handler.OnData(timestamp, df)
 
 	default:
-		l.Warnf("Ignore unknown data message: Msg = %+v", dataMsg)
+		l.Warnf("Ignore unknown data message: Msg = %#v", dataMsg)
 
 		return nil
 	}
