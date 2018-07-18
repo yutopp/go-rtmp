@@ -22,6 +22,17 @@ const (
 	controlStreamStateConnected
 )
 
+func (s controlStreamState) String() string {
+	switch s {
+	case controlStreamStateNotConnected:
+		return "NotConnected"
+	case controlStreamStateConnected:
+		return "Connected"
+	default:
+		return "<Unknown>"
+	}
+}
+
 // controlStreamHandler Handle messages which are categorised as control messages.
 //   transitions:
 //     = controlStreamStateNotConnected

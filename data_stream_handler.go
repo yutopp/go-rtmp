@@ -24,6 +24,19 @@ const (
 	dataStreamStateHasPlayer
 )
 
+func (s dataStreamState) String() string {
+	switch s {
+	case dataStreamStateNotInAction:
+		return "NotInAction"
+	case dataStreamStateHasPublisher:
+		return "HasPublisher"
+	case dataStreamStateHasPlayer:
+		return "HasPlayer"
+	default:
+		return "<Unknown>"
+	}
+}
+
 // dataStreamHandler Handle messages which are categorised as NetStream.
 //   transitions:
 //     = dataStreamStateNotInAction
