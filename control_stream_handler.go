@@ -72,9 +72,7 @@ func (h *controlStreamHandler) handleConnect(chunkStreamID int, timestamp uint32
 		goto handleCommand
 
 	default:
-		l.Warnf("Message unhandled: Msg = %#v", msg)
-
-		return nil
+		return h.handleCommonMessage(chunkStreamID, timestamp, msg, stream)
 	}
 
 handleCommand:
@@ -128,7 +126,7 @@ handleCommand:
 				},
 			}
 		})
-		l.Infof("Conn: %#v", m.(*message.CommandMessageAMF0).Command)
+		l.Infof("Connect: Response = %#v", m.(*message.CommandMessageAMF0).Command)
 
 		if err := stream.Write(chunkStreamID, timestamp, m); err != nil {
 			return err
@@ -166,19 +164,8 @@ func (h *controlStreamHandler) handleCreateStream(chunkStreamID int, timestamp u
 		cmdMsg = &msg.CommandMessage
 		goto handleCommand
 
-	case *message.SetChunkSize:
-		l.Infof("Handle SetChunkSize: Msg = %#v", msg)
-		return h.conn.streamer.PeerState().SetChunkSize(msg.ChunkSize)
-
-	case *message.WinAckSize:
-		l.Infof("Handle WinAckSize: Msg = %#v", msg)
-
-		return h.conn.streamer.PeerState().SetAckWindowSize(msg.Size)
-
 	default:
-		l.Warnf("Message unhandled: Msg = %#v", msg)
-
-		return nil
+		return h.handleCommonMessage(chunkStreamID, timestamp, msg, stream)
 	}
 
 handleCommand:
@@ -240,6 +227,30 @@ handleCommand:
 
 	default:
 		l.Warnf("Unexpected command: Command = %#v", cmdMsg)
+
+		return nil
+	}
+}
+
+func (h *controlStreamHandler) handleCommonMessage(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
+	l := h.logger.WithFields(logrus.Fields{
+		"stream_id": stream.streamID,
+		"state":     h.state,
+		"handler":   "control",
+	})
+
+	switch msg := msg.(type) {
+	case *message.SetChunkSize:
+		l.Infof("Handle SetChunkSize: Msg = %#v", msg)
+		return h.conn.streamer.PeerState().SetChunkSize(msg.ChunkSize)
+
+	case *message.WinAckSize:
+		l.Infof("Handle WinAckSize: Msg = %#v", msg)
+
+		return h.conn.streamer.PeerState().SetAckWindowSize(msg.Size)
+
+	default:
+		l.Warnf("Message unhandled: Msg = %#v", msg)
 
 		return nil
 	}
