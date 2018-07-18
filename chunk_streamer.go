@@ -116,10 +116,11 @@ again:
 	if err != nil {
 		return nil, err
 	}
-	if cs.r.totalReadBytes > uint64(cs.peerState.ackWindowSize/2) { // TODO: fix size
-		if err := cs.sendAck(); err != nil {
+	if cs.r.FragmentReadBytes() >= uint32(cs.peerState.ackWindowSize/2) { // TODO: fix size
+		if err := cs.sendAck(cs.r.TotalReadBytes()); err != nil {
 			return nil, err
 		}
+		cs.r.ResetFragmentReadBytes()
 	}
 
 	if !isCompleted {
@@ -346,11 +347,11 @@ func (cs *ChunkStreamer) prepareChunkWriter(chunkStreamID int) (*ChunkStreamWrit
 	return writer, nil
 }
 
-func (cs *ChunkStreamer) sendAck() error {
-	cs.logger.Infof("Sending Ack...")
+func (cs *ChunkStreamer) sendAck(readBytes uint32) error {
+	cs.logger.Infof("Sending Ack...: Bytes = %d", readBytes)
 	// TODO: chunk stream id and fix timestamp
 	return cs.controlStreamWriter(2, 0, &message.Ack{
-		SequenceNumber: uint32(cs.r.totalReadBytes),
+		SequenceNumber: readBytes,
 	})
 }
 
