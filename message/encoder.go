@@ -11,7 +11,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"reflect"
 
 	"github.com/yutopp/go-amf0"
 )
@@ -64,7 +63,7 @@ func (enc *Encoder) Encode(msg Message) error {
 	case *AggregateMessage:
 		return enc.encodeAggregateMessage(msg)
 	default:
-		return fmt.Errorf("Unexpected message type(encode): ID = %d, Type = %+v", msg.TypeID(), reflect.TypeOf(msg))
+		return fmt.Errorf("Unexpected message type(encode): ID = %d, Type = %T", msg.TypeID(), msg)
 	}
 }
 

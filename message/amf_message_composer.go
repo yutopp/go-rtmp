@@ -11,7 +11,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/yutopp/go-amf0"
 	"io"
-	"reflect"
 )
 
 type amfMessageComposerFunc func(w io.Writer, e AMFEncoder, v AMFConvertible) error
@@ -26,7 +25,7 @@ func composeAMFMessage(w io.Writer, e AMFEncoder, v AMFConvertible) error {
 	case *amf0.Encoder:
 		amfTy = AMFType0
 	default:
-		return errors.Errorf("Unsupported AMF Encoder: Type = %+v", reflect.TypeOf(e))
+		return errors.Errorf("Unsupported AMF Encoder: Type = %T", e)
 	}
 
 	args, err := v.ToArgs(amfTy)
