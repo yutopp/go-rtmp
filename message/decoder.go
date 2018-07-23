@@ -12,7 +12,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"sync"
 
 	"github.com/yutopp/go-amf0"
 )
@@ -21,7 +20,7 @@ type Decoder struct {
 	r      io.Reader
 	typeID TypeID
 
-	bufferPool       sync.Pool
+	cacheBuffer bytes.Buffer
 	amfMessageParser amfMessageParserFunc
 }
 
@@ -30,11 +29,6 @@ func NewDecoder(r io.Reader, typeID TypeID) *Decoder {
 		r:      r,
 		typeID: typeID,
 
-		bufferPool: sync.Pool{
-			New: func() interface{} {
-				return &bytes.Buffer{}
-			},
-		},
 		amfMessageParser: parseAMFMessage,
 	}
 }
@@ -169,8 +163,7 @@ func (dec *Decoder) decodeSetPeerBandwidth(msg *Message) error {
 }
 
 func (dec *Decoder) decodeAudioMessage(msg *Message) error {
-	buf := dec.bufferPool.Get().(*bytes.Buffer)
-	defer dec.bufferPool.Put(buf)
+	buf := &dec.cacheBuffer // TODO: Provide thread safety if needed
 	buf.Reset()
 
 	_, err := io.Copy(buf, dec.r)
@@ -190,8 +183,7 @@ func (dec *Decoder) decodeAudioMessage(msg *Message) error {
 }
 
 func (dec *Decoder) decodeVideoMessage(msg *Message) error {
-	buf := dec.bufferPool.Get().(*bytes.Buffer)
-	defer dec.bufferPool.Put(buf)
+	buf := &dec.cacheBuffer// TODO: Provide thread safety if needed
 	buf.Reset()
 
 	_, err := io.Copy(buf, dec.r)
