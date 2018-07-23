@@ -21,10 +21,7 @@ func TestDecodeCommon(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			t.Parallel()
 
-			bin := make([]byte, len(tc.Binary))
-			copy(bin, tc.Binary) // copy ownership
-
-			buf := bytes.NewBuffer(bin)
+			buf := bytes.NewReader(tc.Binary)
 			dec := NewDecoder(buf, tc.TypeID)
 			dec.amfMessageParser = func(r io.Reader, d AMFDecoder, name string, v *AMFConvertible) error {
 				return mockedParseAMFMessage(t, r, d, name, v)
@@ -35,6 +32,24 @@ func TestDecodeCommon(t *testing.T) {
 			assert.Nil(t, err)
 			assert.Equal(t, tc.Value, msg)
 		})
+	}
+}
+
+func BenchmarkDecodeVideoMessage(b *testing.B) {
+	buf := new(bytes.Buffer)
+	for i := 0; i < 1024; i++ {
+		buf.WriteString("abcde")
+	}
+	if buf.Len() != 5*1024 {
+		b.Fatalf("Buffer becomes unexpected state: Len = %d", buf.Len())
+	}
+
+	dec := NewDecoder(buf, TypeIDVideoMessage)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var msg Message
+		dec.Decode(&msg)
 	}
 }
 
