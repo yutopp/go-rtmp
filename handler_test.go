@@ -62,6 +62,7 @@ func TestHandlerCallback(t *testing.T) {
 var _ Handler = (*testHandler)(nil)
 
 type testHandler struct {
+	DefaultHandler
 	t      *testing.T
 	conn   *Conn
 	closer chan struct{}
@@ -76,23 +77,4 @@ func (h *testHandler) OnServe() {
 	}
 
 	close(h.closer) // Finish testing
-}
-
-func (h *testHandler) OnCommand(timestamp uint32, cmd Command) error {
-	return nil
-}
-
-func (h *testHandler) OnData(timestamp uint32, cmd Data) error {
-	return nil
-}
-
-func (h *testHandler) OnAudio(timestamp uint32, payload []byte) error {
-	return nil
-}
-
-func (h *testHandler) OnVideo(timestamp uint32, payload []byte) error {
-	return nil
-}
-
-func (h *testHandler) OnClose() {
 }

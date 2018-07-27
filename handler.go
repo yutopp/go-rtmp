@@ -7,51 +7,20 @@
 
 package rtmp
 
-// Command =
-//   | *message.NetConnectionConnect
-//   | *message.NetConnectionCreateStream
-//   | *message.NetStreamDeleteStream
-//   | *message.NetStreamPublish
-type Command interface{}
-
-// Data =
-//   | *message.NetStreamSetDataFrame
-type Data interface{}
+import (
+	"github.com/yutopp/go-rtmp/message"
+)
 
 type Handler interface {
 	OnServe()
-	OnCommand(timestamp uint32, cmd Command) error
-	OnData(timestamp uint32, data Data) error
+	OnConnect(timestamp uint32, cmd *message.NetConnectionConnect) error
+	OnCreateStream(timestamp uint32, cmd *message.NetConnectionCreateStream) error
+	OnDeleteStream(timestamp uint32, cmd *message.NetStreamDeleteStream) error
+	OnPublish(timestamp uint32, cmd *message.NetStreamPublish) error
+	OnSetDataFrame(timestamp uint32, data *message.NetStreamSetDataFrame) error
 	OnAudio(timestamp uint32, payload []byte) error
 	OnVideo(timestamp uint32, payload []byte) error
 	OnClose()
 }
 
 type HandlerFactory func(conn *Conn) Handler
-
-var _ Handler = (*NopHandler)(nil)
-
-type NopHandler struct {
-}
-
-func (h *NopHandler) OnServe() {
-}
-
-func (h *NopHandler) OnCommand(timestamp uint32, cmd Command) error {
-	return nil
-}
-
-func (h *NopHandler) OnData(timestamp uint32, cmd Data) error {
-	return nil
-}
-
-func (h *NopHandler) OnAudio(timestamp uint32, payload []byte) error {
-	return nil
-}
-
-func (h *NopHandler) OnVideo(timestamp uint32, payload []byte) error {
-	return nil
-}
-
-func (h *NopHandler) OnClose() {
-}

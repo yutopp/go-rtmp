@@ -101,7 +101,7 @@ handleCommand:
 	case *message.NetStreamPublish:
 		l.Infof("Publisher is comming: %#v", cmd)
 
-		if err := h.conn.handler.OnCommand(timestamp, cmd); err != nil {
+		if err := h.conn.handler.OnPublish(timestamp, cmd); err != nil {
 			return err
 		}
 
@@ -171,7 +171,7 @@ handleCommand:
 		if df == nil {
 			return errors.New("setDataFrame has nil value")
 		}
-		return h.conn.handler.OnData(timestamp, df)
+		return h.conn.handler.OnSetDataFrame(timestamp, df)
 
 	default:
 		l.Warnf("Ignore unknown data message: Msg = %#v", dataMsg)

@@ -16,6 +16,7 @@ import (
 var _ rtmp.Handler = (*Handler)(nil)
 
 type Handler struct {
+	rtmp.DefaultHandler
 	flvFile *os.File
 	flvEnc  *flv.Encoder
 }
@@ -23,28 +24,60 @@ type Handler struct {
 func (h *Handler) OnServe() {
 }
 
-func (h *Handler) OnCommand(timestamp uint32, cmd rtmp.Command) error {
-	switch cmd := cmd.(type) {
-	case *rtmpmsg.NetConnectionConnect:
-		return h.onConnect(timestamp, cmd)
-	case *rtmpmsg.NetConnectionCreateStream:
-		return h.onCreateStream(timestamp, cmd)
-	case *rtmpmsg.NetStreamPublish:
-		return h.onPublish(timestamp, cmd)
-	default:
-		log.Printf("Ignore unknown command: Cmd = %+v", cmd)
-		return nil
+func (h *Handler) OnPublish(timestamp uint32, cmd *rtmpmsg.NetStreamPublish) error {
+	log.Printf("OnPublish: %#v", cmd)
+
+	// record streams as FLV!
+	p := filepath.Join(
+		os.TempDir(),
+		filepath.Clean(filepath.Join("/", fmt.Sprintf("%s.flv", cmd.PublishingName))),
+	)
+	f, err := os.OpenFile(p, os.O_CREATE|os.O_WRONLY, 0666)
+	if err != nil {
+		return errors.Wrap(err, "Failed to create flv file")
 	}
+	h.flvFile = f
+
+	enc, err := flv.NewEncoder(f, flv.FlagsAudio|flv.FlagsVideo)
+	if err != nil {
+		_ = f.Close()
+		return errors.Wrap(err, "Failed to create flv encoder")
+	}
+	h.flvEnc = enc
+
+	return nil
 }
 
-func (h *Handler) OnData(timestamp uint32, data rtmp.Data) error {
-	switch data := data.(type) {
-	case *rtmpmsg.NetStreamSetDataFrame:
-		return h.onSetDataFrame(timestamp, data)
-	default:
-		log.Printf("Ignore unknown data: Data = %+v", data)
-		return nil
+func (h *Handler) OnConnect(timestamp uint32, cmd *rtmpmsg.NetConnectionConnect) error {
+	log.Printf("OnConnect: %#v", cmd)
+	return nil
+}
+
+func (h *Handler) OnCreateStream(timestamp uint32, cmd *rtmpmsg.NetConnectionCreateStream) error {
+	log.Printf("OnCreateStream: %#v", cmd)
+	return nil
+}
+
+func (h *Handler) OnSetDataFrame(timestamp uint32, data *rtmpmsg.NetStreamSetDataFrame) error {
+	r := bytes.NewReader(data.Payload)
+
+	var script flvtag.ScriptData
+	if err := flvtag.DecodeScriptData(r, &script); err != nil {
+		log.Printf("Failed to decode script data: Err = %+v", err)
+		return nil // ignore
 	}
+
+	log.Printf("SetDataFrame: Script = %#v", script)
+
+	if err := h.flvEnc.Encode(&flvtag.FlvTag{
+		TagType:   flvtag.TagTypeScriptData,
+		Timestamp: timestamp,
+		Data:      &script,
+	}); err != nil {
+		log.Printf("Failed to write script data: Err = %+v", err)
+	}
+
+	return nil
 }
 
 func (h *Handler) OnAudio(timestamp uint32, payload []byte) error {
@@ -110,60 +143,4 @@ func (h *Handler) OnClose() {
 	if h.flvFile != nil {
 		_ = h.flvFile.Close()
 	}
-}
-
-func (h *Handler) onConnect(timestamp uint32, cmd *rtmpmsg.NetConnectionConnect) error {
-	log.Printf("OnConnect: %+v", cmd)
-	return nil
-}
-
-func (h *Handler) onCreateStream(timestamp uint32, cmd *rtmpmsg.NetConnectionCreateStream) error {
-	log.Printf("OnCreateStream: %+v", cmd)
-	return nil
-}
-
-func (h *Handler) onPublish(timestamp uint32, cmd *rtmpmsg.NetStreamPublish) error {
-	log.Printf("OnPublish: %+v", cmd)
-
-	// record streams as FLV!
-	p := filepath.Join(
-		os.TempDir(),
-		filepath.Clean(filepath.Join("/", fmt.Sprintf("%s.flv", cmd.PublishingName))),
-	)
-	f, err := os.OpenFile(p, os.O_CREATE|os.O_WRONLY, 0666)
-	if err != nil {
-		return errors.Wrap(err, "Failed to create flv file")
-	}
-	h.flvFile = f
-
-	enc, err := flv.NewEncoder(f, flv.FlagsAudio|flv.FlagsVideo)
-	if err != nil {
-		_ = f.Close()
-		return errors.Wrap(err, "Failed to create flv encoder")
-	}
-	h.flvEnc = enc
-
-	return nil
-}
-
-func (h *Handler) onSetDataFrame(timestamp uint32, data *rtmpmsg.NetStreamSetDataFrame) error {
-	r := bytes.NewReader(data.Payload)
-
-	var script flvtag.ScriptData
-	if err := flvtag.DecodeScriptData(r, &script); err != nil {
-		log.Printf("Failed to decode script data: Err = %+v", err)
-		return nil // ignore
-	}
-
-	log.Printf("SetDataFrame: Script = %+v", script)
-
-	if err := h.flvEnc.Encode(&flvtag.FlvTag{
-		TagType:   flvtag.TagTypeScriptData,
-		Timestamp: timestamp,
-		Data:      &script,
-	}); err != nil {
-		log.Printf("Failed to write script data: Err = %+v", err)
-	}
-
-	return nil
 }

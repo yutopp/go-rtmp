@@ -77,7 +77,7 @@ func NewConn(rwc io.ReadWriteCloser, config *ConnConfig) *Conn {
 
 	conn := &Conn{
 		rwc:     rwc,
-		handler: &NopHandler{},
+		handler: &DefaultHandler{},
 
 		config: config,
 		logger: logrus.StandardLogger(),

@@ -91,7 +91,7 @@ handleCommand:
 	case *message.NetConnectionConnect:
 		l.Info("Connect")
 
-		if err := h.conn.handler.OnCommand(timestamp, cmd); err != nil {
+		if err := h.conn.handler.OnConnect(timestamp, cmd); err != nil {
 			return err
 		}
 
@@ -184,7 +184,7 @@ handleCommand:
 	case *message.NetConnectionCreateStream:
 		l.Infof("Stream creating...: %#v", cmd)
 
-		if err := h.conn.handler.OnCommand(timestamp, cmd); err != nil {
+		if err := h.conn.handler.OnCreateStream(timestamp, cmd); err != nil {
 			return err
 		}
 
@@ -222,7 +222,7 @@ handleCommand:
 	case *message.NetStreamDeleteStream:
 		l.Infof("Stream deleting...: TargetStreamID = %d", cmd.StreamID)
 
-		if err := h.conn.handler.OnCommand(timestamp, cmd); err != nil {
+		if err := h.conn.handler.OnDeleteStream(timestamp, cmd); err != nil {
 			return err
 		}
 
