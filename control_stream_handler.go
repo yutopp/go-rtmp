@@ -52,17 +52,17 @@ type controlStreamHandler struct {
 func (h *controlStreamHandler) Handle(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
 	switch h.state {
 	case controlStreamStateNotConnected:
-		return h.handleConnect(chunkStreamID, timestamp, msg, stream)
+		return h.handleInNotConnected(chunkStreamID, timestamp, msg, stream)
 
 	case controlStreamStateConnected:
-		return h.handleCreateStream(chunkStreamID, timestamp, msg, stream)
+		return h.handleInConnected(chunkStreamID, timestamp, msg, stream)
 
 	default:
 		panic("Unreachable!")
 	}
 }
 
-func (h *controlStreamHandler) handleConnect(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
+func (h *controlStreamHandler) handleInNotConnected(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
 	l := h.logger.WithFields(logrus.Fields{
 		"stream_id": stream.streamID,
 		"state":     h.state,
@@ -155,7 +155,7 @@ handleCommand:
 	}
 }
 
-func (h *controlStreamHandler) handleCreateStream(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
+func (h *controlStreamHandler) handleInConnected(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
 	l := h.logger.WithFields(logrus.Fields{
 		"stream_id": stream.streamID,
 		"state":     h.state,
@@ -233,6 +233,39 @@ handleCommand:
 		// server does not send any response(7.2.2.3)
 
 		l.Infof("Stream deleted: TargetStreamID = %d", cmd.StreamID)
+
+		return nil
+
+	case *message.NetConnectionReleaseStream:
+		l.Infof("Release stream...: StreamName = %s", cmd.StreamName)
+
+		if err := h.conn.handler.OnReleaseStream(timestamp, cmd); err != nil {
+			return err
+		}
+
+		// TODO: send _result?
+
+		return nil
+
+	case *message.NetStreamFCPublish:
+		l.Infof("FCPublish stream...: StreamName = %s", cmd.StreamName)
+
+		if err := h.conn.handler.OnFCPublish(timestamp, cmd); err != nil {
+			return err
+		}
+
+		// TODO: send _result?
+
+		return nil
+
+	case *message.NetStreamFCUnpublish:
+		l.Infof("FCUnpublish stream...: StreamName = %s", cmd.StreamName)
+
+		if err := h.conn.handler.OnFCUnpublish(timestamp, cmd); err != nil {
+			return err
+		}
+
+		// TODO: send _result?
 
 		return nil
 

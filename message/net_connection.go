@@ -137,3 +137,22 @@ func (t *NetConnectionCreateStreamResult) ToArgs(ty AMFType) ([]interface{}, err
 		t.StreamID,
 	}, nil
 }
+
+//
+type NetConnectionReleaseStream struct {
+	StreamName string
+}
+
+func (t *NetConnectionReleaseStream) FromArgs(args ...interface{}) error {
+	// args[0] is unknown, ignore
+	t.StreamName = args[1].(string)
+
+	return nil
+}
+
+func (t *NetConnectionReleaseStream) ToArgs(ty AMFType) ([]interface{}, error) {
+	return []interface{}{
+		nil, // no command object
+		t.StreamName,
+	}, nil
+}

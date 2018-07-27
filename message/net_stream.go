@@ -70,6 +70,44 @@ func (t *NetStreamDeleteStream) ToArgs(ty AMFType) ([]interface{}, error) {
 }
 
 //
+type NetStreamFCPublish struct {
+	StreamName string
+}
+
+func (t *NetStreamFCPublish) FromArgs(args ...interface{}) error {
+	// args[0] is unknown, ignore
+	t.StreamName = args[1].(string)
+
+	return nil
+}
+
+func (t *NetStreamFCPublish) ToArgs(ty AMFType) ([]interface{}, error) {
+	return []interface{}{
+		nil, // no command object
+		t.StreamName,
+	}, nil
+}
+
+//
+type NetStreamFCUnpublish struct {
+	StreamName string
+}
+
+func (t *NetStreamFCUnpublish) FromArgs(args ...interface{}) error {
+	// args[0] is unknown, ignore
+	t.StreamName = args[1].(string)
+
+	return nil
+}
+
+func (t *NetStreamFCUnpublish) ToArgs(ty AMFType) ([]interface{}, error) {
+	return []interface{}{
+		nil, // no command object
+		t.StreamName,
+	}, nil
+}
+
+//
 type NetStreamSetDataFrame struct {
 	Payload []byte
 }

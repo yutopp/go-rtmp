@@ -27,11 +27,23 @@ func (h *DefaultHandler) OnCreateStream(timestamp uint32, cmd *message.NetConnec
 	return nil
 }
 
+func (h *DefaultHandler) OnReleaseStream(timestamp uint32, cmd *message.NetConnectionReleaseStream) error {
+	return nil
+}
+
 func (h *DefaultHandler) OnDeleteStream(timestamp uint32, cmd *message.NetStreamDeleteStream) error {
 	return nil
 }
 
 func (h *DefaultHandler) OnPublish(timestamp uint32, cmd *message.NetStreamPublish) error {
+	return nil
+}
+
+func (h *DefaultHandler) OnFCPublish(timestamp uint32, cmd *message.NetStreamFCPublish) error {
+	return nil
+}
+
+func (h *DefaultHandler) OnFCUnpublish(timestamp uint32, cmd *message.NetStreamFCUnpublish) error {
 	return nil
 }
 

@@ -82,6 +82,57 @@ func parseAMFMessage(r io.Reader, d AMFDecoder, name string, v *AMFConvertible) 
 
 		*v = &cmd
 
+	case "releaseStream":
+		var commandObject interface{} // maybe nil
+		if err := d.Decode(&commandObject); err != nil {
+			return errors.Wrap(err, "Failed to decode 'releaseStream' args[0]")
+		}
+		var streamName string
+		if err := d.Decode(&streamName); err != nil {
+			return errors.Wrap(err, "Failed to decode 'releaseStream' args[1]")
+		}
+
+		var cmd NetConnectionReleaseStream
+		if err := cmd.FromArgs(commandObject, streamName); err != nil {
+			return errors.Wrap(err, "Failed to reconstruct 'releaseStream'")
+		}
+
+		*v = &cmd
+
+	case "FCPublish":
+		var commandObject interface{} // maybe nil
+		if err := d.Decode(&commandObject); err != nil {
+			return errors.Wrap(err, "Failed to decode 'FCPublish' args[0]")
+		}
+		var streamName string
+		if err := d.Decode(&streamName); err != nil {
+			return errors.Wrap(err, "Failed to decode 'FCPublish' args[1]")
+		}
+
+		var cmd NetStreamFCPublish
+		if err := cmd.FromArgs(commandObject, streamName); err != nil {
+			return errors.Wrap(err, "Failed to reconstruct 'FCPublish'")
+		}
+
+		*v = &cmd
+
+	case "FCUnpublish":
+		var commandObject interface{} // maybe nil
+		if err := d.Decode(&commandObject); err != nil {
+			return errors.Wrap(err, "Failed to decode 'FCUnpublish' args[0]")
+		}
+		var streamName string
+		if err := d.Decode(&streamName); err != nil {
+			return errors.Wrap(err, "Failed to decode 'FCUnpublish' args[1]")
+		}
+
+		var cmd NetStreamFCUnpublish
+		if err := cmd.FromArgs(commandObject, streamName); err != nil {
+			return errors.Wrap(err, "Failed to reconstruct 'FCUnpublish'")
+		}
+
+		*v = &cmd
+
 	case "@setDataFrame":
 		buf := new(bytes.Buffer)
 		if _, err := io.Copy(buf, r); err != nil {

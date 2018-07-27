@@ -15,8 +15,11 @@ type Handler interface {
 	OnServe()
 	OnConnect(timestamp uint32, cmd *message.NetConnectionConnect) error
 	OnCreateStream(timestamp uint32, cmd *message.NetConnectionCreateStream) error
+	OnReleaseStream(timestamp uint32, cmd *message.NetConnectionReleaseStream) error
 	OnDeleteStream(timestamp uint32, cmd *message.NetStreamDeleteStream) error
 	OnPublish(timestamp uint32, cmd *message.NetStreamPublish) error
+	OnFCPublish(timestamp uint32, cmd *message.NetStreamFCPublish) error
+	OnFCUnpublish(timestamp uint32, cmd *message.NetStreamFCUnpublish) error
 	OnSetDataFrame(timestamp uint32, data *message.NetStreamSetDataFrame) error
 	OnAudio(timestamp uint32, payload []byte) error
 	OnVideo(timestamp uint32, payload []byte) error
