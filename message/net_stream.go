@@ -27,6 +27,25 @@ func (t *NetStreamPublish) ToArgs(ty AMFType) ([]interface{}, error) {
 }
 
 //
+type NetStreamPlay struct {
+	CommandObject interface{}
+	StreamName    string
+	Start         int64
+}
+
+func (t *NetStreamPlay) FromArgs(args ...interface{}) error {
+	//command := args[0] // will be nil
+	t.StreamName = args[1].(string)
+	t.Start = args[2].(int64)
+
+	return nil
+}
+
+func (t *NetStreamPlay) ToArgs(ty AMFType) ([]interface{}, error) {
+	panic("Not implemented")
+}
+
+//
 type NetStreamOnStatus struct {
 	InfoObject NetStreamOnStatusInfoObject
 }

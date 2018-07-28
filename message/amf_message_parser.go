@@ -82,6 +82,27 @@ func parseAMFMessage(r io.Reader, d AMFDecoder, name string, v *AMFConvertible) 
 
 		*v = &cmd
 
+	case "play":
+		var commandObject interface{}
+		if err := d.Decode(&commandObject); err != nil {
+			return errors.Wrap(err, "Failed to decode 'play' args[0]")
+		}
+		var streamName string
+		if err := d.Decode(&streamName); err != nil {
+			return errors.Wrap(err, "Failed to decode 'play' args[1]")
+		}
+		var start int64
+		if err := d.Decode(&start); err != nil {
+			return errors.Wrap(err, "Failed to decode 'play' args[2]")
+		}
+
+		var cmd NetStreamPlay
+		if err := cmd.FromArgs(commandObject, streamName, start); err != nil {
+			return errors.Wrap(err, "Failed to reconstruct 'play'")
+		}
+
+		*v = &cmd
+
 	case "releaseStream":
 		var commandObject interface{} // maybe nil
 		if err := d.Decode(&commandObject); err != nil {
