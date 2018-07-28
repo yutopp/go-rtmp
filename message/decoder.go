@@ -11,6 +11,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/pkg/errors"
 	"io"
 
 	"github.com/yutopp/go-amf0"
@@ -127,7 +128,18 @@ func (dec *Decoder) decodeAck(msg *Message) error {
 }
 
 func (dec *Decoder) decodeUserCtrl(msg *Message) error {
-	return fmt.Errorf("Not implemented: UserCtrl")
+	ucmDec := NewUserControlEventDecoder(dec.r)
+
+	var event UserCtrlEvent
+	if err := ucmDec.Decode(&event); err != nil {
+		return errors.Wrapf(err, "Failed to decode UserCtrl")
+	}
+
+	*msg = &UserCtrl{
+		Event: event,
+	}
+
+	return nil
 }
 
 func (dec *Decoder) decodeWinAckSize(msg *Message) error {

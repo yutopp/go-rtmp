@@ -39,6 +39,10 @@ func (h *DefaultHandler) OnPublish(timestamp uint32, cmd *message.NetStreamPubli
 	return nil
 }
 
+func (h *DefaultHandler) OnPlay(timestamp uint32, cmd *message.NetStreamPlay) error {
+	return nil
+}
+
 func (h *DefaultHandler) OnFCPublish(timestamp uint32, cmd *message.NetStreamFCPublish) error {
 	return nil
 }
