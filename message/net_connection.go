@@ -8,6 +8,8 @@
 package message
 
 import (
+	"github.com/mitchellh/mapstructure"
+	"github.com/pkg/errors"
 	"github.com/yutopp/go-amf0"
 )
 
@@ -17,37 +19,21 @@ type NetConnectionConnect struct {
 }
 
 type NetConnectionConnectCommand struct {
-	App      string
-	Type     string
-	FlashVer string
-	TCURL    string
+	App           string `mapstructure:"app"`
+	Type          string `mapstructure:"type"`
+	FlashVer      string `mapstructure:"flashVer"`
+	TCURL         string `mapstructure:"tcUrl"`
+	Fpad          bool   `mapstructure:"fpad"`
+	Capabilities  int    `mapstructure:"capabilities"`
+	AudioCodecs   int    `mapstructure:"audioCodecs"`
+	VideoCodecs   int    `mapstructure:"videoCodecs"`
+	VideoFunction int    `mapstructure:"videoFunction"`
 }
 
 func (t *NetConnectionConnect) FromArgs(args ...interface{}) error {
 	command := args[0].(map[string]interface{})
-
-	if v, ok := command["app"]; ok {
-		if v, ok := v.(string); ok {
-			t.Command.App = v
-		}
-	}
-
-	if v, ok := command["type"]; ok {
-		if v, ok := v.(string); ok {
-			t.Command.Type = v
-		}
-	}
-
-	if v, ok := command["flashVer"]; ok {
-		if v, ok := v.(string); ok {
-			t.Command.FlashVer = v
-		}
-	}
-
-	if v, ok := command["tcUrl"]; ok {
-		if v, ok := v.(string); ok {
-			t.Command.TCURL = v
-		}
+	if err := mapstructure.Decode(command, &t.Command); err != nil {
+		return errors.Wrapf(err, "Failed to mapping NetConnectionConnect")
 	}
 
 	return nil
