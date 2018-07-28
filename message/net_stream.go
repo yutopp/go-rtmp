@@ -140,3 +140,22 @@ func (t *NetStreamSetDataFrame) FromArgs(args ...interface{}) error {
 func (t *NetStreamSetDataFrame) ToArgs(ty AMFType) ([]interface{}, error) {
 	panic("Not implemented")
 }
+
+//
+type NetStreamGetStreamLength struct {
+	StreamName string
+}
+
+func (t *NetStreamGetStreamLength) FromArgs(args ...interface{}) error {
+	// args[0] is unknown, ignore
+	t.StreamName = args[1].(string)
+
+	return nil
+}
+
+func (t *NetStreamGetStreamLength) ToArgs(ty AMFType) ([]interface{}, error) {
+	return []interface{}{
+		nil, // no command object
+		t.StreamName,
+	}, nil
+}

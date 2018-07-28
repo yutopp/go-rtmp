@@ -167,6 +167,23 @@ func parseAMFMessage(r io.Reader, d AMFDecoder, name string, v *AMFConvertible) 
 
 		*v = &cmd
 
+	case "getStreamLength":
+		var commandObject interface{} // maybe nil
+		if err := d.Decode(&commandObject); err != nil {
+			return errors.Wrap(err, "Failed to decode 'getStreamLength' args[0]")
+		}
+		var streamName string
+		if err := d.Decode(&streamName); err != nil {
+			return errors.Wrap(err, "Failed to decode 'getStreamLength' args[1]")
+		}
+
+		var cmd NetStreamGetStreamLength
+		if err := cmd.FromArgs(commandObject, streamName); err != nil {
+			return errors.Wrap(err, "Failed to reconstruct 'getStreamLength'")
+		}
+
+		*v = &cmd
+
 	default:
 		objs := make([]interface{}, 0)
 		for {
