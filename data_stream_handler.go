@@ -65,6 +65,9 @@ func (h *dataStreamHandler) Handle(chunkStreamID int, timestamp uint32, msg mess
 	case dataStreamStateHasPublisher:
 		return h.handlePublisher(chunkStreamID, timestamp, msg, stream)
 
+	case dataStreamStateHasPlayer:
+		return h.handlePlayer(chunkStreamID, timestamp, msg, stream)
+
 	default:
 		panic("Unreachable!")
 	}
@@ -128,6 +131,36 @@ handleCommand:
 
 		return nil
 
+	case *message.NetStreamPlay:
+		l.Infof("Player is comming: %#v", cmd)
+
+		if err := h.conn.handler.OnPlay(timestamp, cmd); err != nil {
+			return err
+		}
+
+		// TODO: fix
+		m := cmdMsgWrapper(func(cmsg *message.CommandMessage) {
+			*cmsg = message.CommandMessage{
+				CommandName:   "onStatus",
+				TransactionID: 0,
+				Command: &message.NetStreamOnStatus{
+					InfoObject: message.NetStreamOnStatusInfoObject{
+						Level:       "status",
+						Code:        "NetStream.Play.Start",
+						Description: "yoyo",
+					},
+				},
+			}
+		})
+		if err := stream.Write(chunkStreamID, timestamp, m); err != nil {
+			return err
+		}
+		l.Infof("Player accepted")
+
+		h.state = dataStreamStateHasPlayer
+
+		return nil
+
 	default:
 		l.Warnf("Unexpected command: Command = %#v", cmdMsg)
 
@@ -175,6 +208,21 @@ handleCommand:
 
 	default:
 		l.Warnf("Ignore unknown data message: Msg = %#v", dataMsg)
+
+		return nil
+	}
+}
+
+func (h *dataStreamHandler) handlePlayer(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
+	l := h.logger.WithFields(logrus.Fields{
+		"stream_id": stream.streamID,
+		"state":     h.state,
+		"handler":   "data",
+	})
+
+	switch msg := msg.(type) {
+	default:
+		l.Warnf("Message unhandled: Msg = %#v", msg)
 
 		return nil
 	}
