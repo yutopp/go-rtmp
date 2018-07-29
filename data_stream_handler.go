@@ -54,7 +54,8 @@ type dataStreamHandler struct {
 	state   dataStreamState
 	handler Handler
 
-	logger logrus.FieldLogger
+	logger      logrus.FieldLogger
+	loggerEntry *logrus.Entry
 }
 
 func (h *dataStreamHandler) Handle(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
@@ -74,11 +75,7 @@ func (h *dataStreamHandler) Handle(chunkStreamID int, timestamp uint32, msg mess
 }
 
 func (h *dataStreamHandler) handleAction(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
-	l := h.logger.WithFields(logrus.Fields{
-		"stream_id": stream.streamID,
-		"state":     h.state,
-		"handler":   "data",
-	})
+	l := h.loggerInstance(stream)
 
 	var cmdMsgWrapper amfWrapperFunc
 	var cmdMsg *message.CommandMessage
@@ -169,11 +166,7 @@ handleCommand:
 }
 
 func (h *dataStreamHandler) handlePublisher(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
-	l := h.logger.WithFields(logrus.Fields{
-		"stream_id": stream.streamID,
-		"state":     h.state,
-		"handler":   "data",
-	})
+	l := h.loggerInstance(stream)
 
 	var dataMsg *message.DataMessage
 	switch msg := msg.(type) {
@@ -214,11 +207,7 @@ handleCommand:
 }
 
 func (h *dataStreamHandler) handlePlayer(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
-	l := h.logger.WithFields(logrus.Fields{
-		"stream_id": stream.streamID,
-		"state":     h.state,
-		"handler":   "data",
-	})
+	l := h.loggerInstance(stream)
 
 	switch msg := msg.(type) {
 	default:
@@ -226,4 +215,15 @@ func (h *dataStreamHandler) handlePlayer(chunkStreamID int, timestamp uint32, ms
 
 		return nil
 	}
+}
+
+func (h *dataStreamHandler) loggerInstance(stream *Stream) *logrus.Entry {
+	if h.loggerEntry == nil {
+		h.loggerEntry = h.logger.WithField("handler", "data")
+	}
+
+	h.loggerEntry.Data["state"] = h.state
+	h.loggerEntry.Data["stream_id"] = stream.streamID
+
+	return h.loggerEntry
 }
