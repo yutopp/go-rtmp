@@ -43,10 +43,11 @@ func (s controlStreamState) String() string {
 //       | _ -> self
 //
 type controlStreamHandler struct {
-	conn  *Conn
-	state controlStreamState
-
-	logger logrus.FieldLogger
+	state    controlStreamState
+	streamer *ChunkStreamer
+	streams  *streams
+	handler  Handler
+	logger   logrus.FieldLogger
 }
 
 func (h *controlStreamHandler) Handle(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
@@ -91,26 +92,26 @@ handleCommand:
 	case *message.NetConnectionConnect:
 		l.Info("Connect")
 
-		if err := h.conn.handler.OnConnect(timestamp, cmd); err != nil {
+		if err := h.handler.OnConnect(timestamp, cmd); err != nil {
 			return err
 		}
 
 		// TODO: fix
-		l.Infof("Set win ack size: Size = %+v", h.conn.streamer.SelfState().AckWindowSize())
+		l.Infof("Set win ack size: Size = %+v", h.streamer.SelfState().AckWindowSize())
 		if err := stream.Write(chunkStreamID, timestamp, &message.WinAckSize{
-			Size: h.conn.streamer.SelfState().AckWindowSize(),
+			Size: h.streamer.SelfState().AckWindowSize(),
 		}); err != nil {
 			return err
 		}
 
 		// TODO: fix
 		l.Infof("Set peer bandwidth: Size = %+v, Limit = %+v",
-			h.conn.streamer.SelfState().BandwidthWindowSize(),
-			h.conn.streamer.SelfState().BandwidthLimitType(),
+			h.streamer.SelfState().BandwidthWindowSize(),
+			h.streamer.SelfState().BandwidthLimitType(),
 		)
 		if err := stream.Write(chunkStreamID, timestamp, &message.SetPeerBandwidth{
-			Size:  h.conn.streamer.SelfState().BandwidthWindowSize(),
-			Limit: h.conn.streamer.SelfState().BandwidthLimitType(),
+			Size:  h.streamer.SelfState().BandwidthWindowSize(),
+			Limit: h.streamer.SelfState().BandwidthLimitType(),
 		}); err != nil {
 			return err
 		}
@@ -184,14 +185,14 @@ handleCommand:
 	case *message.NetConnectionCreateStream:
 		l.Infof("Stream creating...: %#v", cmd)
 
-		if err := h.conn.handler.OnCreateStream(timestamp, cmd); err != nil {
+		if err := h.handler.OnCreateStream(timestamp, cmd); err != nil {
 			return err
 		}
 
 		// Create a stream which handles messages for data(play, publish, video, audio, etc...)
-		streamID, err := h.conn.createStreamIfAvailable(&dataStreamHandler{
-			conn:   h.conn,
-			logger: h.logger,
+		streamID, err := h.streams.CreateIfAvailable(&dataStreamHandler{
+			handler: h.handler,
+			logger:  h.logger,
 		})
 		if err != nil {
 			// TODO: send failed _result
@@ -211,7 +212,7 @@ handleCommand:
 			}
 		})
 		if err := stream.Write(chunkStreamID, timestamp, m); err != nil {
-			_ = h.conn.deleteStream(streamID) // TODO: error handling
+			_ = h.streams.Delete(streamID) // TODO: error handling
 			return err
 		}
 
@@ -222,11 +223,11 @@ handleCommand:
 	case *message.NetStreamDeleteStream:
 		l.Infof("Stream deleting...: TargetStreamID = %d", cmd.StreamID)
 
-		if err := h.conn.handler.OnDeleteStream(timestamp, cmd); err != nil {
+		if err := h.handler.OnDeleteStream(timestamp, cmd); err != nil {
 			return err
 		}
 
-		if err := h.conn.deleteStream(cmd.StreamID); err != nil {
+		if err := h.streams.Delete(cmd.StreamID); err != nil {
 			return err
 		}
 
@@ -239,7 +240,7 @@ handleCommand:
 	case *message.NetConnectionReleaseStream:
 		l.Infof("Release stream...: StreamName = %s", cmd.StreamName)
 
-		if err := h.conn.handler.OnReleaseStream(timestamp, cmd); err != nil {
+		if err := h.handler.OnReleaseStream(timestamp, cmd); err != nil {
 			return err
 		}
 
@@ -250,7 +251,7 @@ handleCommand:
 	case *message.NetStreamFCPublish:
 		l.Infof("FCPublish stream...: StreamName = %s", cmd.StreamName)
 
-		if err := h.conn.handler.OnFCPublish(timestamp, cmd); err != nil {
+		if err := h.handler.OnFCPublish(timestamp, cmd); err != nil {
 			return err
 		}
 
@@ -261,7 +262,7 @@ handleCommand:
 	case *message.NetStreamFCUnpublish:
 		l.Infof("FCUnpublish stream...: StreamName = %s", cmd.StreamName)
 
-		if err := h.conn.handler.OnFCUnpublish(timestamp, cmd); err != nil {
+		if err := h.handler.OnFCUnpublish(timestamp, cmd); err != nil {
 			return err
 		}
 
@@ -286,12 +287,12 @@ func (h *controlStreamHandler) handleCommonMessage(chunkStreamID int, timestamp 
 	switch msg := msg.(type) {
 	case *message.SetChunkSize:
 		l.Infof("Handle SetChunkSize: Msg = %#v", msg)
-		return h.conn.streamer.PeerState().SetChunkSize(msg.ChunkSize)
+		return h.streamer.PeerState().SetChunkSize(msg.ChunkSize)
 
 	case *message.WinAckSize:
 		l.Infof("Handle WinAckSize: Msg = %#v", msg)
 
-		return h.conn.streamer.PeerState().SetAckWindowSize(msg.Size)
+		return h.streamer.PeerState().SetAckWindowSize(msg.Size)
 
 	default:
 		l.Warnf("Message unhandled: Msg = %#v", msg)

@@ -88,10 +88,12 @@ func NewConn(rwc io.ReadWriteCloser, config *ConnConfig) *Conn {
 }
 
 func (c *Conn) SetHandler(h Handler) {
+	// TODO: return error if conn is already served
 	c.handler = h
 }
 
 func (c *Conn) SetLogger(l logrus.FieldLogger) {
+	// TODO: return error if conn is already served
 	c.logger = l
 }
 
@@ -124,9 +126,11 @@ func (c *Conn) Serve() (err error) {
 
 	// StreamID 0 is default control stream
 	const DefaultControlStreamID = 0
-	if err := c.createStream(DefaultControlStreamID, &controlStreamHandler{
-		conn:   c,
-		logger: c.logger,
+	if err := c.streams.Create(DefaultControlStreamID, &controlStreamHandler{
+		streamer: c.streamer,
+		streams:  c.streams,
+		handler:  c.handler,
+		logger:   c.logger,
 	}); err != nil {
 		return err
 	}

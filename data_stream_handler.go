@@ -51,8 +51,8 @@ func (s dataStreamState) String() string {
 //       | _ -> self
 //
 type dataStreamHandler struct {
-	conn  *Conn
-	state dataStreamState
+	state   dataStreamState
+	handler Handler
 
 	logger logrus.FieldLogger
 }
@@ -104,7 +104,7 @@ handleCommand:
 	case *message.NetStreamPublish:
 		l.Infof("Publisher is comming: %#v", cmd)
 
-		if err := h.conn.handler.OnPublish(timestamp, cmd); err != nil {
+		if err := h.handler.OnPublish(timestamp, cmd); err != nil {
 			return err
 		}
 
@@ -134,7 +134,7 @@ handleCommand:
 	case *message.NetStreamPlay:
 		l.Infof("Player is comming: %#v", cmd)
 
-		if err := h.conn.handler.OnPlay(timestamp, cmd); err != nil {
+		if err := h.handler.OnPlay(timestamp, cmd); err != nil {
 			return err
 		}
 
@@ -178,10 +178,10 @@ func (h *dataStreamHandler) handlePublisher(chunkStreamID int, timestamp uint32,
 	var dataMsg *message.DataMessage
 	switch msg := msg.(type) {
 	case *message.AudioMessage:
-		return h.conn.handler.OnAudio(timestamp, msg.Payload)
+		return h.handler.OnAudio(timestamp, msg.Payload)
 
 	case *message.VideoMessage:
-		return h.conn.handler.OnVideo(timestamp, msg.Payload)
+		return h.handler.OnVideo(timestamp, msg.Payload)
 
 	case *message.DataMessageAMF0:
 		dataMsg = &msg.DataMessage
@@ -204,7 +204,7 @@ handleCommand:
 		if df == nil {
 			return errors.New("setDataFrame has nil value")
 		}
-		return h.conn.handler.OnSetDataFrame(timestamp, df)
+		return h.handler.OnSetDataFrame(timestamp, df)
 
 	default:
 		l.Warnf("Ignore unknown data message: Msg = %#v", dataMsg)
