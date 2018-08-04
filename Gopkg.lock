@@ -59,25 +59,25 @@
   branch = "master"
   name = "github.com/yutopp/go-amf0"
   packages = ["."]
-  revision = "6680b8ea410e1a4755946613797f982455705ed9"
+  revision = "48851794bb1f6287d0fa9ffd1f34e40ec3cde17b"
 
 [[projects]]
   name = "github.com/yutopp/go-flv"
   packages = [".","tag"]
-  revision = "a59a8cac83da8dc432342d84098546d7571ac9c1"
-  version = "v0.1.4"
+  revision = "3ffdf018754548b50a8b1efa69e51f092161f063"
+  version = "v0.1.5"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
-  revision = "c126467f60eb25f8f27e5a981f32a87e3965053f"
+  revision = "56440b844dfe139a8ac053f4ecac0b20b79058f4"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix","windows"]
-  revision = "bd9dbc187b6e1dacfdd2722a87e83093c2d7bd6e"
+  revision = "0ffbfd41fbef8ffcf9b62b0b0aa3a5873ed7a4fe"
 
 [solve-meta]
   analyzer-name = "dep"
