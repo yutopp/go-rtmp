@@ -50,16 +50,16 @@ type NetConnectionConnectResult struct {
 }
 
 type NetConnectionConnectResultProperties struct {
-	FMSVer       string
-	Capabilities int // TODO: fix
-	Mode         int // TODO: fix
+	FMSVer       string `amf0:"fmsVer"`       // TODO: fix
+	Capabilities int    `amf0:"capabilities"` // TODO: fix
+	Mode         int    `amf0:"mode"`         // TODO: fix
 }
 
 type NetConnectionConnectResultInformation struct {
-	Level       string // TODO: fix
-	Code        string // TODO: fix
-	Data        map[string]interface{}
-	Application interface{} // TODO: fix
+	Level       string         `amf0:"level"` // TODO: fix
+	Code        string         `amf0:"code"`  // TODO: fix
+	Description string         `amf0:"description"`
+	Data        amf0.ECMAArray `amf0:"data"`
 }
 
 func (t *NetConnectionConnectResult) FromArgs(args ...interface{}) error {
@@ -67,31 +67,9 @@ func (t *NetConnectionConnectResult) FromArgs(args ...interface{}) error {
 }
 
 func (t *NetConnectionConnectResult) ToArgs(ty AMFType) ([]interface{}, error) {
-	props := make(map[string]interface{})
-	props["fmsVer"] = t.Properties.FMSVer
-	props["capabilities"] = t.Properties.Capabilities
-	props["mode"] = t.Properties.Mode
-
-	info := make(map[string]interface{})
-	info["level"] = t.Information.Level
-	info["code"] = t.Information.Code
-
-	switch ty {
-	case AMFType0:
-		data := make(amf0.ECMAArray)
-		for k, v := range t.Information.Data {
-			data[k] = v
-		}
-		info["data"] = data
-	default:
-		panic("Not implemented")
-	}
-
-	info["application"] = t.Information.Application
-
 	return []interface{}{
-		props,
-		info,
+		t.Properties,
+		t.Information,
 	}, nil
 }
 

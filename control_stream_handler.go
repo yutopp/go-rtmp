@@ -96,9 +96,11 @@ handleCommand:
 			return err
 		}
 
+		auxMessageChunkStreamID := 2
+
 		// TODO: fix
 		l.Infof("Set win ack size: Size = %+v", h.streamer.SelfState().AckWindowSize())
-		if err := stream.Write(chunkStreamID, timestamp, &message.WinAckSize{
+		if err := stream.Write(auxMessageChunkStreamID, timestamp, &message.WinAckSize{
 			Size: h.streamer.SelfState().AckWindowSize(),
 		}); err != nil {
 			return err
@@ -109,9 +111,19 @@ handleCommand:
 			h.streamer.SelfState().BandwidthWindowSize(),
 			h.streamer.SelfState().BandwidthLimitType(),
 		)
-		if err := stream.Write(chunkStreamID, timestamp, &message.SetPeerBandwidth{
+		if err := stream.Write(auxMessageChunkStreamID, timestamp, &message.SetPeerBandwidth{
 			Size:  h.streamer.SelfState().BandwidthWindowSize(),
 			Limit: h.streamer.SelfState().BandwidthLimitType(),
+		}); err != nil {
+			return err
+		}
+
+		// TODO: fix
+		l.Infof("Stream Begin: ID = %d", 0)
+		if err := stream.Write(auxMessageChunkStreamID, timestamp, &message.UserCtrl{
+			Event: &message.UserCtrlEventStreamBegin{
+				StreamID: 0,
+			},
 		}); err != nil {
 			return err
 		}
@@ -123,17 +135,18 @@ handleCommand:
 				TransactionID: 1, // 7.2.1.2, flow.6
 				Command: &message.NetConnectionConnectResult{
 					Properties: message.NetConnectionConnectResultProperties{
-						FMSVer:       "rtmp/testing",
-						Capabilities: 250,
+						FMSVer:       "GO-RTMP/0,0,0,0",
+						Capabilities: 31,
 						Mode:         1,
 					},
 					Information: message.NetConnectionConnectResultInformation{
-						Level: "status",
-						Code:  "NetConnection.Connect.Success",
+						Level:       "status",
+						Code:        "NetConnection.Connect.Success",
+						Description: "Connection succeeded.",
 						Data: map[string]interface{}{
-							"version": "testing",
+							"type":    "go-rtmp",
+							"version": "master",
 						},
-						Application: nil,
 					},
 				},
 			}
