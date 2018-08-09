@@ -17,6 +17,8 @@ import (
 	"github.com/yutopp/go-rtmp/message"
 )
 
+const ctrlMsgChunkStreamID = 2
+
 type ChunkStreamer struct {
 	r *ChunkStreamerReader
 	w *ChunkStreamerWriter

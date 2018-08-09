@@ -96,11 +96,9 @@ handleCommand:
 			return err
 		}
 
-		auxMessageChunkStreamID := 2
-
 		// TODO: fix
 		l.Infof("Set win ack size: Size = %+v", h.streamer.SelfState().AckWindowSize())
-		if err := stream.Write(auxMessageChunkStreamID, timestamp, &message.WinAckSize{
+		if err := stream.Write(ctrlMsgChunkStreamID, timestamp, &message.WinAckSize{
 			Size: h.streamer.SelfState().AckWindowSize(),
 		}); err != nil {
 			return err
@@ -111,7 +109,7 @@ handleCommand:
 			h.streamer.SelfState().BandwidthWindowSize(),
 			h.streamer.SelfState().BandwidthLimitType(),
 		)
-		if err := stream.Write(auxMessageChunkStreamID, timestamp, &message.SetPeerBandwidth{
+		if err := stream.Write(ctrlMsgChunkStreamID, timestamp, &message.SetPeerBandwidth{
 			Size:  h.streamer.SelfState().BandwidthWindowSize(),
 			Limit: h.streamer.SelfState().BandwidthLimitType(),
 		}); err != nil {
@@ -120,7 +118,7 @@ handleCommand:
 
 		// TODO: fix
 		l.Infof("Stream Begin: ID = %d", 0)
-		if err := stream.Write(auxMessageChunkStreamID, timestamp, &message.UserCtrl{
+		if err := stream.Write(ctrlMsgChunkStreamID, timestamp, &message.UserCtrl{
 			Event: &message.UserCtrlEventStreamBegin{
 				StreamID: 0,
 			},
