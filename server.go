@@ -8,13 +8,19 @@
 package rtmp
 
 import (
+	"github.com/pkg/errors"
 	"io"
 	"net"
+	"sync"
 	"time"
 )
 
 type Server struct {
 	config *ServerConfig
+
+	listener net.Listener
+	mu       sync.Mutex
+	doneCh   chan struct{}
 }
 
 type ServerConfig struct {
@@ -31,16 +37,74 @@ func NewServer(config *ServerConfig) *Server {
 }
 
 func (srv *Server) Serve(l net.Listener) error {
+	if err := srv.registerListener(l); err != nil {
+		return errors.Wrap(err, "Already serverd")
+	}
+
 	defer l.Close()
 
 	for {
 		rwc, err := l.Accept()
 		if err != nil {
+			select {
+			case <-srv.getDoneCh(): // closed
+				return ErrClosed
+
+			default: // do nothing
+			}
+
 			continue
 		}
 
 		go srv.handleConn(rwc)
 	}
+}
+
+func (srv *Server) Close() error {
+	srv.mu.Lock()
+	defer srv.mu.Unlock()
+
+	doneCh := srv.getDoneChLocked()
+	select {
+	case <-doneCh: // already closed
+		return nil
+	default:
+		close(doneCh)
+	}
+
+	if srv.listener == nil {
+		return nil
+	}
+
+	return srv.listener.Close()
+}
+
+func (srv *Server) registerListener(l net.Listener) error {
+	srv.mu.Lock()
+	defer srv.mu.Unlock()
+
+	if srv.listener != nil {
+		return errors.New("Listener is already registered")
+	}
+
+	srv.listener = l
+
+	return nil
+}
+
+func (srv *Server) getDoneCh() chan struct{} {
+	srv.mu.Lock()
+	defer srv.mu.Unlock()
+
+	return srv.getDoneChLocked()
+}
+
+func (srv *Server) getDoneChLocked() chan struct{} {
+	if srv.doneCh == nil {
+		srv.doneCh = make(chan struct{})
+	}
+
+	return srv.doneCh
 }
 
 func (srv *Server) handleConn(conn net.Conn) {
