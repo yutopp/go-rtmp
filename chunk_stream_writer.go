@@ -9,7 +9,6 @@ package rtmp
 
 import (
 	"bytes"
-	"sync"
 )
 
 type ChunkStreamWriter struct {
@@ -22,8 +21,8 @@ type ChunkStreamWriter struct {
 	messageTypeID   byte
 	messageStreamID uint32
 
-	m   sync.Mutex
-	buf bytes.Buffer
+	buf    bytes.Buffer
+	doneCh chan struct{}
 }
 
 func (w *ChunkStreamWriter) Read(b []byte) (int, error) {

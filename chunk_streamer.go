@@ -25,6 +25,7 @@ type ChunkStreamer struct {
 
 	readers map[int]*ChunkStreamReader
 	writers map[int]*ChunkStreamWriter
+	mu      sync.Mutex
 
 	writerSched *chunkStreamerWriterSched
 
@@ -131,14 +132,13 @@ again:
 	return reader, nil
 }
 
+// NewChunkWriter Returns a writer for a chunkStreamID.
+// Wait until writing have been finished if the writer is running.
 func (cs *ChunkStreamer) NewChunkWriter(chunkStreamID int) (*ChunkStreamWriter, error) {
 	writer, err := cs.prepareChunkWriter(chunkStreamID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to prepare chunk writer")
 	}
-
-	writer.m.Lock()
-	defer writer.m.Unlock()
 
 	return writer, nil
 }
@@ -309,6 +309,9 @@ func (cs *ChunkStreamer) schedWriteLoop() {
 }
 
 func (cs *ChunkStreamer) prepareChunkReader(chunkStreamID int) (*ChunkStreamReader, error) {
+	cs.mu.Lock()
+	defer cs.mu.Unlock()
+
 	reader, ok := cs.readers[chunkStreamID]
 	if !ok {
 		if len(cs.readers) >= cs.config.MaxChunkStreams {
@@ -326,6 +329,9 @@ func (cs *ChunkStreamer) prepareChunkReader(chunkStreamID int) (*ChunkStreamRead
 }
 
 func (cs *ChunkStreamer) prepareChunkWriter(chunkStreamID int) (*ChunkStreamWriter, error) {
+	cs.mu.Lock()
+	defer cs.mu.Unlock()
+
 	writer, ok := cs.writers[chunkStreamID]
 	if !ok {
 		if len(cs.writers) >= cs.config.MaxChunkStreams {
@@ -342,8 +348,12 @@ func (cs *ChunkStreamer) prepareChunkWriter(chunkStreamID int) (*ChunkStreamWrit
 			messageHeader: chunkMessageHeader{
 				timestamp: math.MaxUint32, // initial state will be updated by writer.timestamp
 			},
+			doneCh: make(chan struct{}),
 		}
 		cs.writers[chunkStreamID] = writer
+	} else {
+		<-writer.doneCh
+		writer.doneCh = make(chan struct{})
 	}
 
 	return writer, nil
@@ -376,7 +386,6 @@ func (sched *chunkStreamerWriterSched) Sched(writer *ChunkStreamWriter) error {
 		return errors.New("Running writer")
 	}
 
-	writer.m.Lock()
 	sched.writers[writer.basicHeader.chunkStreamID] = writer
 
 	sched.activate()
@@ -392,7 +401,7 @@ func (sched *chunkStreamerWriterSched) UnSched(writer *ChunkStreamWriter) error 
 		return errors.New("Not running writer")
 	}
 
-	writer.m.Unlock()
+	close(writer.doneCh)
 	delete(sched.writers, writer.basicHeader.chunkStreamID)
 
 	return nil
@@ -410,13 +419,17 @@ func (sched *chunkStreamerWriterSched) Run() (err error) {
 	}()
 
 	for {
-		select {
-		case <-sched.activeCh:
+		if sched.workersLen() > 0 {
 			if err := sched.runActives(); err != nil {
 				return err
 			}
-		case <-sched.closeCh:
-			return nil
+		} else {
+			select {
+			case <-sched.closeCh:
+				return nil
+			case <-sched.activeCh:
+				continue
+			}
 		}
 	}
 }
@@ -449,8 +462,6 @@ func (sched *chunkStreamerWriterSched) runActives() error {
 		}
 	}
 
-	sched.activate()
-
 	return nil
 }
 
@@ -458,4 +469,11 @@ func (sched *chunkStreamerWriterSched) activate() {
 	if len(sched.writers) > 0 {
 		sched.activeCh <- true
 	}
+}
+
+func (sched *chunkStreamerWriterSched) workersLen() int {
+	sched.m.Lock()
+	defer sched.m.Unlock()
+
+	return len(sched.writers)
 }
