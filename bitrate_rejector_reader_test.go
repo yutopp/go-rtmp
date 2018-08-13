@@ -16,14 +16,14 @@ import (
 
 func TestBitrateRejectorReaderRejected(t *testing.T) {
 	br := bytes.NewReader(make([]byte, 4096))
-	maxBitrate := uint32(8) // 8Kbps
+	maxBitrateKbps := uint32(8) // 8Kbps
 
-	r := NewBitrateRejectorReader(br, maxBitrate)
+	r := NewBitrateRejectorReader(br, maxBitrateKbps)
 	r.now = func() time.Time {
 		return time.Unix(0, 0)
 	}
 
-	// Read 8Kbit
+	// Read 1KB=8Kbits
 	buf := make([]byte, 1024)
 	n, err := r.Read(buf)
 	assert.Nil(t, err)
@@ -34,27 +34,28 @@ func TestBitrateRejectorReaderRejected(t *testing.T) {
 		return time.Unix(1, 0)
 	}
 
-	// Read 8Kbit
+	// Read 8Kbits
 	n, err = r.Read(buf)
 	assert.EqualError(t, err, "Bitrate exceeded: Limit = 8kbps, Value = 16kbps")
 }
 
 func TestBitrateRejectorReaderAccepted(t *testing.T) {
 	br := bytes.NewReader(make([]byte, 4096))
-	maxBitrate := uint32(8) // 8Kbps
+	maxBitrateKbps := uint32(8) // 8Kbps
 
-	r := NewBitrateRejectorReader(br, maxBitrate)
+	r := NewBitrateRejectorReader(br, maxBitrateKbps)
 	r.now = func() time.Time {
 		return time.Unix(0, 0)
 	}
 
 	buf := make([]byte, 512)
 	for i := 0; i < 4096/512; i++ {
-		// Read 4Kbit/sec
+		// Read 512Bytes=4Kbits
 		n, err := r.Read(buf)
 		assert.Nil(t, err)
 		assert.Equal(t, 512, n)
 
+		// simulate 1 sec per loop
 		r.now = func() time.Time {
 			return time.Unix(int64(i), 0)
 		}
