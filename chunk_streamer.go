@@ -360,9 +360,9 @@ func (cs *ChunkStreamer) prepareChunkWriter(chunkStreamID int) (*ChunkStreamWrit
 }
 
 func (cs *ChunkStreamer) sendAck(readBytes uint32) error {
-	cs.logger.Infof("Sending Ack...: Bytes = %d", readBytes)
-	// TODO: chunk stream id and fix timestamp
-	return cs.controlStreamWriter(2, 0, &message.Ack{
+	cs.logger.Debugf("Sending Ack...: Bytes = %d", readBytes)
+	// TODO: fix timestamp
+	return cs.controlStreamWriter(ctrlMsgChunkStreamID, 0, &message.Ack{
 		SequenceNumber: readBytes,
 	})
 }
