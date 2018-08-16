@@ -63,7 +63,7 @@ func (h *DefaultHandler) OnVideo(timestamp uint32, payload []byte) error {
 	return nil
 }
 
-func (h *DefaultHandler) OnUnknownMessage(timestamp uint32, cmd message.Message) error {
+func (h *DefaultHandler) OnUnknownMessage(timestamp uint32, msg message.Message) error {
 	return nil
 }
 
@@ -71,7 +71,7 @@ func (h *DefaultHandler) OnUnknownCommandMessage(timestamp uint32, cmd *message.
 	return nil
 }
 
-func (h *DefaultHandler) OnUnknownDataMessage(timestamp uint32, cmd *message.DataMessage) error {
+func (h *DefaultHandler) OnUnknownDataMessage(timestamp uint32, data *message.DataMessage) error {
 	return nil
 }
 

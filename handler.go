@@ -24,9 +24,9 @@ type Handler interface {
 	OnSetDataFrame(timestamp uint32, data *message.NetStreamSetDataFrame) error
 	OnAudio(timestamp uint32, payload []byte) error
 	OnVideo(timestamp uint32, payload []byte) error
-	OnUnknownMessage(timestamp uint32, cmd message.Message) error
+	OnUnknownMessage(timestamp uint32, msg message.Message) error
 	OnUnknownCommandMessage(timestamp uint32, cmd *message.CommandMessage) error
-	OnUnknownDataMessage(timestamp uint32, cmd *message.DataMessage) error
+	OnUnknownDataMessage(timestamp uint32, data *message.DataMessage) error
 	OnClose()
 }
 
