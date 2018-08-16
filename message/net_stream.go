@@ -46,13 +46,35 @@ func (t *NetStreamPlay) ToArgs(ty EncodingType) ([]interface{}, error) {
 }
 
 //
+type NetStreamOnStatusLevel string
+
+const (
+	NetStreamOnStatusLevelStatus NetStreamOnStatusLevel = "status"
+	NetStreamOnStatusLevelError  NetStreamOnStatusLevel = "error"
+)
+
+type NetStreamOnStatusCode string
+
+const (
+	NetStreamOnStatusCodeConnectSuccess      NetStreamOnStatusCode = "NetStream.Connect.Success"
+	NetStreamOnStatusCodeConnectFailed       NetStreamOnStatusCode = "NetStream.Connect.Failed"
+	NetStreamOnStatusCodeMuticastStreamReset NetStreamOnStatusCode = "NetStream.MulticastStream.Reset"
+	NetStreamOnStatusCodePlayStart           NetStreamOnStatusCode = "NetStream.Play.Start"
+	NetStreamOnStatusCodePlayFailed          NetStreamOnStatusCode = "NetStream.Play.Failed"
+	NetStreamOnStatusCodePlayComplete        NetStreamOnStatusCode = "NetStream.Play.Complete"
+	NetStreamOnStatusCodePublishBadName      NetStreamOnStatusCode = "NetStream.Publish.BadName"
+	NetStreamOnStatusCodePublishFailed       NetStreamOnStatusCode = "NetStream.Publish.Failed"
+	NetStreamOnStatusCodePublishStart        NetStreamOnStatusCode = "NetStream.Publish.Start"
+	NetStreamOnStatusCodeUnpublishSuccess    NetStreamOnStatusCode = "NetStream.Unpublish.Success"
+)
+
 type NetStreamOnStatus struct {
 	InfoObject NetStreamOnStatusInfoObject
 }
 
 type NetStreamOnStatusInfoObject struct {
-	Level       string // TODO: fix
-	Code        string // TODO: fix
+	Level       NetStreamOnStatusLevel
+	Code        NetStreamOnStatusCode
 	Description string
 }
 

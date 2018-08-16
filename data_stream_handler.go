@@ -77,16 +77,16 @@ func (h *dataStreamHandler) Handle(chunkStreamID int, timestamp uint32, msg mess
 func (h *dataStreamHandler) handleAction(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
 	l := h.loggerInstance(stream)
 
-	var cmdMsgEncodingType message.EncodingType
+	var cmdMsgEncTy message.EncodingType
 	var cmdMsg *message.CommandMessage
 	switch msg := msg.(type) {
 	case *message.CommandMessageAMF0:
-		cmdMsgEncodingType = message.EncodingTypeAMF0
+		cmdMsgEncTy = message.EncodingTypeAMF0
 		cmdMsg = &msg.CommandMessage
 		goto handleCommand
 
 	case *message.CommandMessageAMF3:
-		cmdMsgEncodingType = message.EncodingTypeAMF3
+		cmdMsgEncTy = message.EncodingTypeAMF3
 		cmdMsg = &msg.CommandMessage
 		goto handleCommand
 
@@ -102,22 +102,24 @@ handleCommand:
 		l.Infof("Publisher is comming: %#v", cmd)
 
 		if err := h.handler.OnPublish(timestamp, cmd); err != nil {
+			// TODO: Support message.NetStreamOnStatusCodePublishBadName
+			cmdRespMsg := h.newOnStatusMessage(
+				message.NetStreamOnStatusCodePublishFailed,
+				"Publish failed.",
+			)
+			l.Infof("Reject a Publish request: Response = %#v", cmdRespMsg.Command)
+			if writeErr := stream.WriteCommandMessage(chunkStreamID, timestamp, cmdMsgEncTy, cmdRespMsg); writeErr != nil {
+				return errors.Wrapf(err, "Write failed: Err = %+v", writeErr)
+			}
+
 			return err
 		}
 
-		// TODO: fix
-		cmdRespMsg := &message.CommandMessage{
-			CommandName:   "onStatus",
-			TransactionID: 0,
-			Command: &message.NetStreamOnStatus{
-				InfoObject: message.NetStreamOnStatusInfoObject{
-					Level:       "status",
-					Code:        "NetStream.Publish.Start",
-					Description: "yoyo",
-				},
-			},
-		}
-		if err := stream.WriteCommandMessage(chunkStreamID, timestamp, cmdMsgEncodingType, cmdRespMsg); err != nil {
+		cmdRespMsg := h.newOnStatusMessage(
+			message.NetStreamOnStatusCodePublishStart,
+			"Publish succeeded.",
+		)
+		if err := stream.WriteCommandMessage(chunkStreamID, timestamp, cmdMsgEncTy, cmdRespMsg); err != nil {
 			return err
 		}
 		l.Infof("Publisher accepted")
@@ -130,22 +132,23 @@ handleCommand:
 		l.Infof("Player is comming: %#v", cmd)
 
 		if err := h.handler.OnPlay(timestamp, cmd); err != nil {
+			cmdRespMsg := h.newOnStatusMessage(
+				message.NetStreamOnStatusCodePlayFailed,
+				"Play failed.",
+			)
+			l.Infof("Reject a Play request: Response = %#v", cmdRespMsg.Command)
+			if writeErr := stream.WriteCommandMessage(chunkStreamID, timestamp, cmdMsgEncTy, cmdRespMsg); writeErr != nil {
+				return errors.Wrapf(err, "Write failed: Err = %+v", writeErr)
+			}
+
 			return err
 		}
 
-		// TODO: fix
-		cmdRespMsg := &message.CommandMessage{
-			CommandName:   "onStatus",
-			TransactionID: 0,
-			Command: &message.NetStreamOnStatus{
-				InfoObject: message.NetStreamOnStatusInfoObject{
-					Level:       "status",
-					Code:        "NetStream.Play.Start",
-					Description: "yoyo",
-				},
-			},
-		}
-		if err := stream.WriteCommandMessage(chunkStreamID, timestamp, cmdMsgEncodingType, cmdRespMsg); err != nil {
+		cmdRespMsg := h.newOnStatusMessage(
+			message.NetStreamOnStatusCodePlayStart,
+			"Play succeeded.",
+		)
+		if err := stream.WriteCommandMessage(chunkStreamID, timestamp, cmdMsgEncTy, cmdRespMsg); err != nil {
 			return err
 		}
 		l.Infof("Player accepted")
@@ -210,6 +213,34 @@ func (h *dataStreamHandler) handlePlayer(chunkStreamID int, timestamp uint32, ms
 		l.Warnf("Message unhandled: Msg = %#v", msg)
 
 		return nil
+	}
+}
+
+func (h *dataStreamHandler) newOnStatusMessage(
+	code message.NetStreamOnStatusCode,
+	description string,
+) *message.CommandMessage {
+	// https://helpx.adobe.com/adobe-media-server/ssaslr/netstream-class.html#netstream_onstatus
+	level := message.NetStreamOnStatusLevelStatus
+	switch code {
+	case message.NetStreamOnStatusCodeConnectFailed:
+		fallthrough
+	case message.NetStreamOnStatusCodePlayFailed:
+		fallthrough
+	case message.NetStreamOnStatusCodePublishBadName, message.NetStreamOnStatusCodePublishFailed:
+		level = message.NetStreamOnStatusLevelError
+	}
+
+	return &message.CommandMessage{
+		CommandName:   "onStatus",
+		TransactionID: 0, // 7.2.2
+		Command: &message.NetStreamOnStatus{
+			InfoObject: message.NetStreamOnStatusInfoObject{
+				Level:       level,
+				Code:        code,
+				Description: description,
+			},
+		},
 	}
 }
 
