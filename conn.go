@@ -195,7 +195,7 @@ func (c *Conn) serveLoop() error {
 			}
 
 			if err := c.handleStreamFragment(chunkStreamID, timestamp, &streamFragment); err != nil {
-				return err
+				return err // Shutdown the connection
 			}
 		}
 	}
