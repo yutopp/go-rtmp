@@ -14,19 +14,3 @@ import (
 type streamHandler interface {
 	Handle(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error
 }
-
-// helpers
-
-type amfWrapperFunc func(callback func(cmd *message.CommandMessage)) message.Message
-
-func amf0Wrapper(callback func(cmd *message.CommandMessage)) message.Message {
-	var m message.CommandMessageAMF0
-	callback(&m.CommandMessage)
-	return &m
-}
-
-func amf3Wrapper(callback func(cmd *message.CommandMessage)) message.Message {
-	var m message.CommandMessageAMF3
-	callback(&m.CommandMessage)
-	return &m
-}

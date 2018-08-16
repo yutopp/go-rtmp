@@ -77,16 +77,16 @@ func (h *dataStreamHandler) Handle(chunkStreamID int, timestamp uint32, msg mess
 func (h *dataStreamHandler) handleAction(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
 	l := h.loggerInstance(stream)
 
-	var cmdMsgWrapper amfWrapperFunc
+	var cmdMsgAMFType message.AMFType
 	var cmdMsg *message.CommandMessage
 	switch msg := msg.(type) {
 	case *message.CommandMessageAMF0:
-		cmdMsgWrapper = amf0Wrapper
+		cmdMsgAMFType = message.AMFType0
 		cmdMsg = &msg.CommandMessage
 		goto handleCommand
 
 	case *message.CommandMessageAMF3:
-		cmdMsgWrapper = amf0Wrapper
+		cmdMsgAMFType = message.AMDType3
 		cmdMsg = &msg.CommandMessage
 		goto handleCommand
 
@@ -106,20 +106,18 @@ handleCommand:
 		}
 
 		// TODO: fix
-		m := cmdMsgWrapper(func(cmsg *message.CommandMessage) {
-			*cmsg = message.CommandMessage{
-				CommandName:   "onStatus",
-				TransactionID: 0,
-				Command: &message.NetStreamOnStatus{
-					InfoObject: message.NetStreamOnStatusInfoObject{
-						Level:       "status",
-						Code:        "NetStream.Publish.Start",
-						Description: "yoyo",
-					},
+		cmdRespMsg := &message.CommandMessage{
+			CommandName:   "onStatus",
+			TransactionID: 0,
+			Command: &message.NetStreamOnStatus{
+				InfoObject: message.NetStreamOnStatusInfoObject{
+					Level:       "status",
+					Code:        "NetStream.Publish.Start",
+					Description: "yoyo",
 				},
-			}
-		})
-		if err := stream.Write(chunkStreamID, timestamp, m); err != nil {
+			},
+		}
+		if err := stream.WriteCommandMessage(chunkStreamID, timestamp, cmdMsgAMFType, cmdRespMsg); err != nil {
 			return err
 		}
 		l.Infof("Publisher accepted")
@@ -136,20 +134,18 @@ handleCommand:
 		}
 
 		// TODO: fix
-		m := cmdMsgWrapper(func(cmsg *message.CommandMessage) {
-			*cmsg = message.CommandMessage{
-				CommandName:   "onStatus",
-				TransactionID: 0,
-				Command: &message.NetStreamOnStatus{
-					InfoObject: message.NetStreamOnStatusInfoObject{
-						Level:       "status",
-						Code:        "NetStream.Play.Start",
-						Description: "yoyo",
-					},
+		cmdRespMsg := &message.CommandMessage{
+			CommandName:   "onStatus",
+			TransactionID: 0,
+			Command: &message.NetStreamOnStatus{
+				InfoObject: message.NetStreamOnStatusInfoObject{
+					Level:       "status",
+					Code:        "NetStream.Play.Start",
+					Description: "yoyo",
 				},
-			}
-		})
-		if err := stream.Write(chunkStreamID, timestamp, m); err != nil {
+			},
+		}
+		if err := stream.WriteCommandMessage(chunkStreamID, timestamp, cmdMsgAMFType, cmdRespMsg); err != nil {
 			return err
 		}
 		l.Infof("Player accepted")

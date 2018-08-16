@@ -139,7 +139,7 @@ func (c *Conn) Serve() (err error) {
 	if !ok {
 		return errors.New("Unexpected: default stream is not found")
 	}
-	c.streamer.controlStreamWriter = defaultStream.Write
+	c.streamer.controlStreamWriter = defaultStream.write
 
 	if c.handler != nil {
 		c.handler.OnServe()

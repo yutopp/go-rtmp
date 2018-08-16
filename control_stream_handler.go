@@ -70,16 +70,16 @@ func (h *controlStreamHandler) handleInNotConnected(chunkStreamID int, timestamp
 		"handler":   "control",
 	})
 
-	var cmdMsgWrapper amfWrapperFunc
+	var cmdMsgAMFType message.AMFType
 	var cmdMsg *message.CommandMessage
 	switch msg := msg.(type) {
 	case *message.CommandMessageAMF0:
-		cmdMsgWrapper = amf0Wrapper
+		cmdMsgAMFType = message.AMFType0
 		cmdMsg = &msg.CommandMessage
 		goto handleCommand
 
 	case *message.CommandMessageAMF3:
-		cmdMsgWrapper = amf0Wrapper
+		cmdMsgAMFType = message.AMDType3
 		cmdMsg = &msg.CommandMessage
 		goto handleCommand
 
@@ -98,7 +98,7 @@ handleCommand:
 
 		// TODO: fix
 		l.Infof("Set win ack size: Size = %+v", h.streamer.SelfState().AckWindowSize())
-		if err := stream.Write(ctrlMsgChunkStreamID, timestamp, &message.WinAckSize{
+		if err := stream.WriteWinAckSize(ctrlMsgChunkStreamID, timestamp, &message.WinAckSize{
 			Size: h.streamer.SelfState().AckWindowSize(),
 		}); err != nil {
 			return err
@@ -109,7 +109,7 @@ handleCommand:
 			h.streamer.SelfState().BandwidthWindowSize(),
 			h.streamer.SelfState().BandwidthLimitType(),
 		)
-		if err := stream.Write(ctrlMsgChunkStreamID, timestamp, &message.SetPeerBandwidth{
+		if err := stream.WriteSetPeerBandwidth(ctrlMsgChunkStreamID, timestamp, &message.SetPeerBandwidth{
 			Size:  h.streamer.SelfState().BandwidthWindowSize(),
 			Limit: h.streamer.SelfState().BandwidthLimitType(),
 		}); err != nil {
@@ -118,7 +118,7 @@ handleCommand:
 
 		// TODO: fix
 		l.Infof("Stream Begin: ID = %d", 0)
-		if err := stream.Write(ctrlMsgChunkStreamID, timestamp, &message.UserCtrl{
+		if err := stream.WriteUserCtrl(ctrlMsgChunkStreamID, timestamp, &message.UserCtrl{
 			Event: &message.UserCtrlEventStreamBegin{
 				StreamID: 0,
 			},
@@ -127,31 +127,29 @@ handleCommand:
 		}
 
 		// TODO: fix
-		m := cmdMsgWrapper(func(cmsg *message.CommandMessage) {
-			*cmsg = message.CommandMessage{
-				CommandName:   "_result",
-				TransactionID: 1, // 7.2.1.2, flow.6
-				Command: &message.NetConnectionConnectResult{
-					Properties: message.NetConnectionConnectResultProperties{
-						FMSVer:       "GO-RTMP/0,0,0,0",
-						Capabilities: 31,
-						Mode:         1,
-					},
-					Information: message.NetConnectionConnectResultInformation{
-						Level:       "status",
-						Code:        "NetConnection.Connect.Success",
-						Description: "Connection succeeded.",
-						Data: map[string]interface{}{
-							"type":    "go-rtmp",
-							"version": "master",
-						},
+		cmdRespMsg := &message.CommandMessage{
+			CommandName:   "_result",
+			TransactionID: 1, // 7.2.1.2, flow.6
+			Command: &message.NetConnectionConnectResult{
+				Properties: message.NetConnectionConnectResultProperties{
+					FMSVer:       "GO-RTMP/0,0,0,0",
+					Capabilities: 31,
+					Mode:         1,
+				},
+				Information: message.NetConnectionConnectResultInformation{
+					Level:       "status",
+					Code:        "NetConnection.Connect.Success",
+					Description: "Connection succeeded.",
+					Data: map[string]interface{}{
+						"type":    "go-rtmp",
+						"version": "master",
 					},
 				},
-			}
-		})
-		l.Infof("Connect: Response = %#v", m.(*message.CommandMessageAMF0).Command)
+			},
+		}
 
-		if err := stream.Write(chunkStreamID, timestamp, m); err != nil {
+		l.Infof("Connect: Response = %#v", cmdRespMsg.Command)
+		if err := stream.WriteCommandMessage(chunkStreamID, timestamp, cmdMsgAMFType, cmdRespMsg); err != nil {
 			return err
 		}
 		l.Info("Connected")
@@ -174,16 +172,16 @@ func (h *controlStreamHandler) handleInConnected(chunkStreamID int, timestamp ui
 		"handler":   "control",
 	})
 
-	var cmdMsgWrapper amfWrapperFunc
+	var cmdMsgAMFType message.AMFType
 	var cmdMsg *message.CommandMessage
 	switch msg := msg.(type) {
 	case *message.CommandMessageAMF0:
-		cmdMsgWrapper = amf0Wrapper
+		cmdMsgAMFType = message.AMFType0
 		cmdMsg = &msg.CommandMessage
 		goto handleCommand
 
 	case *message.CommandMessageAMF3:
-		cmdMsgWrapper = amf0Wrapper
+		cmdMsgAMFType = message.AMDType3
 		cmdMsg = &msg.CommandMessage
 		goto handleCommand
 
@@ -213,16 +211,14 @@ handleCommand:
 		}
 
 		// TODO: fix
-		m := cmdMsgWrapper(func(cmsg *message.CommandMessage) {
-			*cmsg = message.CommandMessage{
-				CommandName:   "_result",
-				TransactionID: cmdMsg.TransactionID,
-				Command: &message.NetConnectionCreateStreamResult{
-					StreamID: streamID,
-				},
-			}
-		})
-		if err := stream.Write(chunkStreamID, timestamp, m); err != nil {
+		cmdRespMsg := &message.CommandMessage{
+			CommandName:   "_result",
+			TransactionID: cmdMsg.TransactionID,
+			Command: &message.NetConnectionCreateStreamResult{
+				StreamID: streamID,
+			},
+		}
+		if err := stream.WriteCommandMessage(chunkStreamID, timestamp, cmdMsgAMFType, cmdRespMsg); err != nil {
 			_ = h.streams.Delete(streamID) // TODO: error handling
 			return err
 		}

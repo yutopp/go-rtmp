@@ -8,6 +8,7 @@
 package rtmp
 
 import (
+	"github.com/pkg/errors"
 	"github.com/yutopp/go-rtmp/message"
 )
 
@@ -19,7 +20,33 @@ type Stream struct {
 	fragment StreamFragment
 }
 
-func (s *Stream) Write(chunkStreamID int, timestamp uint32, msg message.Message) error {
+func (s *Stream) WriteWinAckSize(chunkStreamID int, timestamp uint32, msg *message.WinAckSize) error {
+	return s.write(chunkStreamID, timestamp, msg)
+}
+
+func (s *Stream) WriteSetPeerBandwidth(chunkStreamID int, timestamp uint32, msg *message.SetPeerBandwidth) error {
+	return s.write(chunkStreamID, timestamp, msg)
+}
+
+func (s *Stream) WriteUserCtrl(chunkStreamID int, timestamp uint32, msg *message.UserCtrl) error {
+	return s.write(chunkStreamID, timestamp, msg)
+}
+
+func (s *Stream) WriteCommandMessage(chunkStreamID int, timestamp uint32, amf message.AMFType, m *message.CommandMessage) error {
+	var msg message.Message
+	switch amf {
+	case message.AMFType0:
+		msg = &message.CommandMessageAMF0{
+			CommandMessage: *m,
+		}
+	default:
+		return errors.Errorf("Unsupported amf type: %+v", amf)
+	}
+
+	return s.write(chunkStreamID, timestamp, msg)
+}
+
+func (s *Stream) write(chunkStreamID int, timestamp uint32, msg message.Message) error {
 	s.fragment.Message = msg
 	return s.conn.streamer.Write(chunkStreamID, timestamp, &s.fragment)
 }
