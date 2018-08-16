@@ -209,7 +209,7 @@ func (c *Conn) handleStreamFragment(chunkStreamID int, timestamp uint32, sf *Str
 	stream, ok := c.streams.At(sf.StreamID)
 	if !ok {
 		if c.config.IgnoreMessagesOnNotExistStream {
-			c.logger.Warnf("Messages are received on not exist streams: StreamID = %d, Message = %#v",
+			c.logger.Warnf("Messages are received on not exist streams: StreamID = %d, MessageType = %T",
 				sf.StreamID,
 				sf.Message,
 			)
