@@ -197,3 +197,19 @@ func (t *NetStreamPing) ToArgs(ty EncodingType) ([]interface{}, error) {
 		nil, // no command object
 	}, nil
 }
+
+//
+type NetStreamCloseStream struct {
+}
+
+func (t *NetStreamCloseStream) FromArgs(args ...interface{}) error {
+	// args[0] is unknown, ignore
+
+	return nil
+}
+
+func (t *NetStreamCloseStream) ToArgs(ty EncodingType) ([]interface{}, error) {
+	return []interface{}{
+		nil, // no command object
+	}, nil
+}

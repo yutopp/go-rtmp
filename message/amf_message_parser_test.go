@@ -201,6 +201,20 @@ func TestParseAMFMessagePing(t *testing.T) {
 	assert.Equal(t, &NetStreamPing{}, v)
 }
 
+func TestParseAMFMessageCloseStream(t *testing.T) {
+	bin := []byte{
+		// nil
+		0x05,
+	}
+	r := bytes.NewReader(bin)
+	d := amf0.NewDecoder(r)
+
+	var v AMFConvertible
+	err := parseAMFMessage(r, d, "closeStream", &v)
+	assert.Nil(t, err)
+	assert.Equal(t, &NetStreamCloseStream{}, v)
+}
+
 func TestParseAMFMessageNotExist(t *testing.T) {
 	bin := []byte{
 		// nil

@@ -197,6 +197,19 @@ func parseAMFMessage(r io.Reader, d AMFDecoder, name string, v *AMFConvertible) 
 
 		*v = &cmd
 
+	case "closeStream":
+		var commandObject interface{} // maybe nil
+		if err := d.Decode(&commandObject); err != nil {
+			return errors.Wrap(err, "Failed to decode 'closeStream' args[0]")
+		}
+
+		var cmd NetStreamCloseStream
+		if err := cmd.FromArgs(commandObject); err != nil {
+			return errors.Wrap(err, "Failed to reconstruct 'closeStream'")
+		}
+
+		*v = &cmd
+
 	default:
 		objs := make([]interface{}, 0)
 		for {
