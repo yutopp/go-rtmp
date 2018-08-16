@@ -8,6 +8,7 @@
 package rtmp
 
 import (
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"github.com/yutopp/go-rtmp/message"
@@ -70,16 +71,16 @@ func (h *controlStreamHandler) handleInNotConnected(chunkStreamID int, timestamp
 		"handler":   "control",
 	})
 
-	var cmdMsgEncodingType message.EncodingType
+	var cmdMsgEncTy message.EncodingType
 	var cmdMsg *message.CommandMessage
 	switch msg := msg.(type) {
 	case *message.CommandMessageAMF0:
-		cmdMsgEncodingType = message.EncodingTypeAMF0
+		cmdMsgEncTy = message.EncodingTypeAMF0
 		cmdMsg = &msg.CommandMessage
 		goto handleCommand
 
 	case *message.CommandMessageAMF3:
-		cmdMsgEncodingType = message.EncodingTypeAMF3
+		cmdMsgEncTy = message.EncodingTypeAMF3
 		cmdMsg = &msg.CommandMessage
 		goto handleCommand
 
@@ -93,6 +94,13 @@ handleCommand:
 		l.Info("Connect")
 
 		if err := h.handler.OnConnect(timestamp, cmd); err != nil {
+			cmdRespMsg := h.newConnectErrorMessage()
+
+			l.Infof("Reject a connect request: Response = %#v", cmdRespMsg.Command)
+			if writeErr := stream.WriteCommandMessage(chunkStreamID, timestamp, cmdMsgEncTy, cmdRespMsg); writeErr != nil {
+				return errors.Wrapf(err, "Write failed: Err = %+v", writeErr)
+			}
+
 			return err
 		}
 
@@ -123,29 +131,9 @@ handleCommand:
 			return err
 		}
 
-		cmdRespMsg := &message.CommandMessage{
-			CommandName:   "_result",
-			TransactionID: 1, // 7.2.1.2, flow.6
-			Command: &message.NetConnectionConnectResult{
-				Properties: message.NetConnectionConnectResultProperties{
-					FMSVer:       "GO-RTMP/0,0,0,0", // TODO: fix
-					Capabilities: 31,                // TODO: fix
-					Mode:         1,                 // TODO: fix
-				},
-				Information: message.NetConnectionConnectResultInformation{
-					Level:       "status",
-					Code:        message.NetConnectionConnectCodeSuccess,
-					Description: "Connection succeeded.",
-					Data: map[string]interface{}{
-						"type":    "go-rtmp",
-						"version": "master", // TODO: fix
-					},
-				},
-			},
-		}
-
+		cmdRespMsg := h.newConnectSuccessMessage()
 		l.Infof("Connect: Response = %#v", cmdRespMsg.Command)
-		if err := stream.WriteCommandMessage(chunkStreamID, timestamp, cmdMsgEncodingType, cmdRespMsg); err != nil {
+		if err := stream.WriteCommandMessage(chunkStreamID, timestamp, cmdMsgEncTy, cmdRespMsg); err != nil {
 			return err
 		}
 		l.Info("Connected")
@@ -168,16 +156,16 @@ func (h *controlStreamHandler) handleInConnected(chunkStreamID int, timestamp ui
 		"handler":   "control",
 	})
 
-	var cmdMsgEncodingType message.EncodingType
+	var cmdMsgEncTy message.EncodingType
 	var cmdMsg *message.CommandMessage
 	switch msg := msg.(type) {
 	case *message.CommandMessageAMF0:
-		cmdMsgEncodingType = message.EncodingTypeAMF0
+		cmdMsgEncTy = message.EncodingTypeAMF0
 		cmdMsg = &msg.CommandMessage
 		goto handleCommand
 
 	case *message.CommandMessageAMF3:
-		cmdMsgEncodingType = message.EncodingTypeAMF3
+		cmdMsgEncTy = message.EncodingTypeAMF3
 		cmdMsg = &msg.CommandMessage
 		goto handleCommand
 
@@ -191,6 +179,12 @@ handleCommand:
 		l.Infof("Stream creating...: %#v", cmd)
 
 		if err := h.handler.OnCreateStream(timestamp, cmd); err != nil {
+			cmdRespMsg := h.newCreateStreamErrorMessage(cmdMsg.TransactionID)
+			l.Infof("Reject a CreateStream request: Response = %#v", cmdRespMsg.Command)
+			if writeErr := stream.WriteCommandMessage(chunkStreamID, timestamp, cmdMsgEncTy, cmdRespMsg); writeErr != nil {
+				return errors.Wrapf(err, "Write failed: Err = %+v", writeErr)
+			}
+
 			return err
 		}
 
@@ -200,21 +194,20 @@ handleCommand:
 			logger:  h.logger,
 		})
 		if err != nil {
-			// TODO: send failed _result
-			l.Errorf("Stream creating...: Err = %#v", err)
+			cmdRespMsg := h.newCreateStreamErrorMessage(cmdMsg.TransactionID)
+			l.Errorf("Failed to create stream: Err = %+v, Response = %#v", err, cmdRespMsg.Command)
+			if writeErr := stream.WriteCommandMessage(chunkStreamID, timestamp, cmdMsgEncTy, cmdRespMsg); writeErr != nil {
+				return errors.Wrapf(err, "Write failed: Err = %+v", writeErr)
+			}
 
 			return nil
 		}
 
-		// TODO: fix
-		cmdRespMsg := &message.CommandMessage{
-			CommandName:   "_result",
-			TransactionID: cmdMsg.TransactionID,
-			Command: &message.NetConnectionCreateStreamResult{
-				StreamID: streamID,
-			},
-		}
-		if err := stream.WriteCommandMessage(chunkStreamID, timestamp, cmdMsgEncodingType, cmdRespMsg); err != nil {
+		cmdRespMsg := h.newCreateStreamSuccessMessage(
+			cmdMsg.TransactionID,
+			streamID,
+		)
+		if err := stream.WriteCommandMessage(chunkStreamID, timestamp, cmdMsgEncTy, cmdRespMsg); err != nil {
 			_ = h.streams.Delete(streamID) // TODO: error handling
 			return err
 		}
@@ -301,5 +294,76 @@ func (h *controlStreamHandler) handleCommonMessage(chunkStreamID int, timestamp 
 		l.Warnf("Message unhandled: Msg = %#v", msg)
 
 		return nil
+	}
+}
+
+func (h *controlStreamHandler) newConnectSuccessMessage() *message.CommandMessage {
+	return &message.CommandMessage{
+		CommandName:   "_result",
+		TransactionID: 1, // 7.2.1.2, flow.6
+		Command: &message.NetConnectionConnectResult{
+			Properties: message.NetConnectionConnectResultProperties{
+				FMSVer:       "GO-RTMP/0,0,0,0", // TODO: fix
+				Capabilities: 31,                // TODO: fix
+				Mode:         1,                 // TODO: fix
+			},
+			Information: message.NetConnectionConnectResultInformation{
+				Level:       "status",
+				Code:        message.NetConnectionConnectCodeSuccess,
+				Description: "Connection succeeded.",
+				Data: map[string]interface{}{
+					"type":    "go-rtmp",
+					"version": "master", // TODO: fix
+				},
+			},
+		},
+	}
+}
+
+func (h *controlStreamHandler) newConnectErrorMessage() *message.CommandMessage {
+	return &message.CommandMessage{
+		CommandName:   "_error",
+		TransactionID: 1, // 7.2.1.2, flow.6
+		Command: &message.NetConnectionConnectResult{
+			Properties: message.NetConnectionConnectResultProperties{
+				FMSVer:       "GO-RTMP/0,0,0,0", // TODO: fix
+				Capabilities: 31,                // TODO: fix
+				Mode:         1,                 // TODO: fix
+			},
+			Information: message.NetConnectionConnectResultInformation{
+				Level:       "error",
+				Code:        message.NetConnectionConnectCodeFailed,
+				Description: "Connection failed.",
+				Data: map[string]interface{}{
+					"type":    "go-rtmp",
+					"version": "master", // TODO: fix
+				},
+			},
+		},
+	}
+}
+
+func (h *controlStreamHandler) newCreateStreamSuccessMessage(
+	transactionID int64,
+	streamID uint32,
+) *message.CommandMessage {
+	return &message.CommandMessage{
+		CommandName:   "_result",
+		TransactionID: transactionID,
+		Command: &message.NetConnectionCreateStreamResult{
+			StreamID: streamID,
+		},
+	}
+}
+
+func (h *controlStreamHandler) newCreateStreamErrorMessage(
+	transactionID int64,
+) *message.CommandMessage {
+	return &message.CommandMessage{
+		CommandName:   "_error",
+		TransactionID: transactionID,
+		Command: &message.NetConnectionCreateStreamResult{
+			StreamID: 0, // TODO: Change to error information object...
+		},
 	}
 }
