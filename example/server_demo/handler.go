@@ -24,6 +24,16 @@ type Handler struct {
 func (h *Handler) OnServe() {
 }
 
+func (h *Handler) OnConnect(timestamp uint32, cmd *rtmpmsg.NetConnectionConnect) error {
+	log.Printf("OnConnect: %#v", cmd)
+	return nil
+}
+
+func (h *Handler) OnCreateStream(timestamp uint32, cmd *rtmpmsg.NetConnectionCreateStream) error {
+	log.Printf("OnCreateStream: %#v", cmd)
+	return nil
+}
+
 func (h *Handler) OnPublish(timestamp uint32, cmd *rtmpmsg.NetStreamPublish) error {
 	log.Printf("OnPublish: %#v", cmd)
 
@@ -45,16 +55,6 @@ func (h *Handler) OnPublish(timestamp uint32, cmd *rtmpmsg.NetStreamPublish) err
 	}
 	h.flvEnc = enc
 
-	return nil
-}
-
-func (h *Handler) OnConnect(timestamp uint32, cmd *rtmpmsg.NetConnectionConnect) error {
-	log.Printf("OnConnect: %#v", cmd)
-	return nil
-}
-
-func (h *Handler) OnCreateStream(timestamp uint32, cmd *rtmpmsg.NetConnectionCreateStream) error {
-	log.Printf("OnCreateStream: %#v", cmd)
 	return nil
 }
 
