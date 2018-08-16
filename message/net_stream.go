@@ -22,7 +22,7 @@ func (t *NetStreamPublish) FromArgs(args ...interface{}) error {
 	return nil
 }
 
-func (t *NetStreamPublish) ToArgs(ty AMFType) ([]interface{}, error) {
+func (t *NetStreamPublish) ToArgs(ty EncodingType) ([]interface{}, error) {
 	panic("Not implemented")
 }
 
@@ -41,7 +41,7 @@ func (t *NetStreamPlay) FromArgs(args ...interface{}) error {
 	return nil
 }
 
-func (t *NetStreamPlay) ToArgs(ty AMFType) ([]interface{}, error) {
+func (t *NetStreamPlay) ToArgs(ty EncodingType) ([]interface{}, error) {
 	panic("Not implemented")
 }
 
@@ -60,7 +60,7 @@ func (t *NetStreamOnStatus) FromArgs(args ...interface{}) error {
 	panic("Not implemented")
 }
 
-func (t *NetStreamOnStatus) ToArgs(ty AMFType) ([]interface{}, error) {
+func (t *NetStreamOnStatus) ToArgs(ty EncodingType) ([]interface{}, error) {
 	info := make(map[string]interface{})
 	info["level"] = t.InfoObject.Level
 	info["code"] = t.InfoObject.Code
@@ -84,7 +84,7 @@ func (t *NetStreamDeleteStream) FromArgs(args ...interface{}) error {
 	return nil
 }
 
-func (t *NetStreamDeleteStream) ToArgs(ty AMFType) ([]interface{}, error) {
+func (t *NetStreamDeleteStream) ToArgs(ty EncodingType) ([]interface{}, error) {
 	panic("Not implemented")
 }
 
@@ -100,7 +100,7 @@ func (t *NetStreamFCPublish) FromArgs(args ...interface{}) error {
 	return nil
 }
 
-func (t *NetStreamFCPublish) ToArgs(ty AMFType) ([]interface{}, error) {
+func (t *NetStreamFCPublish) ToArgs(ty EncodingType) ([]interface{}, error) {
 	return []interface{}{
 		nil, // no command object
 		t.StreamName,
@@ -119,7 +119,7 @@ func (t *NetStreamFCUnpublish) FromArgs(args ...interface{}) error {
 	return nil
 }
 
-func (t *NetStreamFCUnpublish) ToArgs(ty AMFType) ([]interface{}, error) {
+func (t *NetStreamFCUnpublish) ToArgs(ty EncodingType) ([]interface{}, error) {
 	return []interface{}{
 		nil, // no command object
 		t.StreamName,
@@ -137,7 +137,7 @@ func (t *NetStreamSetDataFrame) FromArgs(args ...interface{}) error {
 	return nil
 }
 
-func (t *NetStreamSetDataFrame) ToArgs(ty AMFType) ([]interface{}, error) {
+func (t *NetStreamSetDataFrame) ToArgs(ty EncodingType) ([]interface{}, error) {
 	panic("Not implemented")
 }
 
@@ -153,7 +153,7 @@ func (t *NetStreamGetStreamLength) FromArgs(args ...interface{}) error {
 	return nil
 }
 
-func (t *NetStreamGetStreamLength) ToArgs(ty AMFType) ([]interface{}, error) {
+func (t *NetStreamGetStreamLength) ToArgs(ty EncodingType) ([]interface{}, error) {
 	return []interface{}{
 		nil, // no command object
 		t.StreamName,

@@ -77,16 +77,16 @@ func (h *dataStreamHandler) Handle(chunkStreamID int, timestamp uint32, msg mess
 func (h *dataStreamHandler) handleAction(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
 	l := h.loggerInstance(stream)
 
-	var cmdMsgAMFType message.AMFType
+	var cmdMsgEncodingType message.EncodingType
 	var cmdMsg *message.CommandMessage
 	switch msg := msg.(type) {
 	case *message.CommandMessageAMF0:
-		cmdMsgAMFType = message.AMFType0
+		cmdMsgEncodingType = message.EncodingTypeAMF0
 		cmdMsg = &msg.CommandMessage
 		goto handleCommand
 
 	case *message.CommandMessageAMF3:
-		cmdMsgAMFType = message.AMDType3
+		cmdMsgEncodingType = message.EncodingTypeAMF3
 		cmdMsg = &msg.CommandMessage
 		goto handleCommand
 
@@ -117,7 +117,7 @@ handleCommand:
 				},
 			},
 		}
-		if err := stream.WriteCommandMessage(chunkStreamID, timestamp, cmdMsgAMFType, cmdRespMsg); err != nil {
+		if err := stream.WriteCommandMessage(chunkStreamID, timestamp, cmdMsgEncodingType, cmdRespMsg); err != nil {
 			return err
 		}
 		l.Infof("Publisher accepted")
@@ -145,7 +145,7 @@ handleCommand:
 				},
 			},
 		}
-		if err := stream.WriteCommandMessage(chunkStreamID, timestamp, cmdMsgAMFType, cmdRespMsg); err != nil {
+		if err := stream.WriteCommandMessage(chunkStreamID, timestamp, cmdMsgEncodingType, cmdRespMsg); err != nil {
 			return err
 		}
 		l.Infof("Player accepted")

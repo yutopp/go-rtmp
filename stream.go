@@ -32,10 +32,10 @@ func (s *Stream) WriteUserCtrl(chunkStreamID int, timestamp uint32, msg *message
 	return s.write(chunkStreamID, timestamp, msg)
 }
 
-func (s *Stream) WriteCommandMessage(chunkStreamID int, timestamp uint32, amf message.AMFType, m *message.CommandMessage) error {
+func (s *Stream) WriteCommandMessage(chunkStreamID int, timestamp uint32, amf message.EncodingType, m *message.CommandMessage) error {
 	var msg message.Message
 	switch amf {
-	case message.AMFType0:
+	case message.EncodingTypeAMF0:
 		msg = &message.CommandMessageAMF0{
 			CommandMessage: *m,
 		}

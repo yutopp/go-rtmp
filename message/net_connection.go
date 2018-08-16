@@ -14,20 +14,30 @@ import (
 )
 
 //
+type NetConnectionConnectCode string
+
+const (
+	NetConnectionConnectCodeSuccess NetConnectionConnectCode = "NetConnection.Connect.Success"
+	NetConnectionConnectCodeFailed  NetConnectionConnectCode = "NetConnection.Connect.Failed"
+	NetConnectionConnectCodeClosed  NetConnectionConnectCode = "NetConnection.Connect.Closed"
+)
+
+//
 type NetConnectionConnect struct {
 	Command NetConnectionConnectCommand
 }
 
 type NetConnectionConnectCommand struct {
-	App           string `mapstructure:"app"`
-	Type          string `mapstructure:"type"`
-	FlashVer      string `mapstructure:"flashVer"`
-	TCURL         string `mapstructure:"tcUrl"`
-	Fpad          bool   `mapstructure:"fpad"`
-	Capabilities  int    `mapstructure:"capabilities"`
-	AudioCodecs   int    `mapstructure:"audioCodecs"`
-	VideoCodecs   int    `mapstructure:"videoCodecs"`
-	VideoFunction int    `mapstructure:"videoFunction"`
+	App            string       `mapstructure:"app"`
+	Type           string       `mapstructure:"type"`
+	FlashVer       string       `mapstructure:"flashVer"`
+	TCURL          string       `mapstructure:"tcUrl"`
+	Fpad           bool         `mapstructure:"fpad"`
+	Capabilities   int          `mapstructure:"capabilities"`
+	AudioCodecs    int          `mapstructure:"audioCodecs"`
+	VideoCodecs    int          `mapstructure:"videoCodecs"`
+	VideoFunction  int          `mapstructure:"videoFunction"`
+	ObjectEncoding EncodingType `mapstructure:"objectEncoding"`
 }
 
 func (t *NetConnectionConnect) FromArgs(args ...interface{}) error {
@@ -39,7 +49,7 @@ func (t *NetConnectionConnect) FromArgs(args ...interface{}) error {
 	return nil
 }
 
-func (t *NetConnectionConnect) ToArgs(ty AMFType) ([]interface{}, error) {
+func (t *NetConnectionConnect) ToArgs(ty EncodingType) ([]interface{}, error) {
 	panic("Not implemented")
 }
 
@@ -56,17 +66,17 @@ type NetConnectionConnectResultProperties struct {
 }
 
 type NetConnectionConnectResultInformation struct {
-	Level       string         `amf0:"level"` // TODO: fix
-	Code        string         `amf0:"code"`  // TODO: fix
-	Description string         `amf0:"description"`
-	Data        amf0.ECMAArray `amf0:"data"`
+	Level       string                   `amf0:"level"` // TODO: fix
+	Code        NetConnectionConnectCode `amf0:"code"`
+	Description string                   `amf0:"description"`
+	Data        amf0.ECMAArray           `amf0:"data"`
 }
 
 func (t *NetConnectionConnectResult) FromArgs(args ...interface{}) error {
 	panic("Not implemented")
 }
 
-func (t *NetConnectionConnectResult) ToArgs(ty AMFType) ([]interface{}, error) {
+func (t *NetConnectionConnectResult) ToArgs(ty EncodingType) ([]interface{}, error) {
 	return []interface{}{
 		t.Properties,
 		t.Information,
@@ -82,7 +92,7 @@ func (t *NetConnectionCreateStream) FromArgs(args ...interface{}) error {
 	return nil
 }
 
-func (t *NetConnectionCreateStream) ToArgs(ty AMFType) ([]interface{}, error) {
+func (t *NetConnectionCreateStream) ToArgs(ty EncodingType) ([]interface{}, error) {
 	panic("Not implemented")
 }
 
@@ -95,7 +105,7 @@ func (t *NetConnectionCreateStreamResult) FromArgs(args ...interface{}) error {
 	panic("Not implemented")
 }
 
-func (t *NetConnectionCreateStreamResult) ToArgs(ty AMFType) ([]interface{}, error) {
+func (t *NetConnectionCreateStreamResult) ToArgs(ty EncodingType) ([]interface{}, error) {
 	return []interface{}{
 		nil, // no command object
 		t.StreamID,
@@ -114,7 +124,7 @@ func (t *NetConnectionReleaseStream) FromArgs(args ...interface{}) error {
 	return nil
 }
 
-func (t *NetConnectionReleaseStream) ToArgs(ty AMFType) ([]interface{}, error) {
+func (t *NetConnectionReleaseStream) ToArgs(ty EncodingType) ([]interface{}, error) {
 	return []interface{}{
 		nil, // no command object
 		t.StreamName,

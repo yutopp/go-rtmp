@@ -20,10 +20,10 @@ func composeAMFMessage(w io.Writer, e AMFEncoder, v AMFConvertible) error {
 		return nil // Do nothing
 	}
 
-	var amfTy AMFType
+	var amfTy EncodingType
 	switch e.(type) {
 	case *amf0.Encoder:
-		amfTy = AMFType0
+		amfTy = EncodingTypeAMF0
 	default:
 		return errors.Errorf("Unsupported AMF Encoder: Type = %T", e)
 	}
