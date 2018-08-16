@@ -143,9 +143,7 @@ handleCommand:
 		return nil
 
 	default:
-		l.Warnf("Unexpected command: Command = %#v", cmdMsg)
-
-		return nil
+		return h.handler.OnUnknownCommandMessage(timestamp, cmdMsg)
 	}
 }
 
@@ -267,9 +265,7 @@ handleCommand:
 		return nil
 
 	default:
-		l.Warnf("Unexpected command: Command = %#v", cmdMsg)
-
-		return nil
+		return h.handler.OnUnknownCommandMessage(timestamp, cmdMsg)
 	}
 }
 
@@ -291,9 +287,7 @@ func (h *controlStreamHandler) handleCommonMessage(chunkStreamID int, timestamp 
 		return h.streamer.PeerState().SetAckWindowSize(msg.Size)
 
 	default:
-		l.Warnf("Message unhandled: Msg = %#v", msg)
-
-		return nil
+		return h.handler.OnUnknownMessage(timestamp, msg)
 	}
 }
 

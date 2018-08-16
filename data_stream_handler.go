@@ -91,9 +91,7 @@ func (h *dataStreamHandler) handleAction(chunkStreamID int, timestamp uint32, ms
 		goto handleCommand
 
 	default:
-		l.Warnf("Message unhandled: Msg = %#v", msg)
-
-		return nil
+		return h.handler.OnUnknownMessage(timestamp, msg)
 	}
 
 handleCommand:
@@ -158,15 +156,11 @@ handleCommand:
 		return nil
 
 	default:
-		l.Warnf("Unexpected command: Command = %#v", cmdMsg)
-
-		return nil
+		return h.handler.OnUnknownCommandMessage(timestamp, cmdMsg)
 	}
 }
 
 func (h *dataStreamHandler) handlePublisher(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
-	l := h.loggerInstance(stream)
-
 	var dataMsg *message.DataMessage
 	switch msg := msg.(type) {
 	case *message.AudioMessage:
@@ -184,9 +178,7 @@ func (h *dataStreamHandler) handlePublisher(chunkStreamID int, timestamp uint32,
 		goto handleCommand
 
 	default:
-		l.Warnf("Message unhandled: Msg = %#v", msg)
-
-		return nil
+		return h.handler.OnUnknownMessage(timestamp, msg)
 	}
 
 handleCommand:
@@ -199,20 +191,14 @@ handleCommand:
 		return h.handler.OnSetDataFrame(timestamp, df)
 
 	default:
-		l.Warnf("Ignore unknown data message: Msg = %#v", dataMsg)
-
-		return nil
+		return h.handler.OnUnknownDataMessage(timestamp, dataMsg)
 	}
 }
 
 func (h *dataStreamHandler) handlePlayer(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
-	l := h.loggerInstance(stream)
-
 	switch msg := msg.(type) {
 	default:
-		l.Warnf("Message unhandled: Msg = %#v", msg)
-
-		return nil
+		return h.handler.OnUnknownMessage(timestamp, msg)
 	}
 }
 
