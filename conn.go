@@ -32,12 +32,16 @@ type Conn struct {
 	config *ConnConfig
 	logger logrus.FieldLogger
 
+	ignoredMessages uint32
+
 	m        sync.Mutex
 	isClosed bool
 }
 
 type ConnConfig struct {
-	SkipHandshakeVerification bool
+	SkipHandshakeVerification               bool
+	IgnoreMessagesOnNotExistStream          bool
+	IgnoreMessagesOnNotExistStreamThreshold uint32
 
 	MaxBitrateKbps uint32
 
@@ -204,6 +208,18 @@ func (c *Conn) serveLoop() error {
 func (c *Conn) handleStreamFragment(chunkStreamID int, timestamp uint32, sf *StreamFragment) error {
 	stream, ok := c.streams.At(sf.StreamID)
 	if !ok {
+		if c.config.IgnoreMessagesOnNotExistStream {
+			c.logger.Warnf("Messages are received on not exist streams: StreamID = %d, Message = %#v",
+				sf.StreamID,
+				sf.Message,
+			)
+
+			if c.ignoredMessages < c.config.IgnoreMessagesOnNotExistStreamThreshold {
+				c.ignoredMessages++
+				return nil
+			}
+		}
+
 		return errors.Errorf("Specified stream is not created yet: StreamID = %d", sf.StreamID)
 	}
 
