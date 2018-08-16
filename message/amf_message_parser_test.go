@@ -187,6 +187,20 @@ func TestParseAMFMessageGetStreamLength(t *testing.T) {
 	}, v)
 }
 
+func TestParseAMFMessagePing(t *testing.T) {
+	bin := []byte{
+		// nil
+		0x05,
+	}
+	r := bytes.NewReader(bin)
+	d := amf0.NewDecoder(r)
+
+	var v AMFConvertible
+	err := parseAMFMessage(r, d, "ping", &v)
+	assert.Nil(t, err)
+	assert.Equal(t, &NetStreamPing{}, v)
+}
+
 func TestParseAMFMessageNotExist(t *testing.T) {
 	bin := []byte{
 		// nil

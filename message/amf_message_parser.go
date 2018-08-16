@@ -184,6 +184,19 @@ func parseAMFMessage(r io.Reader, d AMFDecoder, name string, v *AMFConvertible) 
 
 		*v = &cmd
 
+	case "ping": // NLE
+		var commandObject interface{} // maybe nil
+		if err := d.Decode(&commandObject); err != nil {
+			return errors.Wrap(err, "Failed to decode 'ping' args[0]")
+		}
+
+		var cmd NetStreamPing
+		if err := cmd.FromArgs(commandObject); err != nil {
+			return errors.Wrap(err, "Failed to reconstruct 'ping'")
+		}
+
+		*v = &cmd
+
 	default:
 		objs := make([]interface{}, 0)
 		for {

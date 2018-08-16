@@ -181,3 +181,19 @@ func (t *NetStreamGetStreamLength) ToArgs(ty EncodingType) ([]interface{}, error
 		t.StreamName,
 	}, nil
 }
+
+//
+type NetStreamPing struct {
+}
+
+func (t *NetStreamPing) FromArgs(args ...interface{}) error {
+	// args[0] is unknown, ignore
+
+	return nil
+}
+
+func (t *NetStreamPing) ToArgs(ty EncodingType) ([]interface{}, error) {
+	return []interface{}{
+		nil, // no command object
+	}, nil
+}
