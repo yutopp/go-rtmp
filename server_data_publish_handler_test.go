@@ -15,10 +15,8 @@ import (
 )
 
 func BenchmarkHandlePublisherVideoMessage(b *testing.B) {
-	h := &dataStreamHandler{
-		state:   dataStreamStateHasPublisher,
-		handler: &DefaultHandler{},
-		logger:  logrus.StandardLogger(),
+	h := &serverDataPublishHandler{
+		entry: newEntryHandler(nil, nil, &DefaultHandler{}, logrus.StandardLogger()),
 	}
 
 	chunkStreamID := 0

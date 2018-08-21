@@ -12,3 +12,4 @@ import (
 )
 
 var ErrChunkIsNotCompleted = errors.New("Chunk is not completed")
+var ErrPassThroughMsg = errors.New("Msg is passed through")

@@ -14,10 +14,10 @@ import (
 
 // Stream represents logical stream
 type Stream struct {
-	streamID uint32
-	handler  streamHandler
-	conn     *Conn
-	fragment StreamFragment
+	streamID     uint32
+	entryHandler *entryHandler
+	streamer     *ChunkStreamer
+	fragment     StreamFragment
 }
 
 func (s *Stream) WriteWinAckSize(chunkStreamID int, timestamp uint32, msg *message.WinAckSize) error {
@@ -48,7 +48,7 @@ func (s *Stream) WriteCommandMessage(chunkStreamID int, timestamp uint32, amf me
 
 func (s *Stream) write(chunkStreamID int, timestamp uint32, msg message.Message) error {
 	s.fragment.Message = msg
-	return s.conn.streamer.Write(chunkStreamID, timestamp, &s.fragment)
+	return s.streamer.Write(chunkStreamID, timestamp, &s.fragment)
 }
 
 type StreamFragment struct {

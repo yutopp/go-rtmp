@@ -13,19 +13,18 @@ import (
 )
 
 type streams struct {
-	conn *Conn
-
-	streams map[uint32]*Stream
-	m       sync.Mutex
+	streamer *ChunkStreamer
+	streams  map[uint32]*Stream
+	m        sync.Mutex
 
 	config *StreamControlStateConfig
 }
 
-func newStreams(conn *Conn, config *StreamControlStateConfig) *streams {
+func newStreams(streamer *ChunkStreamer, config *StreamControlStateConfig) *streams {
 	return &streams{
-		conn:    conn,
-		streams: make(map[uint32]*Stream),
-		config:  config,
+		streamer: streamer,
+		streams:  make(map[uint32]*Stream),
+		config:   config,
 	}
 }
 
@@ -34,7 +33,7 @@ func (ss *streams) At(streamID uint32) (*Stream, bool) {
 	return stream, ok
 }
 
-func (ss *streams) Create(streamID uint32, handler streamHandler) error {
+func (ss *streams) Create(streamID uint32, entryHandler *entryHandler) error {
 	ss.m.Lock()
 	defer ss.m.Unlock()
 
@@ -50,9 +49,9 @@ func (ss *streams) Create(streamID uint32, handler streamHandler) error {
 	}
 
 	ss.streams[streamID] = &Stream{
-		streamID: streamID,
-		handler:  handler,
-		conn:     ss.conn,
+		streamID:     streamID,
+		entryHandler: entryHandler,
+		streamer:     ss.streamer,
 		fragment: StreamFragment{
 			StreamID: streamID,
 		},
@@ -61,9 +60,9 @@ func (ss *streams) Create(streamID uint32, handler streamHandler) error {
 	return nil
 }
 
-func (ss *streams) CreateIfAvailable(handler streamHandler) (uint32, error) {
+func (ss *streams) CreateIfAvailable(entryHandler *entryHandler) (uint32, error) {
 	for i := 0; i < ss.config.MaxMessageStreams; i++ {
-		if err := ss.Create(uint32(i), handler); err != nil {
+		if err := ss.Create(uint32(i), entryHandler); err != nil {
 			continue
 		}
 		return uint32(i), nil

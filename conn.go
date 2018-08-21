@@ -86,7 +86,6 @@ func NewConn(rwc io.ReadWriteCloser, config *ConnConfig) *Conn {
 		config: config,
 		logger: logrus.StandardLogger(),
 	}
-	conn.streams = newStreams(conn, &config.ControlState)
 
 	return conn
 }
@@ -128,14 +127,13 @@ func (c *Conn) Serve() (err error) {
 	)
 	c.streamer.logger = c.logger
 
+	c.streams = newStreams(c.streamer, &c.config.ControlState)
+
 	// StreamID 0 is default control stream
 	const DefaultControlStreamID = 0
-	if err := c.streams.Create(DefaultControlStreamID, &controlStreamHandler{
-		streamer: c.streamer,
-		streams:  c.streams,
-		handler:  c.handler,
-		logger:   c.logger,
-	}); err != nil {
+	eh := newEntryHandler(c.streamer, c.streams, c.handler, c.logger)
+	eh.ChangeState(&serverControlNotConnectedHandler{entry: eh})
+	if err := c.streams.Create(DefaultControlStreamID, eh); err != nil {
 		return err
 	}
 
@@ -223,21 +221,9 @@ func (c *Conn) handleStreamFragment(chunkStreamID int, timestamp uint32, sf *Str
 		return errors.Errorf("Specified stream is not created yet: StreamID = %d", sf.StreamID)
 	}
 
-	if err := stream.handler.Handle(chunkStreamID, timestamp, sf.Message, stream); err != nil {
+	if err := stream.entryHandler.Handle(chunkStreamID, timestamp, sf.Message, stream); err != nil {
 		return err
 	}
 
 	return nil
-}
-
-func (c *Conn) createStream(streamID uint32, handler streamHandler) error {
-	return c.streams.Create(streamID, handler)
-}
-
-func (c *Conn) createStreamIfAvailable(handler streamHandler) (uint32, error) {
-	return c.streams.CreateIfAvailable(handler)
-}
-
-func (c *Conn) deleteStream(streamID uint32) error {
-	return c.streams.Delete(streamID)
 }

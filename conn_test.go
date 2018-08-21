@@ -15,31 +15,6 @@ import (
 	"github.com/yutopp/go-rtmp/message"
 )
 
-func TestConnStreams(t *testing.T) {
-	b := &rwcMock{}
-
-	conn := NewConn(b, &ConnConfig{
-		ControlState: StreamControlStateConfig{
-			MaxMessageStreams: 1,
-		},
-	})
-
-	sid, err := conn.createStreamIfAvailable(nil)
-	assert.Nil(t, err)
-	assert.Equal(t, uint32(0), sid)
-
-	// Becomes error because number of max streams is 1
-	_, err = conn.createStreamIfAvailable(nil)
-	assert.NotNil(t, err)
-
-	err = conn.deleteStream(sid)
-	assert.Nil(t, err)
-
-	// Becomes error because the stream is already deleted
-	err = conn.deleteStream(sid)
-	assert.NotNil(t, err)
-}
-
 func TestConnConfig(t *testing.T) {
 	b := &rwcMock{}
 

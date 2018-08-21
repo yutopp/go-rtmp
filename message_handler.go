@@ -11,6 +11,8 @@ import (
 	"github.com/yutopp/go-rtmp/message"
 )
 
-type streamHandler interface {
+type messageHandler interface {
 	Handle(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error
+	HandleCommand(chunkStreamID int, timestamp uint32, encTy message.EncodingType, cmdMsg *message.CommandMessage, stream *Stream) error
+	HandleData(chunkStreamID int, timestamp uint32, encTy message.EncodingType, dataMsg *message.DataMessage, stream *Stream) error
 }
