@@ -19,7 +19,7 @@ var _ messageHandler = (*serverControlConnectedHandler)(nil)
 // serverControlConnectedHandler Handle control messages from a client at server side.
 //   transitions:
 //     | "createStream" -> spawn! serverDataInactiveHandler
-//	   | _		        -> self
+//     | _              -> self
 //
 type serverControlConnectedHandler struct {
 	entry *entryHandler

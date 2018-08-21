@@ -19,7 +19,7 @@ var _ messageHandler = (*serverControlNotConnectedHandler)(nil)
 // serverControlNotConnectedHandler Handle control messages from a client which has not send connect at server side.
 //   transitions:
 //     | "connect" -> controlStreamStateConnected
-//	   | _		   -> self
+//     | _         -> self
 //
 type serverControlNotConnectedHandler struct {
 	entry *entryHandler
