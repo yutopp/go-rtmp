@@ -47,7 +47,7 @@ func (h *serverDataInactiveHandler) HandleCommand(
 	case *message.NetStreamPublish:
 		l.Infof("Publisher is comming: %#v", cmd)
 
-		if err := h.entry.handler.OnPublish(timestamp, cmd); err != nil {
+		if err := h.entry.conn.handler.OnPublish(timestamp, cmd); err != nil {
 			// TODO: Support message.NetStreamOnStatusCodePublishBadName
 			cmdRespMsg := h.newOnStatusMessage(
 				message.NetStreamOnStatusCodePublishFailed,
@@ -77,7 +77,7 @@ func (h *serverDataInactiveHandler) HandleCommand(
 	case *message.NetStreamPlay:
 		l.Infof("Player is comming: %#v", cmd)
 
-		if err := h.entry.handler.OnPlay(timestamp, cmd); err != nil {
+		if err := h.entry.conn.handler.OnPlay(timestamp, cmd); err != nil {
 			cmdRespMsg := h.newOnStatusMessage(
 				message.NetStreamOnStatusCodePlayFailed,
 				"Play failed.",

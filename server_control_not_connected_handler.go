@@ -47,7 +47,7 @@ func (h *serverControlNotConnectedHandler) HandleCommand(
 	case *message.NetConnectionConnect:
 		l.Info("Connect")
 
-		if err := h.entry.handler.OnConnect(timestamp, cmd); err != nil {
+		if err := h.entry.conn.handler.OnConnect(timestamp, cmd); err != nil {
 			cmdRespMsg := h.newConnectErrorMessage()
 
 			l.Infof("Reject a connect request: Response = %#v", cmdRespMsg.Command)
@@ -58,20 +58,20 @@ func (h *serverControlNotConnectedHandler) HandleCommand(
 			return err
 		}
 
-		l.Infof("Set win ack size: Size = %+v", h.entry.streamer.SelfState().AckWindowSize())
+		l.Infof("Set win ack size: Size = %+v", h.entry.conn.streamer.SelfState().AckWindowSize())
 		if err := stream.WriteWinAckSize(ctrlMsgChunkStreamID, timestamp, &message.WinAckSize{
-			Size: h.entry.streamer.SelfState().AckWindowSize(),
+			Size: h.entry.conn.streamer.SelfState().AckWindowSize(),
 		}); err != nil {
 			return err
 		}
 
 		l.Infof("Set peer bandwidth: Size = %+v, Limit = %+v",
-			h.entry.streamer.SelfState().BandwidthWindowSize(),
-			h.entry.streamer.SelfState().BandwidthLimitType(),
+			h.entry.conn.streamer.SelfState().BandwidthWindowSize(),
+			h.entry.conn.streamer.SelfState().BandwidthLimitType(),
 		)
 		if err := stream.WriteSetPeerBandwidth(ctrlMsgChunkStreamID, timestamp, &message.SetPeerBandwidth{
-			Size:  h.entry.streamer.SelfState().BandwidthWindowSize(),
-			Limit: h.entry.streamer.SelfState().BandwidthLimitType(),
+			Size:  h.entry.conn.streamer.SelfState().BandwidthWindowSize(),
+			Limit: h.entry.conn.streamer.SelfState().BandwidthLimitType(),
 		}); err != nil {
 			return err
 		}

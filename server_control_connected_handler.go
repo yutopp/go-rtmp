@@ -47,7 +47,7 @@ func (h *serverControlConnectedHandler) HandleCommand(
 	case *message.NetConnectionCreateStream:
 		l.Infof("Stream creating...: %#v", cmd)
 
-		if err := h.entry.handler.OnCreateStream(timestamp, cmd); err != nil {
+		if err := h.entry.conn.handler.OnCreateStream(timestamp, cmd); err != nil {
 			cmdRespMsg := h.newCreateStreamErrorMessage(cmdMsg.TransactionID)
 			l.Infof("Reject a CreateStream request: Response = %#v", cmdRespMsg.Command)
 			if writeErr := stream.WriteCommandMessage(chunkStreamID, timestamp, encTy, cmdRespMsg); writeErr != nil {
@@ -60,7 +60,7 @@ func (h *serverControlConnectedHandler) HandleCommand(
 		// Create a stream which handles messages for data(play, publish, video, audio, etc...)
 		eh := h.entry.Clone()
 		eh.ChangeState(&serverDataInactiveHandler{entry: eh})
-		streamID, err := h.entry.streams.CreateIfAvailable(eh)
+		streamID, err := h.entry.conn.streams.CreateIfAvailable(eh)
 		if err != nil {
 			cmdRespMsg := h.newCreateStreamErrorMessage(cmdMsg.TransactionID)
 			l.Errorf("Failed to create stream: Err = %+v, Response = %#v", err, cmdRespMsg.Command)
@@ -76,7 +76,7 @@ func (h *serverControlConnectedHandler) HandleCommand(
 			streamID,
 		)
 		if err := stream.WriteCommandMessage(chunkStreamID, timestamp, encTy, cmdRespMsg); err != nil {
-			_ = h.entry.streams.Delete(streamID) // TODO: error handling
+			_ = h.entry.conn.streams.Delete(streamID) // TODO: error handling
 			return err
 		}
 
@@ -87,11 +87,11 @@ func (h *serverControlConnectedHandler) HandleCommand(
 	case *message.NetStreamDeleteStream:
 		l.Infof("Stream deleting...: TargetStreamID = %d", cmd.StreamID)
 
-		if err := h.entry.handler.OnDeleteStream(timestamp, cmd); err != nil {
+		if err := h.entry.conn.handler.OnDeleteStream(timestamp, cmd); err != nil {
 			return err
 		}
 
-		if err := h.entry.streams.Delete(cmd.StreamID); err != nil {
+		if err := h.entry.conn.streams.Delete(cmd.StreamID); err != nil {
 			return err
 		}
 
@@ -104,7 +104,7 @@ func (h *serverControlConnectedHandler) HandleCommand(
 	case *message.NetConnectionReleaseStream:
 		l.Infof("Release stream...: StreamName = %s", cmd.StreamName)
 
-		if err := h.entry.handler.OnReleaseStream(timestamp, cmd); err != nil {
+		if err := h.entry.conn.handler.OnReleaseStream(timestamp, cmd); err != nil {
 			return err
 		}
 
@@ -115,7 +115,7 @@ func (h *serverControlConnectedHandler) HandleCommand(
 	case *message.NetStreamFCPublish:
 		l.Infof("FCPublish stream...: StreamName = %s", cmd.StreamName)
 
-		if err := h.entry.handler.OnFCPublish(timestamp, cmd); err != nil {
+		if err := h.entry.conn.handler.OnFCPublish(timestamp, cmd); err != nil {
 			return err
 		}
 
@@ -126,7 +126,7 @@ func (h *serverControlConnectedHandler) HandleCommand(
 	case *message.NetStreamFCUnpublish:
 		l.Infof("FCUnpublish stream...: StreamName = %s", cmd.StreamName)
 
-		if err := h.entry.handler.OnFCUnpublish(timestamp, cmd); err != nil {
+		if err := h.entry.conn.handler.OnFCUnpublish(timestamp, cmd); err != nil {
 			return err
 		}
 

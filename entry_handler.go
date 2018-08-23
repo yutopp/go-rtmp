@@ -16,10 +16,7 @@ import (
 
 // entryHandler An entry message handler per streams.
 type entryHandler struct {
-	streamer *ChunkStreamer
-	streams  *streams
-	handler  Handler
-	logger   logrus.FieldLogger
+	conn *Conn
 
 	msgHandler    messageHandler
 	currentStream *Stream
@@ -28,12 +25,9 @@ type entryHandler struct {
 
 // newEntryHandler Create an incomplete new instance of entryHandler.
 // msgHandler fields must be assigned by a caller of this function
-func newEntryHandler(streamer *ChunkStreamer, streams *streams, handler Handler, logger logrus.FieldLogger) *entryHandler {
+func newEntryHandler(conn *Conn) *entryHandler {
 	return &entryHandler{
-		streamer: streamer,
-		streams:  streams,
-		handler:  handler,
-		logger:   logger,
+		conn: conn,
 	}
 }
 
@@ -43,45 +37,49 @@ func (h *entryHandler) Handle(chunkStreamID int, timestamp uint32, msg message.M
 
 	switch msg := msg.(type) {
 	case *message.CommandMessageAMF0:
-		err := h.msgHandler.HandleCommand(chunkStreamID, timestamp, message.EncodingTypeAMF0, &msg.CommandMessage, stream)
+		encTy := message.EncodingTypeAMF0
+		err := h.msgHandler.HandleCommand(chunkStreamID, timestamp, encTy, &msg.CommandMessage, stream)
 		if err == internal.ErrPassThroughMsg {
-			return h.handler.OnUnknownCommandMessage(timestamp, &msg.CommandMessage)
+			return h.conn.handler.OnUnknownCommandMessage(timestamp, &msg.CommandMessage)
 		}
 		return err
 
 	case *message.CommandMessageAMF3:
-		err := h.msgHandler.HandleCommand(chunkStreamID, timestamp, message.EncodingTypeAMF3, &msg.CommandMessage, stream)
+		encTy := message.EncodingTypeAMF3
+		err := h.msgHandler.HandleCommand(chunkStreamID, timestamp, encTy, &msg.CommandMessage, stream)
 		if err == internal.ErrPassThroughMsg {
-			return h.handler.OnUnknownCommandMessage(timestamp, &msg.CommandMessage)
+			return h.conn.handler.OnUnknownCommandMessage(timestamp, &msg.CommandMessage)
 		}
 		return err
 
 	case *message.DataMessageAMF0:
-		err := h.msgHandler.HandleData(chunkStreamID, timestamp, message.EncodingTypeAMF0, &msg.DataMessage, stream)
+		encTy := message.EncodingTypeAMF0
+		err := h.msgHandler.HandleData(chunkStreamID, timestamp, encTy, &msg.DataMessage, stream)
 		if err == internal.ErrPassThroughMsg {
-			return h.handler.OnUnknownDataMessage(timestamp, &msg.DataMessage)
+			return h.conn.handler.OnUnknownDataMessage(timestamp, &msg.DataMessage)
 		}
 		return err
 
 	case *message.DataMessageAMF3:
-		err := h.msgHandler.HandleData(chunkStreamID, timestamp, message.EncodingTypeAMF3, &msg.DataMessage, stream)
+		encTy := message.EncodingTypeAMF3
+		err := h.msgHandler.HandleData(chunkStreamID, timestamp, encTy, &msg.DataMessage, stream)
 		if err == internal.ErrPassThroughMsg {
-			return h.handler.OnUnknownDataMessage(timestamp, &msg.DataMessage)
+			return h.conn.handler.OnUnknownDataMessage(timestamp, &msg.DataMessage)
 		}
 		return err
 
 	case *message.SetChunkSize:
 		l.Infof("Handle SetChunkSize: Msg = %#v", msg)
-		return h.streamer.PeerState().SetChunkSize(msg.ChunkSize)
+		return h.conn.streamer.PeerState().SetChunkSize(msg.ChunkSize)
 
 	case *message.WinAckSize:
 		l.Infof("Handle WinAckSize: Msg = %#v", msg)
-		return h.streamer.PeerState().SetAckWindowSize(msg.Size)
+		return h.conn.streamer.PeerState().SetAckWindowSize(msg.Size)
 
 	default:
 		err := h.msgHandler.Handle(chunkStreamID, timestamp, msg, stream)
 		if err == internal.ErrPassThroughMsg {
-			return h.handler.OnUnknownMessage(timestamp, msg)
+			return h.conn.handler.OnUnknownMessage(timestamp, msg)
 		}
 		return err
 	}
@@ -97,12 +95,7 @@ func (h *entryHandler) ChangeState(msgHandler messageHandler) {
 }
 
 func (h *entryHandler) Clone() *entryHandler {
-	return newEntryHandler(
-		h.streamer,
-		h.streams,
-		h.handler,
-		h.logger,
-	)
+	return newEntryHandler(h.conn)
 }
 
 func (h *entryHandler) State() string {
@@ -124,7 +117,7 @@ func (h *entryHandler) State() string {
 
 func (h *entryHandler) Logger() *logrus.Entry {
 	if h.loggerEntry == nil {
-		h.loggerEntry = h.logger.WithFields(logrus.Fields{})
+		h.loggerEntry = h.conn.logger.WithFields(logrus.Fields{})
 	}
 
 	h.loggerEntry.Data["state"] = h.State()

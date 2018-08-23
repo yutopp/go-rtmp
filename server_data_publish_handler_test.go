@@ -8,16 +8,14 @@
 package rtmp
 
 import (
-	"github.com/sirupsen/logrus"
 	"testing"
 
 	"github.com/yutopp/go-rtmp/message"
 )
 
 func BenchmarkHandlePublisherVideoMessage(b *testing.B) {
-	h := &serverDataPublishHandler{
-		entry: newEntryHandler(nil, nil, &DefaultHandler{}, logrus.StandardLogger()),
-	}
+	c := newConn(nil, nil)
+	h := &serverDataPublishHandler{entry: newEntryHandler(c)}
 
 	chunkStreamID := 0
 	timestamp := uint32(0)

@@ -31,10 +31,10 @@ func (h *serverDataPublishHandler) Handle(
 ) error {
 	switch msg := msg.(type) {
 	case *message.AudioMessage:
-		return h.entry.handler.OnAudio(timestamp, msg.Payload)
+		return h.entry.conn.handler.OnAudio(timestamp, msg.Payload)
 
 	case *message.VideoMessage:
-		return h.entry.handler.OnVideo(timestamp, msg.Payload)
+		return h.entry.conn.handler.OnVideo(timestamp, msg.Payload)
 
 	default:
 		return internal.ErrPassThroughMsg
@@ -64,7 +64,7 @@ func (h *serverDataPublishHandler) HandleData(
 		if df == nil {
 			return errors.New("setDataFrame has nil value")
 		}
-		return h.entry.handler.OnSetDataFrame(timestamp, df)
+		return h.entry.conn.handler.OnSetDataFrame(timestamp, df)
 
 	default:
 		return internal.ErrPassThroughMsg

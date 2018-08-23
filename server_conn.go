@@ -33,7 +33,7 @@ func (sc *serverConn) Serve() error {
 
 	// StreamID 0 is default control stream
 	const DefaultControlStreamID = 0
-	eh := newEntryHandler(sc.conn.streamer, sc.conn.streams, sc.conn.handler, sc.conn.logger)
+	eh := newEntryHandler(sc.conn)
 	eh.ChangeState(&serverControlNotConnectedHandler{entry: eh})
 	if err := sc.conn.streams.Create(DefaultControlStreamID, eh); err != nil {
 		return err
