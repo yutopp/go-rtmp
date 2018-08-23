@@ -14,7 +14,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
+	"net"
 	"sync"
+	"time"
 
 	"github.com/yutopp/go-rtmp/message"
 )
@@ -48,9 +50,10 @@ type ConnConfig struct {
 	ReaderBufferSize int
 	WriterBufferSize int
 
+	ReadTimeout  time.Duration
+	WriteTimeout time.Duration
+
 	ControlState StreamControlStateConfig
-	//DefaultReadTimeout time.Duration
-	//DefaultWriteTimeout time.Duration
 }
 
 func (cb *ConnConfig) normalize() *ConnConfig {
@@ -73,7 +76,23 @@ func (cb *ConnConfig) normalize() *ConnConfig {
 	return &c
 }
 
-func newConn(rwc io.ReadWriteCloser, config *ConnConfig) *Conn {
+func newConn(conn net.Conn, config *ConnConfig) *Conn {
+	if config == nil {
+		config = &ConnConfig{}
+	}
+	config = config.normalize()
+
+	rwc := &rwcHasTimeout{
+		conn:         conn,
+		readTimeout:  config.ReadTimeout,
+		writeTimeout: config.WriteTimeout,
+		now:          time.Now,
+	}
+
+	return newConnFromIO(rwc, config)
+}
+
+func newConnFromIO(rwc io.ReadWriteCloser, config *ConnConfig) *Conn {
 	if config == nil {
 		config = &ConnConfig{}
 	}

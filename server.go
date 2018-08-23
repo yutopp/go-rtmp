@@ -12,7 +12,6 @@ import (
 	"io"
 	"net"
 	"sync"
-	"time"
 )
 
 type Server struct {
@@ -24,10 +23,8 @@ type Server struct {
 }
 
 type ServerConfig struct {
-	HandlerFactory
-	ReadTimeout  time.Duration
-	WriteTimeout time.Duration
-	Conn         *ConnConfig
+	HandlerFactory HandlerFactory
+	Conn           *ConnConfig
 }
 
 func NewServer(config *ServerConfig) *Server {
@@ -108,13 +105,7 @@ func (srv *Server) getDoneChLocked() chan struct{} {
 }
 
 func (srv *Server) handleConn(conn net.Conn) {
-	timedRWC := &rwcHasTimeout{
-		conn:         conn,
-		readTimeout:  srv.config.ReadTimeout,
-		writeTimeout: srv.config.WriteTimeout,
-		now:          time.Now,
-	}
-	c := newConn(timedRWC, srv.config.Conn)
+	c := newConn(conn, srv.config.Conn)
 
 	handler := srv.config.HandlerFactory(c)
 	c.handler = handler

@@ -18,7 +18,7 @@ import (
 func TestConnConfig(t *testing.T) {
 	b := &rwcMock{}
 
-	conn := newConn(b, &ConnConfig{
+	conn := newConnFromIO(b, &ConnConfig{
 		SkipHandshakeVerification: true,
 
 		MaxBitrateKbps: 1234,
