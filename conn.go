@@ -73,7 +73,7 @@ func (cb *ConnConfig) normalize() *ConnConfig {
 	return &c
 }
 
-func NewConn(rwc io.ReadWriteCloser, config *ConnConfig) *Conn {
+func newConn(rwc io.ReadWriteCloser, config *ConnConfig) *Conn {
 	if config == nil {
 		config = &ConnConfig{}
 	}
@@ -81,11 +81,22 @@ func NewConn(rwc io.ReadWriteCloser, config *ConnConfig) *Conn {
 
 	conn := &Conn{
 		rwc:     rwc,
+		bufr:    bufio.NewReaderSize(rwc, config.ReaderBufferSize),
+		bufw:    bufio.NewWriterSize(rwc, config.WriterBufferSize),
 		handler: &DefaultHandler{},
 
 		config: config,
 		logger: logrus.StandardLogger(),
 	}
+
+	conn.streamer = NewChunkStreamer(
+		NewBitrateRejectorReader(conn.bufr, conn.config.MaxBitrateKbps),
+		conn.bufw,
+		&conn.config.ControlState,
+	)
+	conn.streamer.logger = conn.logger
+
+	conn.streams = newStreams(conn.streamer, &conn.config.ControlState)
 
 	return conn
 }
@@ -116,18 +127,6 @@ func (c *Conn) Serve() (err error) {
 	}); err != nil {
 		return err
 	}
-
-	c.bufr = bufio.NewReaderSize(c.rwc, c.config.ReaderBufferSize)
-	c.bufw = bufio.NewWriterSize(c.rwc, c.config.WriterBufferSize)
-
-	c.streamer = NewChunkStreamer(
-		NewBitrateRejectorReader(c.bufr, c.config.MaxBitrateKbps),
-		c.bufw,
-		&c.config.ControlState,
-	)
-	c.streamer.logger = c.logger
-
-	c.streams = newStreams(c.streamer, &c.config.ControlState)
 
 	// StreamID 0 is default control stream
 	const DefaultControlStreamID = 0

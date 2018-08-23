@@ -108,7 +108,7 @@ func (srv *Server) getDoneChLocked() chan struct{} {
 }
 
 func (srv *Server) handleConn(conn net.Conn) {
-	c := NewConn(&rwcHasTimeout{
+	c := newConn(&rwcHasTimeout{
 		conn:         conn,
 		readTimeout:  srv.config.ReadTimeout,
 		writeTimeout: srv.config.WriteTimeout,
