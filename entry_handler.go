@@ -14,6 +14,34 @@ import (
 	"github.com/yutopp/go-rtmp/message"
 )
 
+type handlerState int
+
+const (
+	handlerStateServerNotConnected handlerState = iota
+	handlerStateServerConnected
+	handlerStateServerInactive
+	handlerStateServerPublish
+	handlerStateServerPlay
+	handlerStateUnknown
+)
+
+func (s handlerState) String() string {
+	switch s {
+	case handlerStateServerNotConnected:
+		return "NotConnected(Server)"
+	case handlerStateServerConnected:
+		return "Connected(Server)"
+	case handlerStateServerInactive:
+		return "Inactive(Server)"
+	case handlerStateServerPublish:
+		return "Publish(Server)"
+	case handlerStateServerPlay:
+		return "Play(Server)"
+	default:
+		return "<Unknown>"
+	}
+}
+
 // entryHandler An entry message handler per streams.
 type entryHandler struct {
 	conn *Conn
@@ -98,20 +126,20 @@ func (h *entryHandler) Clone() *entryHandler {
 	return newEntryHandler(h.conn)
 }
 
-func (h *entryHandler) State() string {
+func (h *entryHandler) State() handlerState {
 	switch h.msgHandler.(type) {
 	case *serverControlNotConnectedHandler:
-		return "NotConnected(Server)"
+		return handlerStateServerNotConnected
 	case *serverControlConnectedHandler:
-		return "Connected(Server)"
+		return handlerStateServerConnected
 	case *serverDataInactiveHandler:
-		return "Inactive(Server)"
+		return handlerStateServerInactive
 	case *serverDataPublishHandler:
-		return "Publish(Server)"
+		return handlerStateServerPublish
 	case *serverDataPlayHandler:
-		return "Play(Server)"
+		return handlerStateServerPlay
 	default:
-		return "<Unknown>"
+		return handlerStateUnknown
 	}
 }
 
