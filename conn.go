@@ -13,9 +13,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"io"
+	"io/ioutil"
 	"sync"
 
-	"github.com/yutopp/go-rtmp/handshake"
 	"github.com/yutopp/go-rtmp/message"
 )
 
@@ -79,6 +79,9 @@ func newConn(rwc io.ReadWriteCloser, config *ConnConfig) *Conn {
 	}
 	config = config.normalize()
 
+	defaultLogger := logrus.New()
+	defaultLogger.Out = ioutil.Discard
+
 	conn := &Conn{
 		rwc:     rwc,
 		bufr:    bufio.NewReaderSize(rwc, config.ReaderBufferSize),
@@ -86,7 +89,7 @@ func newConn(rwc io.ReadWriteCloser, config *ConnConfig) *Conn {
 		handler: &DefaultHandler{},
 
 		config: config,
-		logger: logrus.StandardLogger(),
+		logger: defaultLogger,
 	}
 
 	conn.streamer = NewChunkStreamer(
@@ -101,52 +104,9 @@ func newConn(rwc io.ReadWriteCloser, config *ConnConfig) *Conn {
 	return conn
 }
 
-func (c *Conn) SetHandler(h Handler) {
-	// TODO: return error if conn is already served
-	c.handler = h
-}
-
 func (c *Conn) SetLogger(l logrus.FieldLogger) {
 	// TODO: return error if conn is already served
 	c.logger = l
-}
-
-func (c *Conn) Serve() (err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			errTmp, ok := r.(error)
-			if !ok {
-				errTmp = errors.Errorf("Panic: %+v", r)
-			}
-			err = errors.WithStack(errTmp)
-		}
-	}()
-
-	if err := handshake.HandshakeWithClient(c.rwc, c.rwc, &handshake.Config{
-		SkipHandshakeVerification: c.config.SkipHandshakeVerification,
-	}); err != nil {
-		return err
-	}
-
-	// StreamID 0 is default control stream
-	const DefaultControlStreamID = 0
-	eh := newEntryHandler(c.streamer, c.streams, c.handler, c.logger)
-	eh.ChangeState(&serverControlNotConnectedHandler{entry: eh})
-	if err := c.streams.Create(DefaultControlStreamID, eh); err != nil {
-		return err
-	}
-
-	defaultStream, ok := c.streams.At(DefaultControlStreamID)
-	if !ok {
-		return errors.New("Unexpected: default stream is not found")
-	}
-	c.streamer.controlStreamWriter = defaultStream.write
-
-	if c.handler != nil {
-		c.handler.OnServe()
-	}
-
-	return c.serveLoop()
 }
 
 func (c *Conn) Close() error {
@@ -176,7 +136,21 @@ func (c *Conn) Close() error {
 	return result
 }
 
-func (c *Conn) serveLoop() error {
+func (c *Conn) handleMessageLoop() (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			errTmp, ok := r.(error)
+			if !ok {
+				errTmp = errors.Errorf("Panic: %+v", r)
+			}
+			err = errors.WithStack(errTmp)
+		}
+	}()
+
+	return c.runHandleMessageLoop()
+}
+
+func (c *Conn) runHandleMessageLoop() error {
 	var streamFragment StreamFragment
 	for {
 		select {

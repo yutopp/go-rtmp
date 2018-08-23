@@ -108,18 +108,23 @@ func (srv *Server) getDoneChLocked() chan struct{} {
 }
 
 func (srv *Server) handleConn(conn net.Conn) {
-	c := newConn(&rwcHasTimeout{
+	timedRWC := &rwcHasTimeout{
 		conn:         conn,
 		readTimeout:  srv.config.ReadTimeout,
 		writeTimeout: srv.config.WriteTimeout,
 		now:          time.Now,
-	}, srv.config.Conn)
-	defer c.Close()
+	}
+	c := newConn(timedRWC, srv.config.Conn)
 
 	handler := srv.config.HandlerFactory(c)
-	c.SetHandler(handler)
+	c.handler = handler
 
-	if err := c.Serve(); err != nil {
+	sc := &serverConn{
+		conn: c,
+	}
+	defer sc.Close()
+
+	if err := sc.Serve(); err != nil {
 		if err == io.EOF {
 			c.logger.Infof("Server closed")
 			return
