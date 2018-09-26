@@ -65,7 +65,7 @@ func newEntryHandler(conn *Conn) *entryHandler {
 	}
 }
 
-func (h *entryHandler) Handle(csID int, timestamp uint32, msg message.Message, stream *Stream) error {
+func (h *entryHandler) Handle(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error {
 	h.currentStream = stream
 	l := h.Logger()
 
@@ -73,22 +73,22 @@ func (h *entryHandler) Handle(csID int, timestamp uint32, msg message.Message, s
 	case *message.CommandMessageAMF0:
 		encTy := message.EncodingTypeAMF0
 		cmdMsg := &msg.CommandMessage
-		return h.handleCommand(csID, timestamp, encTy, cmdMsg, stream)
+		return h.handleCommand(chunkStreamID, timestamp, encTy, cmdMsg, stream)
 
 	case *message.CommandMessageAMF3:
 		encTy := message.EncodingTypeAMF3
 		cmdMsg := &msg.CommandMessage
-		return h.handleCommand(csID, timestamp, encTy, cmdMsg, stream)
+		return h.handleCommand(chunkStreamID, timestamp, encTy, cmdMsg, stream)
 
 	case *message.DataMessageAMF0:
 		encTy := message.EncodingTypeAMF0
 		dataMsg := &msg.DataMessage
-		return h.handleData(csID, timestamp, encTy, dataMsg, stream)
+		return h.handleData(chunkStreamID, timestamp, encTy, dataMsg, stream)
 
 	case *message.DataMessageAMF3:
 		encTy := message.EncodingTypeAMF3
 		dataMsg := &msg.DataMessage
-		return h.handleData(csID, timestamp, encTy, dataMsg, stream)
+		return h.handleData(chunkStreamID, timestamp, encTy, dataMsg, stream)
 
 	case *message.SetChunkSize:
 		l.Infof("Handle SetChunkSize: Msg = %#v", msg)
@@ -99,7 +99,7 @@ func (h *entryHandler) Handle(csID int, timestamp uint32, msg message.Message, s
 		return h.conn.streamer.PeerState().SetAckWindowSize(msg.Size)
 
 	default:
-		err := h.msgHandler.Handle(csID, timestamp, msg, stream)
+		err := h.msgHandler.Handle(chunkStreamID, timestamp, msg, stream)
 		if err == internal.ErrPassThroughMsg {
 			return h.conn.handler.OnUnknownMessage(timestamp, msg)
 		}
