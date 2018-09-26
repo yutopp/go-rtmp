@@ -12,7 +12,7 @@ import (
 	"github.com/yutopp/go-rtmp/message"
 )
 
-// Stream represents logical stream
+// Stream represents a logical message stream
 type Stream struct {
 	streamID     uint32
 	entryHandler *entryHandler

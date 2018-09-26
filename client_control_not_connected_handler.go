@@ -12,16 +12,19 @@ import (
 	"github.com/yutopp/go-rtmp/message"
 )
 
-var _ messageHandler = (*serverDataPlayHandler)(nil)
+var _ messageHandler = (*clientControlNotConnectedHandler)(nil)
 
-// serverDataPlayHandler Handle data messages from a player at server side (NOT IMPLEMENTED).
+// clientControlNotConnectedHandler Handle control messages from a server in flow of connecting.
 //   transitions:
-//     | _ -> self
-type serverDataPlayHandler struct {
-	entry *entryHandler
+//     | "_result" -> controlStreamStateConnected
+//     | _         -> self
+//
+type clientControlNotConnectedHandler struct {
+	entry       *entryHandler
+	connectedCh chan struct{}
 }
 
-func (h *serverDataPlayHandler) Handle(
+func (h *clientControlNotConnectedHandler) Handle(
 	chunkStreamID int,
 	timestamp uint32,
 	msg message.Message,
@@ -30,7 +33,7 @@ func (h *serverDataPlayHandler) Handle(
 	return internal.ErrPassThroughMsg
 }
 
-func (h *serverDataPlayHandler) HandleCommand(
+func (h *clientControlNotConnectedHandler) HandleCommand(
 	chunkStreamID int,
 	timestamp uint32,
 	encTy message.EncodingType,
@@ -38,10 +41,21 @@ func (h *serverDataPlayHandler) HandleCommand(
 	body interface{},
 	stream *Stream,
 ) error {
-	return internal.ErrPassThroughMsg
+	l := h.entry.Logger()
+
+	switch cmd := body.(type) {
+	case *message.NetConnectionConnectResult:
+		l.Info("ConnectResult")
+		l.Infof("Result: Info = %+v, Props = %+v", cmd.Information, cmd.Properties)
+
+		return nil
+
+	default:
+		return internal.ErrPassThroughMsg
+	}
 }
 
-func (h *serverDataPlayHandler) HandleData(
+func (h *clientControlNotConnectedHandler) HandleData(
 	chunkStreamID int,
 	timestamp uint32,
 	encTy message.EncodingType,

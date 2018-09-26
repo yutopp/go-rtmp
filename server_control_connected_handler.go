@@ -39,17 +39,18 @@ func (h *serverControlConnectedHandler) HandleCommand(
 	timestamp uint32,
 	encTy message.EncodingType,
 	cmdMsg *message.CommandMessage,
+	body interface{},
 	stream *Stream,
 ) error {
 	l := h.entry.Logger()
 
-	switch cmd := cmdMsg.Command.(type) {
+	switch cmd := body.(type) {
 	case *message.NetConnectionCreateStream:
 		l.Infof("Stream creating...: %#v", cmd)
 
 		if err := h.entry.conn.handler.OnCreateStream(timestamp, cmd); err != nil {
 			cmdRespMsg := h.newCreateStreamErrorMessage(cmdMsg.TransactionID)
-			l.Infof("Reject a CreateStream request: Response = %#v", cmdRespMsg.Command)
+			l.Infof("Reject a CreateStream request: Response = %#v", cmdRespMsg.Encoder.Value)
 			if writeErr := stream.WriteCommandMessage(chunkStreamID, timestamp, encTy, cmdRespMsg); writeErr != nil {
 				return errors.Wrapf(err, "Write failed: Err = %+v", writeErr)
 			}
@@ -63,7 +64,7 @@ func (h *serverControlConnectedHandler) HandleCommand(
 		streamID, err := h.entry.conn.streams.CreateIfAvailable(eh)
 		if err != nil {
 			cmdRespMsg := h.newCreateStreamErrorMessage(cmdMsg.TransactionID)
-			l.Errorf("Failed to create stream: Err = %+v, Response = %#v", err, cmdRespMsg.Command)
+			l.Errorf("Failed to create stream: Err = %+v, Response = %#v", err, cmdRespMsg.Encoder.Value)
 			if writeErr := stream.WriteCommandMessage(chunkStreamID, timestamp, encTy, cmdRespMsg); writeErr != nil {
 				return errors.Wrapf(err, "Write failed: Err = %+v", writeErr)
 			}
@@ -144,6 +145,7 @@ func (h *serverControlConnectedHandler) HandleData(
 	timestamp uint32,
 	encTy message.EncodingType,
 	dataMsg *message.DataMessage,
+	body interface{},
 	stream *Stream,
 ) error {
 	return internal.ErrPassThroughMsg
@@ -153,23 +155,31 @@ func (h *serverControlConnectedHandler) newCreateStreamSuccessMessage(
 	transactionID int64,
 	streamID uint32,
 ) *message.CommandMessage {
+	bodyEnc := &message.BodyEncoder{
+		Value: &message.NetConnectionCreateStreamResult{
+			StreamID: streamID,
+		},
+		MsgEncoder: message.EncodeBodyAnyValues,
+	}
 	return &message.CommandMessage{
 		CommandName:   "_result",
 		TransactionID: transactionID,
-		Command: &message.NetConnectionCreateStreamResult{
-			StreamID: streamID,
-		},
+		Encoder:       bodyEnc,
 	}
 }
 
 func (h *serverControlConnectedHandler) newCreateStreamErrorMessage(
 	transactionID int64,
 ) *message.CommandMessage {
+	bodyEnc := &message.BodyEncoder{
+		Value: &message.NetConnectionCreateStreamResult{
+			StreamID: 0, // TODO: Change to error information object...
+		},
+		MsgEncoder: message.EncodeBodyAnyValues,
+	}
 	return &message.CommandMessage{
 		CommandName:   "_error",
 		TransactionID: transactionID,
-		Command: &message.NetConnectionCreateStreamResult{
-			StreamID: 0, // TODO: Change to error information object...
-		},
+		Encoder:       bodyEnc,
 	}
 }

@@ -29,3 +29,37 @@ func TestEncodeCommon(t *testing.T) {
 		})
 	}
 }
+
+func TestEncodeCommonDataMsg(t *testing.T) {
+	for _, tc := range dataMsgTestCases {
+		tc := tc // capture
+
+		t.Run(tc.Name, func(t *testing.T) {
+			t.Parallel()
+
+			buf := new(bytes.Buffer)
+
+			enc := NewEncoder(buf)
+			err := enc.Encode(tc.Value)
+			assert.Nil(t, err)
+			assert.Equal(t, tc.Binary, buf.Bytes())
+		})
+	}
+}
+
+func TestEncodeCommonCmdMsg(t *testing.T) {
+	for _, tc := range cmdMsgTestCases {
+		tc := tc // capture
+
+		t.Run(tc.Name, func(t *testing.T) {
+			t.Parallel()
+
+			buf := new(bytes.Buffer)
+
+			enc := NewEncoder(buf)
+			err := enc.Encode(tc.Value)
+			assert.Nil(t, err)
+			assert.Equal(t, tc.Binary, buf.Bytes())
+		})
+	}
+}

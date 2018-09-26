@@ -7,6 +7,10 @@
 
 package message
 
+import (
+	"io"
+)
+
 type testCase struct {
 	Name string
 	TypeID
@@ -90,16 +94,23 @@ var testCases = []testCase{
 		},
 		Binary: []byte("video data"),
 	},
-	// TODO: DataMessageAMF3
 	// TODO: TypeIDSharedObjectMessageAMF3
-	// TODO: TypeIDCommandMessageAMF3
+	// TODO: TypeIDSharedObjectMessageAMF0
+	// TODO: TypeIDAggregateMessage
+}
+
+var dataMsgTestCases = []testCase{
+	// TODO: DataMessageAMF3
 	testCase{
 		Name:   "DataMessageAMF0",
 		TypeID: TypeIDDataMessageAMF0,
 		Value: &DataMessageAMF0{
 			DataMessage: DataMessage{
 				Name: "test",
-				Data: nil,
+				Encoder: &BodyEncoder{
+					MsgEncoder: nopMsgEncoder,
+				},
+				Decoder: &BodyDecoder{},
 			},
 		},
 		Binary: []byte{
@@ -111,7 +122,10 @@ var testCases = []testCase{
 			0x74, 0x65, 0x73, 0x74,
 		},
 	},
-	// TODO: TypeIDSharedObjectMessageAMF0
+}
+
+var cmdMsgTestCases = []testCase{
+	// TODO: TypeIDCommandMessageAMF3
 	testCase{
 		Name:   "CommandMessageAMF0",
 		TypeID: TypeIDCommandMessageAMF0,
@@ -119,7 +133,10 @@ var testCases = []testCase{
 			CommandMessage: CommandMessage{
 				CommandName:   "_result",
 				TransactionID: 10,
-				Command:       nil,
+				Encoder: &BodyEncoder{
+					MsgEncoder: nopMsgEncoder,
+				},
+				Decoder: &BodyDecoder{},
 			},
 		},
 		Binary: []byte{
@@ -135,5 +152,8 @@ var testCases = []testCase{
 			0x40, 0x24, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		},
 	},
-	// TODO: TypeIDAggregateMessage
+}
+
+func nopMsgEncoder(w io.Writer, e AMFEncoder, v AMFConvertible) error {
+	return nil
 }
