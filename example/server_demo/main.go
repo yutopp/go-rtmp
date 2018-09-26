@@ -1,8 +1,7 @@
 package main
 
 import (
-	"github.com/sirupsen/logrus"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"net"
 
 	"github.com/yutopp/go-rtmp"
@@ -20,18 +19,22 @@ func main() {
 	}
 
 	srv := rtmp.NewServer(&rtmp.ServerConfig{
-		HandlerFactory: func(conn *rtmp.Conn) rtmp.Handler {
-			l := logrus.StandardLogger()
+		OnConnect: func() *rtmp.ConnConfig {
+			l := log.StandardLogger()
 			//l.SetLevel(logrus.DebugLevel)
-			conn.SetLogger(l)
 
-			return &Handler{}
-		},
-		Conn: &rtmp.ConnConfig{
-			MaxBitrateKbps: 6 * 1024,
-			ControlState: rtmp.StreamControlStateConfig{
-				DefaultBandwidthWindowSize: 6 * 1024 * 1024 / 8,
-			},
+			h := &Handler{}
+
+			return &rtmp.ConnConfig{
+				Handler: h,
+
+				MaxBitrateKbps: 6 * 1024,
+				ControlState: rtmp.StreamControlStateConfig{
+					DefaultBandwidthWindowSize: 6 * 1024 * 1024 / 8,
+				},
+
+				Logger: l,
+			}
 		},
 	})
 	if err := srv.Serve(listner); err != nil {

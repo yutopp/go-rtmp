@@ -29,5 +29,3 @@ type Handler interface {
 	OnUnknownDataMessage(timestamp uint32, data *message.DataMessage) error
 	OnClose()
 }
-
-type HandlerFactory func(conn *Conn) Handler

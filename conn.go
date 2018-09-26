@@ -21,8 +21,6 @@ import (
 	"github.com/yutopp/go-rtmp/message"
 )
 
-// Server Connection
-// TODO: rename or add prefix (Server/Client)
 type Conn struct {
 	rwc      io.ReadWriteCloser
 	bufr     *bufio.Reader
@@ -41,7 +39,9 @@ type Conn struct {
 }
 
 type ConnConfig struct {
-	SkipHandshakeVerification               bool
+	Handler                   Handler
+	SkipHandshakeVerification bool
+
 	IgnoreMessagesOnNotExistStream          bool
 	IgnoreMessagesOnNotExistStreamThreshold uint32
 
@@ -54,10 +54,16 @@ type ConnConfig struct {
 	WriteTimeout time.Duration
 
 	ControlState StreamControlStateConfig
+
+	Logger logrus.FieldLogger
 }
 
 func (cb *ConnConfig) normalize() *ConnConfig {
 	c := ConnConfig(*cb)
+
+	if c.Handler == nil {
+		c.Handler = &DefaultHandler{}
+	}
 
 	if c.MaxBitrateKbps == 0 {
 		c.MaxBitrateKbps = 8 * 1024 // 8MBps (Default)
@@ -72,6 +78,13 @@ func (cb *ConnConfig) normalize() *ConnConfig {
 	}
 
 	c.ControlState = *c.ControlState.normalize()
+
+	if c.Logger == nil {
+		l := logrus.New()
+		l.Out = ioutil.Discard
+
+		c.Logger = l
+	}
 
 	return &c
 }
@@ -98,17 +111,14 @@ func newConnFromIO(rwc io.ReadWriteCloser, config *ConnConfig) *Conn {
 	}
 	config = config.normalize()
 
-	defaultLogger := logrus.New()
-	defaultLogger.Out = ioutil.Discard
-
 	conn := &Conn{
 		rwc:     rwc,
 		bufr:    bufio.NewReaderSize(rwc, config.ReaderBufferSize),
 		bufw:    bufio.NewWriterSize(rwc, config.WriterBufferSize),
-		handler: &DefaultHandler{},
+		handler: config.Handler,
 
 		config: config,
-		logger: defaultLogger,
+		logger: config.Logger,
 	}
 
 	conn.streamer = NewChunkStreamer(
@@ -121,11 +131,6 @@ func newConnFromIO(rwc io.ReadWriteCloser, config *ConnConfig) *Conn {
 	conn.streams = newStreams(conn.streamer, &conn.config.ControlState)
 
 	return conn
-}
-
-func (c *Conn) SetLogger(l logrus.FieldLogger) {
-	// TODO: return error if conn is already served
-	c.logger = l
 }
 
 func (c *Conn) Close() error {

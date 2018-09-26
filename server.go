@@ -23,8 +23,7 @@ type Server struct {
 }
 
 type ServerConfig struct {
-	HandlerFactory HandlerFactory
-	Conn           *ConnConfig
+	OnConnect func() *ConnConfig
 }
 
 func NewServer(config *ServerConfig) *Server {
@@ -105,11 +104,9 @@ func (srv *Server) getDoneChLocked() chan struct{} {
 }
 
 func (srv *Server) handleConn(conn net.Conn) {
-	c := newConn(conn, srv.config.Conn)
+	connConfig := srv.config.OnConnect()
 
-	handler := srv.config.HandlerFactory(c)
-	c.handler = handler
-
+	c := newConn(conn, connConfig)
 	sc := &serverConn{
 		conn: c,
 	}

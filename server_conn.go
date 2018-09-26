@@ -31,15 +31,13 @@ func (sc *serverConn) Serve() error {
 		return err
 	}
 
-	// StreamID 0 is default control stream
-	const DefaultControlStreamID = 0
 	eh := newEntryHandler(sc.conn)
 	eh.ChangeState(&serverControlNotConnectedHandler{entry: eh})
-	if err := sc.conn.streams.Create(DefaultControlStreamID, eh); err != nil {
+	if err := sc.conn.streams.Create(ControlStreamID, eh); err != nil {
 		return err
 	}
 
-	defaultStream, ok := sc.conn.streams.At(DefaultControlStreamID)
+	defaultStream, ok := sc.conn.streams.At(ControlStreamID)
 	if !ok {
 		return errors.New("Unexpected: default stream is not found")
 	}
