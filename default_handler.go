@@ -16,7 +16,7 @@ var _ Handler = (*DefaultHandler)(nil)
 type DefaultHandler struct {
 }
 
-func (h *DefaultHandler) OnServe() {
+func (h *DefaultHandler) OnServe(conn *Conn) {
 }
 
 func (h *DefaultHandler) OnConnect(timestamp uint32, cmd *message.NetConnectionConnect) error {

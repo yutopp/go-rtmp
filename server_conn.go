@@ -42,7 +42,7 @@ func (sc *serverConn) Serve() error {
 	sc.conn.streamer.controlStreamWriter = defaultStream.write
 
 	if sc.conn.handler != nil {
-		sc.conn.handler.OnServe()
+		sc.conn.handler.OnServe(sc.conn)
 	}
 
 	return sc.conn.handleMessageLoop()

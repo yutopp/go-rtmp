@@ -17,7 +17,15 @@ import (
 func TestHandlerCallback(t *testing.T) {
 	b := &rwcMock{}
 
+	closer := make(chan struct{})
+	handler := &testHandler{
+		t:      t,
+		closer: closer,
+	}
+
 	conn := newConnFromIO(b, &ConnConfig{
+		Handler: handler,
+
 		SkipHandshakeVerification: true,
 
 		MaxBitrateKbps: 1234,
@@ -42,15 +50,7 @@ func TestHandlerCallback(t *testing.T) {
 		},
 	})
 
-	closer := make(chan struct{})
-	handler := &testHandler{
-		t:      t,
-		conn:   conn,
-		closer: closer,
-	}
-	conn.handler = handler
 	sconn := newServerConn(conn)
-
 	go func() {
 		select {
 		case <-closer:
@@ -65,12 +65,11 @@ var _ Handler = (*testHandler)(nil)
 type testHandler struct {
 	DefaultHandler
 	t      *testing.T
-	conn   *Conn
 	closer chan struct{}
 }
 
-func (h *testHandler) OnServe() {
-	for _, s := range []*StreamControlState{h.conn.streamer.PeerState(), h.conn.streamer.SelfState()} {
+func (h *testHandler) OnServe(conn *Conn) {
+	for _, s := range []*StreamControlState{conn.streamer.PeerState(), conn.streamer.SelfState()} {
 		assert.Equal(h.t, uint32(1234), s.ChunkSize())
 		assert.Equal(h.t, uint32(1234), s.AckWindowSize())
 		assert.Equal(h.t, int32(1234), s.BandwidthWindowSize())

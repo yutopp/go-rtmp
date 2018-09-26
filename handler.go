@@ -12,7 +12,7 @@ import (
 )
 
 type Handler interface {
-	OnServe()
+	OnServe(conn *Conn)
 	OnConnect(timestamp uint32, cmd *message.NetConnectionConnect) error
 	OnCreateStream(timestamp uint32, cmd *message.NetConnectionCreateStream) error
 	OnReleaseStream(timestamp uint32, cmd *message.NetConnectionReleaseStream) error

@@ -21,7 +21,7 @@ type Handler struct {
 	flvEnc  *flv.Encoder
 }
 
-func (h *Handler) OnServe() {
+func (h *Handler) OnServe(conn *rtmp.Conn) {
 }
 
 func (h *Handler) OnConnect(timestamp uint32, cmd *rtmpmsg.NetConnectionConnect) error {
