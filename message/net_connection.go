@@ -28,16 +28,16 @@ type NetConnectionConnect struct {
 }
 
 type NetConnectionConnectCommand struct {
-	App            string       `mapstructure:"app"`
-	Type           string       `mapstructure:"type"`
-	FlashVer       string       `mapstructure:"flashVer"`
-	TCURL          string       `mapstructure:"tcUrl"`
-	Fpad           bool         `mapstructure:"fpad"`
-	Capabilities   int          `mapstructure:"capabilities"`
-	AudioCodecs    int          `mapstructure:"audioCodecs"`
-	VideoCodecs    int          `mapstructure:"videoCodecs"`
-	VideoFunction  int          `mapstructure:"videoFunction"`
-	ObjectEncoding EncodingType `mapstructure:"objectEncoding"`
+	App            string       `mapstructure:"app" amf0:"app"`
+	Type           string       `mapstructure:"type" amf0:"type"`
+	FlashVer       string       `mapstructure:"flashVer" amf0:"flashVer"`
+	TCURL          string       `mapstructure:"tcUrl" amf0:"tcUrl"`
+	Fpad           bool         `mapstructure:"fpad" amf0:"fpad"`
+	Capabilities   int          `mapstructure:"capabilities" amf0:"capabilities"`
+	AudioCodecs    int          `mapstructure:"audioCodecs" amf0:"audioCodecs"`
+	VideoCodecs    int          `mapstructure:"videoCodecs" amf0:"videoCodecs"`
+	VideoFunction  int          `mapstructure:"videoFunction" amf0:"videoFunction"`
+	ObjectEncoding EncodingType `mapstructure:"objectEncoding" amf0:"objectEncoding"`
 }
 
 func (t *NetConnectionConnect) FromArgs(args ...interface{}) error {
@@ -50,7 +50,9 @@ func (t *NetConnectionConnect) FromArgs(args ...interface{}) error {
 }
 
 func (t *NetConnectionConnect) ToArgs(ty EncodingType) ([]interface{}, error) {
-	panic("Not implemented")
+	return []interface{}{
+		t.Command,
+	}, nil
 }
 
 //
@@ -60,20 +62,30 @@ type NetConnectionConnectResult struct {
 }
 
 type NetConnectionConnectResultProperties struct {
-	FMSVer       string `amf0:"fmsVer"`       // TODO: fix
-	Capabilities int    `amf0:"capabilities"` // TODO: fix
-	Mode         int    `amf0:"mode"`         // TODO: fix
+	FMSVer       string `mapstructure:"fmsVer" amf0:"fmsVer"`             // TODO: fix
+	Capabilities int    `mapstructure:"capabilities" amf0:"capabilities"` // TODO: fix
+	Mode         int    `mapstructure:"mode" amf0:"mode"`                 // TODO: fix
 }
 
 type NetConnectionConnectResultInformation struct {
-	Level       string                   `amf0:"level"` // TODO: fix
-	Code        NetConnectionConnectCode `amf0:"code"`
-	Description string                   `amf0:"description"`
-	Data        amf0.ECMAArray           `amf0:"data"`
+	Level       string                   `mapstructure:"level" amf0:"level"` // TODO: fix
+	Code        NetConnectionConnectCode `mapstructure:"code" amf0:"code"`
+	Description string                   `mapstructure:"description" amf0:"description"`
+	Data        amf0.ECMAArray           `mapstructure:"data" amf0:"data"`
 }
 
 func (t *NetConnectionConnectResult) FromArgs(args ...interface{}) error {
-	panic("Not implemented")
+	properties := args[0].(map[string]interface{})
+	if err := mapstructure.Decode(properties, &t.Properties); err != nil {
+		return errors.Wrapf(err, "Failed to mapping NetConnectionConnectResultProperties")
+	}
+
+	information := args[1].(map[string]interface{})
+	if err := mapstructure.Decode(information, &t.Information); err != nil {
+		return errors.Wrapf(err, "Failed to mapping NetConnectionConnectResultInformation")
+	}
+
+	return nil
 }
 
 func (t *NetConnectionConnectResult) ToArgs(ty EncodingType) ([]interface{}, error) {

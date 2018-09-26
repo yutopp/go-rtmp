@@ -12,11 +12,11 @@ import (
 	"net/url"
 )
 
-func Dial(urlBase string, config *ConnConfig) (*Conn, error) {
+func Dial(urlBase string, config *ConnConfig) (*ClientConn, error) {
 	return DialWithDialer(&net.Dialer{}, urlBase, config)
 }
 
-func DialWithDialer(dialer *net.Dialer, urlBase string, config *ConnConfig) (*Conn, error) {
+func DialWithDialer(dialer *net.Dialer, urlBase string, config *ConnConfig) (*ClientConn, error) {
 	u, err := url.Parse(urlBase)
 	if err != nil {
 		return nil, err
@@ -33,5 +33,5 @@ func DialWithDialer(dialer *net.Dialer, urlBase string, config *ConnConfig) (*Co
 		return nil, err
 	}
 
-	return newConn(rwc, config), nil
+	return newClientConnWithSetup(rwc, config)
 }

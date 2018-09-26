@@ -10,7 +10,6 @@ package message
 import (
 	"bytes"
 	"github.com/stretchr/testify/assert"
-	"io"
 	"testing"
 )
 
@@ -23,14 +22,90 @@ func TestDecodeCommon(t *testing.T) {
 
 			buf := bytes.NewReader(tc.Binary)
 			dec := NewDecoder(buf, tc.TypeID)
-			dec.amfMessageParser = func(r io.Reader, d AMFDecoder, name string, v *AMFConvertible) error {
-				return mockedParseAMFMessage(t, r, d, name, v)
-			}
 
 			var msg Message
 			err := dec.Decode(&msg)
 			assert.Nil(t, err)
 			assert.Equal(t, tc.Value, msg)
+		})
+	}
+}
+
+func TestDecodeCommonDataMsg(t *testing.T) {
+	for _, tc := range dataMsgTestCases {
+		tc := tc // capture
+
+		t.Run(tc.Name, func(t *testing.T) {
+			t.Parallel()
+
+			buf := bytes.NewReader(tc.Binary)
+			dec := NewDecoder(buf, tc.TypeID)
+
+			var msg Message
+			err := dec.Decode(&msg)
+			assert.Nil(t, err)
+
+			var dataMsg *DataMessage
+			switch m := msg.(type) {
+			case *DataMessageAMF3:
+				dataMsg = &m.DataMessage
+			case *DataMessageAMF0:
+				dataMsg = &m.DataMessage
+			default:
+				assert.Fail(t, "Unexpected msg", m)
+			}
+
+			var tcDataMsg *DataMessage
+			switch m := tc.Value.(type) {
+			case *DataMessageAMF3:
+				tcDataMsg = &m.DataMessage
+			case *DataMessageAMF0:
+				tcDataMsg = &m.DataMessage
+			default:
+				assert.Fail(t, "Unexpected tc msg", m)
+			}
+
+			assert.Equal(t, tcDataMsg.Name, dataMsg.Name)
+		})
+	}
+}
+
+func TestDecodeCommonCmdMsg(t *testing.T) {
+	for _, tc := range cmdMsgTestCases {
+		tc := tc // capture
+
+		t.Run(tc.Name, func(t *testing.T) {
+			t.Parallel()
+
+			buf := bytes.NewReader(tc.Binary)
+			dec := NewDecoder(buf, tc.TypeID)
+
+			var msg Message
+			err := dec.Decode(&msg)
+			assert.Nil(t, err)
+
+			var cmdMsg *CommandMessage
+			switch m := msg.(type) {
+			case *CommandMessageAMF3:
+				cmdMsg = &m.CommandMessage
+			case *CommandMessageAMF0:
+				cmdMsg = &m.CommandMessage
+			default:
+				assert.Fail(t, "Unexpected msg", m)
+			}
+
+			var tcCmdMsg *CommandMessage
+			switch m := tc.Value.(type) {
+			case *CommandMessageAMF3:
+				tcCmdMsg = &m.CommandMessage
+			case *CommandMessageAMF0:
+				tcCmdMsg = &m.CommandMessage
+			default:
+				assert.Fail(t, "Unexpected tc msg", m)
+			}
+
+			assert.Equal(t, tcCmdMsg.CommandName, cmdMsg.CommandName)
+			assert.Equal(t, tcCmdMsg.TransactionID, cmdMsg.TransactionID)
 		})
 	}
 }
@@ -51,9 +126,4 @@ func BenchmarkDecodeVideoMessage(b *testing.B) {
 		var msg Message
 		dec.Decode(&msg)
 	}
-}
-
-func mockedParseAMFMessage(t *testing.T, r io.Reader, d AMFDecoder, name string, v *AMFConvertible) error {
-	t.Logf("mockmock: %s", name)
-	return nil
 }

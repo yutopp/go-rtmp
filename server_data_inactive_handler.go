@@ -39,11 +39,12 @@ func (h *serverDataInactiveHandler) HandleCommand(
 	timestamp uint32,
 	encTy message.EncodingType,
 	cmdMsg *message.CommandMessage,
+	body interface{},
 	stream *Stream,
 ) error {
 	l := h.entry.Logger()
 
-	switch cmd := cmdMsg.Command.(type) {
+	switch cmd := body.(type) {
 	case *message.NetStreamPublish:
 		l.Infof("Publisher is comming: %#v", cmd)
 
@@ -53,7 +54,7 @@ func (h *serverDataInactiveHandler) HandleCommand(
 				message.NetStreamOnStatusCodePublishFailed,
 				"Publish failed.",
 			)
-			l.Infof("Reject a Publish request: Response = %#v", cmdRespMsg.Command)
+			l.Infof("Reject a Publish request: Response = %#v", cmdRespMsg.Encoder.Value)
 			if writeErr := stream.WriteCommandMessage(chunkStreamID, timestamp, encTy, cmdRespMsg); writeErr != nil {
 				return errors.Wrapf(err, "Write failed: Err = %+v", writeErr)
 			}
@@ -82,7 +83,7 @@ func (h *serverDataInactiveHandler) HandleCommand(
 				message.NetStreamOnStatusCodePlayFailed,
 				"Play failed.",
 			)
-			l.Infof("Reject a Play request: Response = %#v", cmdRespMsg.Command)
+			l.Infof("Reject a Play request: Response = %#v", cmdRespMsg.Encoder.Value)
 			if writeErr := stream.WriteCommandMessage(chunkStreamID, timestamp, encTy, cmdRespMsg); writeErr != nil {
 				return errors.Wrapf(err, "Write failed: Err = %+v", writeErr)
 			}
@@ -123,16 +124,20 @@ func (h *serverDataInactiveHandler) newOnStatusMessage(
 		level = message.NetStreamOnStatusLevelError
 	}
 
-	return &message.CommandMessage{
-		CommandName:   "onStatus",
-		TransactionID: 0, // 7.2.2
-		Command: &message.NetStreamOnStatus{
+	bodyEnc := &message.BodyEncoder{
+		Value: &message.NetStreamOnStatus{
 			InfoObject: message.NetStreamOnStatusInfoObject{
 				Level:       level,
 				Code:        code,
 				Description: description,
 			},
 		},
+		MsgEncoder: message.ComposeAMFMessage,
+	}
+	return &message.CommandMessage{
+		CommandName:   "onStatus",
+		TransactionID: 0, // 7.2.2
+		Encoder:       bodyEnc,
 	}
 }
 
@@ -141,6 +146,7 @@ func (h *serverDataInactiveHandler) HandleData(
 	timestamp uint32,
 	encTy message.EncodingType,
 	dataMsg *message.DataMessage,
+	body interface{},
 	stream *Stream,
 ) error {
 	return internal.ErrPassThroughMsg

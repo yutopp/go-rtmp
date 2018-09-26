@@ -39,18 +39,19 @@ func (h *serverControlNotConnectedHandler) HandleCommand(
 	timestamp uint32,
 	encTy message.EncodingType,
 	cmdMsg *message.CommandMessage,
+	body interface{},
 	stream *Stream,
 ) error {
 	l := h.entry.Logger()
 
-	switch cmd := cmdMsg.Command.(type) {
+	switch cmd := body.(type) {
 	case *message.NetConnectionConnect:
 		l.Info("Connect")
 
 		if err := h.entry.conn.handler.OnConnect(timestamp, cmd); err != nil {
 			cmdRespMsg := h.newConnectErrorMessage()
 
-			l.Infof("Reject a connect request: Response = %#v", cmdRespMsg.Command)
+			l.Infof("Reject a connect request: Response = %#v", cmdRespMsg.Encoder.Value)
 			if writeErr := stream.WriteCommandMessage(chunkStreamID, timestamp, encTy, cmdRespMsg); writeErr != nil {
 				return errors.Wrapf(err, "Write failed: Err = %+v", writeErr)
 			}
@@ -86,7 +87,7 @@ func (h *serverControlNotConnectedHandler) HandleCommand(
 		}
 
 		cmdRespMsg := h.newConnectSuccessMessage()
-		l.Infof("Connect: Response = %#v", cmdRespMsg.Command)
+		l.Infof("Connect: Response = %#v", cmdRespMsg.Encoder.Value)
 		if err := stream.WriteCommandMessage(chunkStreamID, timestamp, encTy, cmdRespMsg); err != nil {
 			return err
 		}
@@ -106,16 +107,15 @@ func (h *serverControlNotConnectedHandler) HandleData(
 	timestamp uint32,
 	encTy message.EncodingType,
 	dataMsg *message.DataMessage,
+	body interface{},
 	stream *Stream,
 ) error {
 	return internal.ErrPassThroughMsg
 }
 
 func (h *serverControlNotConnectedHandler) newConnectSuccessMessage() *message.CommandMessage {
-	return &message.CommandMessage{
-		CommandName:   "_result",
-		TransactionID: 1, // 7.2.1.2, flow.6
-		Command: &message.NetConnectionConnectResult{
+	bodyEnc := &message.BodyEncoder{
+		Value: &message.NetConnectionConnectResult{
 			Properties: message.NetConnectionConnectResultProperties{
 				FMSVer:       "GO-RTMP/0,0,0,0", // TODO: fix
 				Capabilities: 31,                // TODO: fix
@@ -131,14 +131,18 @@ func (h *serverControlNotConnectedHandler) newConnectSuccessMessage() *message.C
 				},
 			},
 		},
+		MsgEncoder: message.ComposeAMFMessage,
+	}
+	return &message.CommandMessage{
+		CommandName:   "_result",
+		TransactionID: 1, // 7.2.1.2, flow.6
+		Encoder:       bodyEnc,
 	}
 }
 
 func (h *serverControlNotConnectedHandler) newConnectErrorMessage() *message.CommandMessage {
-	return &message.CommandMessage{
-		CommandName:   "_error",
-		TransactionID: 1, // 7.2.1.2, flow.6
-		Command: &message.NetConnectionConnectResult{
+	bodyEnc := &message.BodyEncoder{
+		Value: &message.NetConnectionConnectResult{
 			Properties: message.NetConnectionConnectResultProperties{
 				FMSVer:       "GO-RTMP/0,0,0,0", // TODO: fix
 				Capabilities: 31,                // TODO: fix
@@ -154,5 +158,11 @@ func (h *serverControlNotConnectedHandler) newConnectErrorMessage() *message.Com
 				},
 			},
 		},
+		MsgEncoder: message.ComposeAMFMessage,
+	}
+	return &message.CommandMessage{
+		CommandName:   "_error",
+		TransactionID: 1, // 7.2.1.2, flow.6
+		Encoder:       bodyEnc,
 	}
 }

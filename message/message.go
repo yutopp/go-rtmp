@@ -115,8 +115,9 @@ func (m *VideoMessage) TypeID() TypeID {
 
 // DataMessage (15, 18)
 type DataMessage struct {
-	Name string
-	Data AMFConvertible
+	Name    string
+	Decoder *BodyDecoder // Can be used when decoding
+	Encoder *BodyEncoder // Can be used when encoding
 }
 
 type DataMessageAMF3 struct {
@@ -159,7 +160,8 @@ func (m *SharedObjectMessageAMF0) TypeID() TypeID {
 type CommandMessage struct {
 	CommandName   string
 	TransactionID int64
-	Command       AMFConvertible
+	Decoder       *BodyDecoder // Can be used when decoding
+	Encoder       *BodyEncoder // Can be used when encoding
 }
 
 type CommandMessageAMF3 struct {

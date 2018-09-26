@@ -8,8 +8,6 @@
 package rtmp
 
 import (
-	"github.com/pkg/errors"
-
 	"github.com/yutopp/go-rtmp/handshake"
 )
 
@@ -37,9 +35,9 @@ func (sc *serverConn) Serve() error {
 		return err
 	}
 
-	defaultStream, ok := sc.conn.streams.At(ControlStreamID)
-	if !ok {
-		return errors.New("Unexpected: default stream is not found")
+	defaultStream, err := sc.conn.streams.At(ControlStreamID)
+	if err != nil {
+		return err
 	}
 	sc.conn.streamer.controlStreamWriter = defaultStream.write
 

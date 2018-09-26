@@ -21,16 +21,13 @@ type Decoder struct {
 	r      io.Reader
 	typeID TypeID
 
-	cacheBuffer      bytes.Buffer
-	amfMessageParser amfMessageParserFunc
+	cacheBuffer bytes.Buffer
 }
 
 func NewDecoder(r io.Reader, typeID TypeID) *Decoder {
 	return &Decoder{
 		r:      r,
 		typeID: typeID,
-
-		amfMessageParser: parseAMFMessage,
 	}
 }
 
@@ -227,10 +224,16 @@ func (dec *Decoder) decodeCommandMessageAMF3(msg *Message) error {
 }
 
 func (dec *Decoder) decodeDataMessageAMF0(msg *Message) error {
-	d := amf0.NewDecoder(dec.r)
+	// Copy ownership
+	var buf bytes.Buffer
+	if _, err := io.Copy(&buf, dec.r); err != nil {
+		return errors.Wrap(err, "Failed to copy buffer of DataMessageAMF0")
+	}
+
+	d := amf0.NewDecoder(&buf)
 
 	var body DataMessageAMF0
-	if err := dec.decodeDataMessage(dec.r, d, &body.DataMessage); err != nil {
+	if err := dec.decodeDataMessage(&buf, d, &body.DataMessage); err != nil {
 		return err
 	}
 
@@ -244,10 +247,16 @@ func (dec *Decoder) decodeSharedObjectMessageAMF0(msg *Message) error {
 }
 
 func (dec *Decoder) decodeCommandMessageAMF0(msg *Message) error {
-	d := amf0.NewDecoder(dec.r)
+	// Copy ownership
+	var buf bytes.Buffer
+	if _, err := io.Copy(&buf, dec.r); err != nil {
+		return errors.Wrap(err, "Failed to copy buffer of CommandMessageAMF0")
+	}
+
+	d := amf0.NewDecoder(&buf)
 
 	var body CommandMessageAMF0
-	if err := dec.decodeCommandMessage(dec.r, d, &body.CommandMessage); err != nil {
+	if err := dec.decodeCommandMessage(&buf, d, &body.CommandMessage); err != nil {
 		return err
 	}
 
@@ -266,14 +275,18 @@ func (dec *Decoder) decodeDataMessage(r io.Reader, d AMFDecoder, dataMsg *DataMe
 		return err
 	}
 
-	var data AMFConvertible
-	if err := dec.amfMessageParser(r, d, name, &data); err != nil {
-		return err
+	// Not decoding body in this function to make an user select a decoder of the body.
+	// The caller of this function should call `msg.Decoder.Decode()` with arbitrary `MsgDecoder`
+	bodyDec := &BodyDecoder{
+		reader:     r,
+		amfDec:     d,
+		Value:      nil, // Caller can get a decoded value from this
+		MsgDecoder: nil, // Caller MUST set this function
 	}
 
 	*dataMsg = DataMessage{
-		Name: name,
-		Data: data,
+		Name:    name,
+		Decoder: bodyDec,
 	}
 
 	return nil
@@ -290,15 +303,19 @@ func (dec *Decoder) decodeCommandMessage(r io.Reader, d AMFDecoder, cmdMsg *Comm
 		return err
 	}
 
-	var cmd AMFConvertible
-	if err := dec.amfMessageParser(r, d, name, &cmd); err != nil {
-		return err
+	// Not decoding body in this function to make an user select a decoder of the body.
+	// The caller of this function should call `msg.Decoder.Decode()` with arbitrary `MsgDecoder`
+	bodyDec := &BodyDecoder{
+		reader:     r,
+		amfDec:     d,
+		Value:      nil, // Caller can get a decoded value from this
+		MsgDecoder: nil, // Caller MUST set this function
 	}
 
 	*cmdMsg = CommandMessage{
 		CommandName:   name,
 		TransactionID: transactionID,
-		Command:       cmd,
+		Decoder:       bodyDec,
 	}
 
 	return nil

@@ -8,8 +8,6 @@
 package rtmp
 
 import (
-	"github.com/pkg/errors"
-
 	"github.com/yutopp/go-rtmp/internal"
 	"github.com/yutopp/go-rtmp/message"
 )
@@ -46,6 +44,7 @@ func (h *serverDataPublishHandler) HandleCommand(
 	timestamp uint32,
 	encTy message.EncodingType,
 	cmdMsg *message.CommandMessage,
+	body interface{},
 	stream *Stream,
 ) error {
 	return internal.ErrPassThroughMsg
@@ -56,15 +55,12 @@ func (h *serverDataPublishHandler) HandleData(
 	timestamp uint32,
 	encTy message.EncodingType,
 	dataMsg *message.DataMessage,
+	body interface{},
 	stream *Stream,
 ) error {
-	switch dataMsg.Name {
-	case "@setDataFrame":
-		df := dataMsg.Data.(*message.NetStreamSetDataFrame)
-		if df == nil {
-			return errors.New("setDataFrame has nil value")
-		}
-		return h.entry.conn.handler.OnSetDataFrame(timestamp, df)
+	switch data := body.(type) {
+	case *message.NetStreamSetDataFrame:
+		return h.entry.conn.handler.OnSetDataFrame(timestamp, data)
 
 	default:
 		return internal.ErrPassThroughMsg

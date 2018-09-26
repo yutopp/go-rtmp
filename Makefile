@@ -25,9 +25,8 @@ dep-init:
 dep-update:
 	dep ensure -update
 
-example: dist/server_demo
+example:
+	go build -i -v -o dist/server_demo ./example/server_demo/...
+	go build -i -v -o dist/client_demo ./example/client_demo/...
 
-dist/server_demo:
-	go build -i -v -o $@ ./example/server_demo/...
-
-.PHONY: all pre fmt lint vet test bench dep-init dep-update example dist/server_demo
+.PHONY: all pre fmt lint vet test bench dep-init dep-update example

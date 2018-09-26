@@ -12,6 +12,9 @@ import (
 	"sync"
 )
 
+// ControlStreamID StreamID 0 is a control stream
+const ControlStreamID = 0
+
 type streams struct {
 	streamer *ChunkStreamer
 	streams  map[uint32]*Stream
@@ -26,11 +29,6 @@ func newStreams(streamer *ChunkStreamer, config *StreamControlStateConfig) *stre
 		streams:  make(map[uint32]*Stream),
 		config:   config,
 	}
-}
-
-func (ss *streams) At(streamID uint32) (*Stream, bool) {
-	stream, ok := ss.streams[streamID]
-	return stream, ok
 }
 
 func (ss *streams) Create(streamID uint32, entryHandler *entryHandler) error {
@@ -83,4 +81,13 @@ func (ss *streams) Delete(streamID uint32) error {
 	delete(ss.streams, streamID)
 
 	return nil
+}
+
+func (ss *streams) At(streamID uint32) (*Stream, error) {
+	stream, ok := ss.streams[streamID]
+	if !ok {
+		return nil, errors.Errorf("Stream is not found: StreamID = %d", streamID)
+	}
+
+	return stream, nil
 }

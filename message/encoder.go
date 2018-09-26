@@ -17,15 +17,11 @@ import (
 
 type Encoder struct {
 	w io.Writer
-
-	amfMessageComposer amfMessageComposerFunc
 }
 
 func NewEncoder(w io.Writer) *Encoder {
 	return &Encoder{
 		w: w,
-
-		amfMessageComposer: composeAMFMessage,
 	}
 }
 
@@ -183,7 +179,9 @@ func (enc *Encoder) encodeDataMessage(w io.Writer, e AMFEncoder, dataMsg *DataMe
 		return err
 	}
 
-	if err := enc.amfMessageComposer(w, e, dataMsg.Data); err != nil {
+	dataMsg.Encoder.writer = w
+	dataMsg.Encoder.amfEnc = e
+	if err := dataMsg.Encoder.Encode(); err != nil {
 		return err
 	}
 
@@ -198,7 +196,9 @@ func (enc *Encoder) encodeCommandMessage(w io.Writer, e AMFEncoder, cmdMsg *Comm
 		return err
 	}
 
-	if err := enc.amfMessageComposer(w, e, cmdMsg.Command); err != nil {
+	cmdMsg.Encoder.writer = w
+	cmdMsg.Encoder.amfEnc = e
+	if err := cmdMsg.Encoder.Encode(); err != nil {
 		return err
 	}
 

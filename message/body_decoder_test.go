@@ -14,7 +14,20 @@ import (
 	"testing"
 )
 
-func TestParseAMFMessageConnect(t *testing.T) {
+func TestDecodeDataMessageAtsetDataFrame(t *testing.T) {
+	bin := []byte("payload")
+	r := bytes.NewReader(bin)
+	d := amf0.NewDecoder(r)
+
+	var v AMFConvertible
+	err := DataBodyDecoderFor("@setDataFrame")(r, d, &v)
+	assert.Nil(t, err)
+	assert.Equal(t, &NetStreamSetDataFrame{
+		Payload: bin,
+	}, v)
+}
+
+func TestDecodeDataMessageUnknown(t *testing.T) {
 	bin := []byte{
 		// nil
 		0x05,
@@ -23,12 +36,29 @@ func TestParseAMFMessageConnect(t *testing.T) {
 	d := amf0.NewDecoder(r)
 
 	var v AMFConvertible
-	err := parseAMFMessage(r, d, "connect", &v)
+	err := DataBodyDecoderFor("hogehoge")(r, d, &v)
+	assert.Equal(t, &UnknownDataBodyDecodeError{
+		Name: "hogehoge",
+		Objs: []interface{}{nil},
+	}, err)
+	assert.Nil(t, v)
+}
+
+func TestDecodeCmdMessageConnect(t *testing.T) {
+	bin := []byte{
+		// nil
+		0x05,
+	}
+	r := bytes.NewReader(bin)
+	d := amf0.NewDecoder(r)
+
+	var v AMFConvertible
+	err := CmdBodyDecoderFor("connect", 1)(r, d, &v) // Transaction is always 1 (7.2.1.1)
 	assert.Nil(t, err)
 	assert.Equal(t, &NetConnectionConnect{}, v)
 }
 
-func TestParseAMFMessageCreateStream(t *testing.T) {
+func TestDecodeCmdMessageCreateStream(t *testing.T) {
 	bin := []byte{
 		// nil
 		0x05,
@@ -37,12 +67,12 @@ func TestParseAMFMessageCreateStream(t *testing.T) {
 	d := amf0.NewDecoder(r)
 
 	var v AMFConvertible
-	err := parseAMFMessage(r, d, "createStream", &v)
+	err := CmdBodyDecoderFor("createStream", 42)(r, d, &v)
 	assert.Nil(t, err)
 	assert.Equal(t, &NetConnectionCreateStream{}, v)
 }
 
-func TestParseAMFMessageDeleteStream(t *testing.T) {
+func TestDecodeCmdMessageDeleteStream(t *testing.T) {
 	bin := []byte{
 		// nil
 		0x05,
@@ -53,14 +83,14 @@ func TestParseAMFMessageDeleteStream(t *testing.T) {
 	d := amf0.NewDecoder(r)
 
 	var v AMFConvertible
-	err := parseAMFMessage(r, d, "deleteStream", &v)
+	err := CmdBodyDecoderFor("deleteStream", 42)(r, d, &v)
 	assert.Nil(t, err)
 	assert.Equal(t, &NetStreamDeleteStream{
 		StreamID: 42,
 	}, v)
 }
 
-func TestParseAMFMessagePublish(t *testing.T) {
+func TestDecodeCmdMessagePublish(t *testing.T) {
 	bin := []byte{
 		// nil
 		0x05,
@@ -73,7 +103,7 @@ func TestParseAMFMessagePublish(t *testing.T) {
 	d := amf0.NewDecoder(r)
 
 	var v AMFConvertible
-	err := parseAMFMessage(r, d, "publish", &v)
+	err := CmdBodyDecoderFor("publish", 42)(r, d, &v)
 	assert.Nil(t, err)
 	assert.Equal(t, &NetStreamPublish{
 		PublishingName: "abc",
@@ -81,7 +111,7 @@ func TestParseAMFMessagePublish(t *testing.T) {
 	}, v)
 }
 
-func TestParseAMFMessagePlay(t *testing.T) {
+func TestDecodeCmdMessagePlay(t *testing.T) {
 	bin := []byte{
 		// nil
 		0x05,
@@ -94,7 +124,7 @@ func TestParseAMFMessagePlay(t *testing.T) {
 	d := amf0.NewDecoder(r)
 
 	var v AMFConvertible
-	err := parseAMFMessage(r, d, "play", &v)
+	err := CmdBodyDecoderFor("play", 42)(r, d, &v)
 	assert.Nil(t, err)
 	assert.Equal(t, &NetStreamPlay{
 		StreamName: "abc",
@@ -102,7 +132,7 @@ func TestParseAMFMessagePlay(t *testing.T) {
 	}, v)
 }
 
-func TestParseAMFMessageReleaseStream(t *testing.T) {
+func TestDecodeCmdMessageReleaseStream(t *testing.T) {
 	bin := []byte{
 		// nil
 		0x05,
@@ -113,14 +143,14 @@ func TestParseAMFMessageReleaseStream(t *testing.T) {
 	d := amf0.NewDecoder(r)
 
 	var v AMFConvertible
-	err := parseAMFMessage(r, d, "releaseStream", &v)
+	err := CmdBodyDecoderFor("releaseStream", 42)(r, d, &v)
 	assert.Nil(t, err)
 	assert.Equal(t, &NetConnectionReleaseStream{
 		StreamName: "abc",
 	}, v)
 }
 
-func TestParseAMFMessageFCPublish(t *testing.T) {
+func TestDecodeCmdMessageFCPublish(t *testing.T) {
 	bin := []byte{
 		// nil
 		0x05,
@@ -131,14 +161,14 @@ func TestParseAMFMessageFCPublish(t *testing.T) {
 	d := amf0.NewDecoder(r)
 
 	var v AMFConvertible
-	err := parseAMFMessage(r, d, "FCPublish", &v)
+	err := CmdBodyDecoderFor("FCPublish", 42)(r, d, &v)
 	assert.Nil(t, err)
 	assert.Equal(t, &NetStreamFCPublish{
 		StreamName: "abc",
 	}, v)
 }
 
-func TestParseAMFMessageFCUnpublish(t *testing.T) {
+func TestDecodeCmdMessageFCUnpublish(t *testing.T) {
 	bin := []byte{
 		// nil
 		0x05,
@@ -149,27 +179,14 @@ func TestParseAMFMessageFCUnpublish(t *testing.T) {
 	d := amf0.NewDecoder(r)
 
 	var v AMFConvertible
-	err := parseAMFMessage(r, d, "FCUnpublish", &v)
+	err := CmdBodyDecoderFor("FCUnpublish", 42)(r, d, &v)
 	assert.Nil(t, err)
 	assert.Equal(t, &NetStreamFCUnpublish{
 		StreamName: "abc",
 	}, v)
 }
 
-func TestParseAMFMessageAtsetDataFrame(t *testing.T) {
-	bin := []byte("payload")
-	r := bytes.NewReader(bin)
-	d := amf0.NewDecoder(r)
-
-	var v AMFConvertible
-	err := parseAMFMessage(r, d, "@setDataFrame", &v)
-	assert.Nil(t, err)
-	assert.Equal(t, &NetStreamSetDataFrame{
-		Payload: bin,
-	}, v)
-}
-
-func TestParseAMFMessageGetStreamLength(t *testing.T) {
+func TestDecodeCmdMessageGetStreamLength(t *testing.T) {
 	bin := []byte{
 		// nil
 		0x05,
@@ -180,14 +197,14 @@ func TestParseAMFMessageGetStreamLength(t *testing.T) {
 	d := amf0.NewDecoder(r)
 
 	var v AMFConvertible
-	err := parseAMFMessage(r, d, "getStreamLength", &v)
+	err := CmdBodyDecoderFor("getStreamLength", 42)(r, d, &v)
 	assert.Nil(t, err)
 	assert.Equal(t, &NetStreamGetStreamLength{
 		StreamName: "abc",
 	}, v)
 }
 
-func TestParseAMFMessagePing(t *testing.T) {
+func TestDecodeCmdMessagePing(t *testing.T) {
 	bin := []byte{
 		// nil
 		0x05,
@@ -196,12 +213,12 @@ func TestParseAMFMessagePing(t *testing.T) {
 	d := amf0.NewDecoder(r)
 
 	var v AMFConvertible
-	err := parseAMFMessage(r, d, "ping", &v)
+	err := CmdBodyDecoderFor("ping", 42)(r, d, &v)
 	assert.Nil(t, err)
 	assert.Equal(t, &NetStreamPing{}, v)
 }
 
-func TestParseAMFMessageCloseStream(t *testing.T) {
+func TestDecodeCmdMessageCloseStream(t *testing.T) {
 	bin := []byte{
 		// nil
 		0x05,
@@ -210,12 +227,12 @@ func TestParseAMFMessageCloseStream(t *testing.T) {
 	d := amf0.NewDecoder(r)
 
 	var v AMFConvertible
-	err := parseAMFMessage(r, d, "closeStream", &v)
+	err := CmdBodyDecoderFor("closeStream", 42)(r, d, &v)
 	assert.Nil(t, err)
 	assert.Equal(t, &NetStreamCloseStream{}, v)
 }
 
-func TestParseAMFMessageNotExist(t *testing.T) {
+func TestDecodeCmdMessageUnknown(t *testing.T) {
 	bin := []byte{
 		// nil
 		0x05,
@@ -224,10 +241,11 @@ func TestParseAMFMessageNotExist(t *testing.T) {
 	d := amf0.NewDecoder(r)
 
 	var v AMFConvertible
-	err := parseAMFMessage(r, d, "hogehoge", &v)
-	assert.Equal(t, &UnknownAMFParseError{
-		Name: "hogehoge",
-		Objs: []interface{}{nil},
+	err := CmdBodyDecoderFor("hogehoge", 42)(r, d, &v)
+	assert.Equal(t, &UnknownCommandBodyDecodeError{
+		Name:          "hogehoge",
+		TransactionID: 42,
+		Objs:          []interface{}{nil},
 	}, err)
 	assert.Nil(t, v)
 }

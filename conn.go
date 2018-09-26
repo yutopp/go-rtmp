@@ -184,12 +184,6 @@ func (c *Conn) runHandleMessageLoop() error {
 		default:
 			chunkStreamID, timestamp, err := c.streamer.Read(&streamFragment)
 			if err != nil {
-				switch err := err.(type) {
-				case *message.UnknownAMFParseError:
-					// Ignore unknown amf object
-					c.logger.Warnf("Ignored unknown amf packed message: Err = %+v", err)
-					continue
-				}
 				return err
 			}
 
@@ -201,8 +195,8 @@ func (c *Conn) runHandleMessageLoop() error {
 }
 
 func (c *Conn) handleStreamFragment(chunkStreamID int, timestamp uint32, sf *StreamFragment) error {
-	stream, ok := c.streams.At(sf.StreamID)
-	if !ok {
+	stream, err := c.streams.At(sf.StreamID)
+	if err != nil {
 		if c.config.IgnoreMessagesOnNotExistStream {
 			c.logger.Warnf("Messages are received on not exist streams: StreamID = %d, MessageType = %T",
 				sf.StreamID,
@@ -219,6 +213,12 @@ func (c *Conn) handleStreamFragment(chunkStreamID int, timestamp uint32, sf *Str
 	}
 
 	if err := stream.entryHandler.Handle(chunkStreamID, timestamp, sf.Message, stream); err != nil {
+		switch err := err.(type) {
+		case *message.UnknownDataBodyDecodeError, *message.UnknownCommandBodyDecodeError:
+			// Ignore unknown messsage body
+			c.logger.Warnf("Ignored unknown message body: Err = %+v", err)
+			return nil
+		}
 		return err
 	}
 

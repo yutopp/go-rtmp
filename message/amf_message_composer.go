@@ -13,9 +13,20 @@ import (
 	"io"
 )
 
+type BodyEncoder struct {
+	writer     io.Writer
+	amfEnc     AMFEncoder
+	Value      AMFConvertible
+	MsgEncoder func(w io.Writer, e AMFEncoder, v AMFConvertible) error
+}
+
+func (be *BodyEncoder) Encode() error {
+	return be.MsgEncoder(be.writer, be.amfEnc, be.Value)
+}
+
 type amfMessageComposerFunc func(w io.Writer, e AMFEncoder, v AMFConvertible) error
 
-func composeAMFMessage(w io.Writer, e AMFEncoder, v AMFConvertible) error {
+func ComposeAMFMessage(w io.Writer, e AMFEncoder, v AMFConvertible) error {
 	if v == nil {
 		return nil // Do nothing
 	}
