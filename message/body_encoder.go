@@ -24,9 +24,9 @@ func (be *BodyEncoder) Encode() error {
 	return be.MsgEncoder(be.writer, be.amfEnc, be.Value)
 }
 
-type amfMessageComposerFunc func(w io.Writer, e AMFEncoder, v AMFConvertible) error
+type BodyEncoderFunc func(r io.Reader, e AMFDecoder, v *AMFConvertible) error
 
-func ComposeAMFMessage(w io.Writer, e AMFEncoder, v AMFConvertible) error {
+func EncodeBodyAnyValues(w io.Writer, e AMFEncoder, v AMFConvertible) error {
 	if v == nil {
 		return nil // Do nothing
 	}

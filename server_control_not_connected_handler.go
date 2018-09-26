@@ -131,7 +131,7 @@ func (h *serverControlNotConnectedHandler) newConnectSuccessMessage() *message.C
 				},
 			},
 		},
-		MsgEncoder: message.ComposeAMFMessage,
+		MsgEncoder: message.EncodeBodyAnyValues,
 	}
 	return &message.CommandMessage{
 		CommandName:   "_result",
@@ -158,7 +158,7 @@ func (h *serverControlNotConnectedHandler) newConnectErrorMessage() *message.Com
 				},
 			},
 		},
-		MsgEncoder: message.ComposeAMFMessage,
+		MsgEncoder: message.EncodeBodyAnyValues,
 	}
 	return &message.CommandMessage{
 		CommandName:   "_error",

@@ -132,7 +132,7 @@ func (h *serverDataInactiveHandler) newOnStatusMessage(
 				Description: description,
 			},
 		},
-		MsgEncoder: message.ComposeAMFMessage,
+		MsgEncoder: message.EncodeBodyAnyValues,
 	}
 	return &message.CommandMessage{
 		CommandName:   "onStatus",

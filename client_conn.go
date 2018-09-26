@@ -97,7 +97,7 @@ func (cc *ClientConn) Connect() error {
 		Value: &message.NetConnectionConnect{
 			Command: message.NetConnectionConnectCommand{},
 		},
-		MsgEncoder: message.ComposeAMFMessage,
+		MsgEncoder: message.EncodeBodyAnyValues,
 	}
 	cmdMsg := &message.CommandMessage{
 		CommandName:   "connect",

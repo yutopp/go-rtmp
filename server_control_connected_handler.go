@@ -159,7 +159,7 @@ func (h *serverControlConnectedHandler) newCreateStreamSuccessMessage(
 		Value: &message.NetConnectionCreateStreamResult{
 			StreamID: streamID,
 		},
-		MsgEncoder: message.ComposeAMFMessage,
+		MsgEncoder: message.EncodeBodyAnyValues,
 	}
 	return &message.CommandMessage{
 		CommandName:   "_result",
@@ -175,7 +175,7 @@ func (h *serverControlConnectedHandler) newCreateStreamErrorMessage(
 		Value: &message.NetConnectionCreateStreamResult{
 			StreamID: 0, // TODO: Change to error information object...
 		},
-		MsgEncoder: message.ComposeAMFMessage,
+		MsgEncoder: message.EncodeBodyAnyValues,
 	}
 	return &message.CommandMessage{
 		CommandName:   "_error",
