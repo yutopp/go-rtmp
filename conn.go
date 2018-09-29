@@ -175,32 +175,32 @@ func (c *Conn) handleMessageLoop() (err error) {
 }
 
 func (c *Conn) runHandleMessageLoop() error {
-	var streamFragment StreamFragment
+	var cmsg ChunkMessage
 	for {
 		select {
 		case <-c.streamer.Done():
 			return c.streamer.Err()
 
 		default:
-			chunkStreamID, timestamp, err := c.streamer.Read(&streamFragment)
+			chunkStreamID, timestamp, err := c.streamer.Read(&cmsg)
 			if err != nil {
 				return err
 			}
 
-			if err := c.handleStreamFragment(chunkStreamID, timestamp, &streamFragment); err != nil {
+			if err := c.dispatchStreamHandler(chunkStreamID, timestamp, &cmsg); err != nil {
 				return err // Shutdown the connection
 			}
 		}
 	}
 }
 
-func (c *Conn) handleStreamFragment(chunkStreamID int, timestamp uint32, sf *StreamFragment) error {
-	stream, err := c.streams.At(sf.StreamID)
+func (c *Conn) dispatchStreamHandler(chunkStreamID int, timestamp uint32, cmsg *ChunkMessage) error {
+	stream, err := c.streams.At(cmsg.StreamID)
 	if err != nil {
 		if c.config.IgnoreMessagesOnNotExistStream {
 			c.logger.Warnf("Messages are received on not exist streams: StreamID = %d, MessageType = %T",
-				sf.StreamID,
-				sf.Message,
+				cmsg.StreamID,
+				cmsg.Message,
 			)
 
 			if c.ignoredMessages < c.config.IgnoreMessagesOnNotExistStreamThreshold {
@@ -209,10 +209,10 @@ func (c *Conn) handleStreamFragment(chunkStreamID int, timestamp uint32, sf *Str
 			}
 		}
 
-		return errors.Errorf("Specified stream is not created yet: StreamID = %d", sf.StreamID)
+		return errors.Errorf("Specified stream is not created yet: StreamID = %d", cmsg.StreamID)
 	}
 
-	if err := stream.entryHandler.Handle(chunkStreamID, timestamp, sf.Message, stream); err != nil {
+	if err := stream.handle(chunkStreamID, timestamp, cmsg.Message); err != nil {
 		switch err := err.(type) {
 		case *message.UnknownDataBodyDecodeError, *message.UnknownCommandBodyDecodeError:
 			// Ignore unknown messsage body

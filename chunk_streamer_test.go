@@ -252,7 +252,7 @@ func TestWriteToInvalidWriter(t *testing.T) {
 	// Write some data
 	chunkStreamID := 10
 	timestamp := uint32(0)
-	err := streamer.Write(chunkStreamID, timestamp, &StreamFragment{
+	err := streamer.Write(chunkStreamID, timestamp, &ChunkMessage{
 		StreamID: 0,
 		Message:  &message.Ack{},
 	})

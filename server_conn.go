@@ -8,6 +8,8 @@
 package rtmp
 
 import (
+	"github.com/pkg/errors"
+
 	"github.com/yutopp/go-rtmp/handshake"
 )
 
@@ -26,20 +28,16 @@ func (sc *serverConn) Serve() error {
 	if err := handshake.HandshakeWithClient(sc.conn.rwc, sc.conn.rwc, &handshake.Config{
 		SkipHandshakeVerification: sc.conn.config.SkipHandshakeVerification,
 	}); err != nil {
-		return err
+		return errors.Wrap(err, "Failed to handshake")
 	}
 
 	eh := newEntryHandler(sc.conn)
 	eh.ChangeState(&serverControlNotConnectedHandler{entry: eh})
-	if err := sc.conn.streams.Create(ControlStreamID, eh); err != nil {
-		return err
-	}
-
-	defaultStream, err := sc.conn.streams.At(ControlStreamID)
+	ctrlStream, err := sc.conn.streams.Create(ControlStreamID, eh)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Failed to create control stream")
 	}
-	sc.conn.streamer.controlStreamWriter = defaultStream.write
+	sc.conn.streamer.controlStreamWriter = ctrlStream.write
 
 	if sc.conn.handler != nil {
 		sc.conn.handler.OnServe(sc.conn)

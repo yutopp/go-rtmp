@@ -31,16 +31,16 @@ func newStreams(streamer *ChunkStreamer, config *StreamControlStateConfig) *stre
 	}
 }
 
-func (ss *streams) Create(streamID uint32, entryHandler *entryHandler) error {
+func (ss *streams) Create(streamID uint32, entryHandler *entryHandler) (*Stream, error) {
 	ss.m.Lock()
 	defer ss.m.Unlock()
 
 	_, ok := ss.streams[streamID]
 	if ok {
-		return errors.Errorf("Stream already exists: StreamID = %d", streamID)
+		return nil, errors.Errorf("Stream already exists: StreamID = %d", streamID)
 	}
 	if len(ss.streams) >= ss.config.MaxMessageStreams {
-		return errors.Errorf(
+		return nil, errors.Errorf(
 			"Creating message streams limit exceeded: Limit = %d",
 			ss.config.MaxMessageStreams,
 		)
@@ -50,20 +50,21 @@ func (ss *streams) Create(streamID uint32, entryHandler *entryHandler) error {
 		streamID:     streamID,
 		entryHandler: entryHandler,
 		streamer:     ss.streamer,
-		fragment: StreamFragment{
+		cmsg: ChunkMessage{
 			StreamID: streamID,
 		},
 	}
 
-	return nil
+	return ss.streams[streamID], nil
 }
 
 func (ss *streams) CreateIfAvailable(entryHandler *entryHandler) (uint32, error) {
 	for i := 0; i < ss.config.MaxMessageStreams; i++ {
-		if err := ss.Create(uint32(i), entryHandler); err != nil {
+		s, err := ss.Create(uint32(i), entryHandler)
+		if err != nil {
 			continue
 		}
-		return uint32(i), nil
+		return s.streamID, nil
 	}
 
 	return 0, errors.Errorf("Creating streams limit exceeded: Limit = %d", ss.config.MaxMessageStreams)

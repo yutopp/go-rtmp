@@ -37,15 +37,11 @@ func newClientConnWithSetup(c net.Conn, config *ConnConfig) (*ClientConn, error)
 		entry:       eh,
 		connectedCh: make(chan struct{}),
 	})
-	if err := conn.streams.Create(ControlStreamID, eh); err != nil {
+	ctrlStream, err := conn.streams.Create(ControlStreamID, eh)
+	if err != nil {
 		return nil, errors.Wrap(err, "Failed to create control stream")
 	}
-
-	defaultStream, err := conn.streams.At(ControlStreamID)
-	if err != nil {
-		return nil, err
-	}
-	conn.streamer.controlStreamWriter = defaultStream.write
+	conn.streamer.controlStreamWriter = ctrlStream.write
 
 	cc := &ClientConn{
 		conn: conn,

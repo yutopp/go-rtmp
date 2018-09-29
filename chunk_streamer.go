@@ -19,6 +19,11 @@ import (
 
 const ctrlMsgChunkStreamID = 2
 
+type ChunkMessage struct {
+	StreamID uint32
+	Message  message.Message
+}
+
 type ChunkStreamer struct {
 	r *ChunkStreamerReader
 	w *ChunkStreamerWriter
@@ -77,7 +82,7 @@ func NewChunkStreamer(r io.Reader, w io.Writer, config *StreamControlStateConfig
 	return cs
 }
 
-func (cs *ChunkStreamer) Read(sf *StreamFragment) (int, uint32, error) {
+func (cs *ChunkStreamer) Read(cmsg *ChunkMessage) (int, uint32, error) {
 	reader, err := cs.NewChunkReader()
 	if err != nil {
 		return 0, 0, err
@@ -85,16 +90,16 @@ func (cs *ChunkStreamer) Read(sf *StreamFragment) (int, uint32, error) {
 	defer reader.Close()
 
 	dec := message.NewDecoder(reader, message.TypeID(reader.messageTypeID))
-	if err := dec.Decode(&sf.Message); err != nil {
+	if err := dec.Decode(&cmsg.Message); err != nil {
 		return 0, 0, err
 	}
 
-	sf.StreamID = reader.messageStreamID
+	cmsg.StreamID = reader.messageStreamID
 
 	return reader.basicHeader.chunkStreamID, uint32(reader.timestamp), nil
 }
 
-func (cs *ChunkStreamer) Write(chunkStreamID int, timestamp uint32, sf *StreamFragment) error {
+func (cs *ChunkStreamer) Write(chunkStreamID int, timestamp uint32, cmsg *ChunkMessage) error {
 	writer, err := cs.NewChunkWriter(chunkStreamID)
 	if err != nil {
 		return err
@@ -102,13 +107,13 @@ func (cs *ChunkStreamer) Write(chunkStreamID int, timestamp uint32, sf *StreamFr
 	//defer writer.Close()
 
 	enc := message.NewEncoder(writer)
-	if err := enc.Encode(sf.Message); err != nil {
+	if err := enc.Encode(cmsg.Message); err != nil {
 		return err
 	}
 	writer.timestamp = timestamp
 	writer.messageLength = uint32(writer.buf.Len())
-	writer.messageTypeID = byte(sf.Message.TypeID())
-	writer.messageStreamID = sf.StreamID
+	writer.messageTypeID = byte(cmsg.Message.TypeID())
+	writer.messageStreamID = cmsg.StreamID
 
 	return cs.Sched(writer)
 }
