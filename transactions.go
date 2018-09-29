@@ -15,33 +15,37 @@ import (
 )
 
 type transaction struct {
-	decoder  message.BodyDecoderFunc
-	callback func(v interface{}, err error)
+	commandName string
+	encoding    message.EncodingType
+	body        []byte
+	doneCh      chan struct{}
 }
 
 type transactions struct {
-	transactions map[int64]transaction
+	transactions map[int64]*transaction
 	m            sync.RWMutex
 }
 
 func newTransactions() *transactions {
 	return &transactions{
-		transactions: make(map[int64]transaction),
+		transactions: make(map[int64]*transaction),
 	}
 }
 
-func (ts *transactions) Create(transactionID int64, t transaction) error {
+func (ts *transactions) Create(transactionID int64) (*transaction, error) {
 	ts.m.Lock()
 	defer ts.m.Unlock()
 
 	_, ok := ts.transactions[transactionID]
 	if ok {
-		return errors.Errorf("Transaction already exists: TransactionID = %d", transactionID)
+		return nil, errors.Errorf("Transaction already exists: TransactionID = %d", transactionID)
 	}
 
-	ts.transactions[transactionID] = t
+	ts.transactions[transactionID] = &transaction{
+		doneCh: make(chan struct{}),
+	}
 
-	return nil
+	return ts.transactions[transactionID], nil
 }
 
 func (ts *transactions) Delete(transactionID int64) error {
@@ -58,10 +62,10 @@ func (ts *transactions) Delete(transactionID int64) error {
 	return nil
 }
 
-func (ts *transactions) At(transactionID int64) (transaction, error) {
+func (ts *transactions) At(transactionID int64) (*transaction, error) {
 	t, ok := ts.transactions[transactionID]
 	if !ok {
-		return transaction{}, errors.Errorf("Transaction is not found: TransactionID = %d", transactionID)
+		return nil, errors.Errorf("Transaction is not found: TransactionID = %d", transactionID)
 	}
 
 	return t, nil

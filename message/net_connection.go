@@ -114,7 +114,10 @@ type NetConnectionCreateStreamResult struct {
 }
 
 func (t *NetConnectionCreateStreamResult) FromArgs(args ...interface{}) error {
-	panic("Not implemented")
+	// args[0] is unknown, ignore
+	t.StreamID = args[1].(uint32)
+
+	return nil
 }
 
 func (t *NetConnectionCreateStreamResult) ToArgs(ty EncodingType) ([]interface{}, error) {

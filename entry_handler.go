@@ -181,39 +181,36 @@ func (h *entryHandler) handleCommand(
 	cmdMsg *message.CommandMessage,
 	stream *Stream,
 ) error {
-	var callback func(v interface{}, err error)
-	var bodyDecoder message.BodyDecoderFunc
 	switch cmdMsg.CommandName {
-	case "_result":
+	case "_result", "_error":
 		t, err := h.transactions.At(cmdMsg.TransactionID)
 		if err != nil {
 			return errors.Wrap(err, "Got response to the unexpected transaction")
 		}
+
+		// Set result (NOTE: shoule use a mutex for t?)
+		t.commandName = cmdMsg.CommandName
+		t.encoding = cmdMsg.Encoding
+		t.body = cmdMsg.Body
+		close(t.doneCh)
+
 		// Remove transacaction because this transaction is resolved
 		if err := h.transactions.Delete(cmdMsg.TransactionID); err != nil {
 			return errors.Wrap(err, "Unexpected behaviour: transaction is not found")
 		}
 
-		bodyDecoder = t.decoder
-		callback = t.callback
+		return nil
 
-	default:
-		// TODO: support onStatus
-		bodyDecoder = message.CmdBodyDecoderFor(cmdMsg.CommandName, cmdMsg.TransactionID)
+		// TODO: Support onStatus
 	}
 
 	r := bytes.NewReader(cmdMsg.Body)
 	amfDec := message.NewAMFDecoder(r, cmdMsg.Encoding)
+	bodyDecoder := message.CmdBodyDecoderFor(cmdMsg.CommandName, cmdMsg.TransactionID)
+
 	var value message.AMFConvertible
 	if err := bodyDecoder(r, amfDec, &value); err != nil {
-		if callback != nil {
-			callback(nil, err)
-		}
 		return err
-	}
-
-	if callback != nil {
-		callback(value, nil)
 	}
 
 	err := h.msgHandler.HandleCommand(chunkStreamID, timestamp, cmdMsg, value, stream)

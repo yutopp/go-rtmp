@@ -148,6 +148,26 @@ func DecodeBodyCreateStream(_ io.Reader, d AMFDecoder, v *AMFConvertible) error 
 	return nil
 }
 
+func DecodeBodyCreateStreamResult(_ io.Reader, d AMFDecoder, v *AMFConvertible) error {
+	var commandObject interface{} // maybe nil
+	if err := d.Decode(&commandObject); err != nil {
+		return errors.Wrap(err, "Failed to decode 'createStream.result' args[0]")
+	}
+
+	var streamID uint32
+	if err := d.Decode(&streamID); err != nil {
+		return errors.Wrap(err, "Failed to decode 'createStream.result' args[1]")
+	}
+
+	var data NetConnectionCreateStreamResult
+	if err := data.FromArgs(commandObject, streamID); err != nil {
+		return errors.Wrap(err, "Failed to reconstruct 'createStream.result'")
+	}
+
+	*v = &data
+	return nil
+}
+
 func DecodeBodyDeleteStream(_ io.Reader, d AMFDecoder, v *AMFConvertible) error {
 	var commandObject interface{} // maybe nil
 	if err := d.Decode(&commandObject); err != nil {

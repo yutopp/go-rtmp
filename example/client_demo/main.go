@@ -16,5 +16,17 @@ func main() {
 	defer client.Close()
 	log.Infof("Client created")
 
-	client.Connect()
+	if err := client.Connect(); err != nil {
+		log.Infof("Failed to connect: Err=%+v", err)
+	}
+	log.Infof("connected")
+
+	stream, err := client.CreateStream()
+	if err != nil {
+		log.Infof("Failed to create stream: Err=%+v", err)
+	}
+	//defer stream.Close()
+	_ = stream
+
+	log.Infof("stream created")
 }

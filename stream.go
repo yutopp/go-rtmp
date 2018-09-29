@@ -9,6 +9,7 @@ package rtmp
 
 import (
 	"bytes"
+	"github.com/pkg/errors"
 	"github.com/yutopp/go-rtmp/message"
 )
 
@@ -45,6 +46,44 @@ func (s *Stream) WriteUserCtrl(chunkStreamID int, timestamp uint32, msg *message
 	return s.write(chunkStreamID, timestamp, msg)
 }
 
+// TODO: return server response
+func (s *Stream) Connect() (*message.NetConnectionConnectResult, error) {
+	transactionID := int64(1) // Always 1 (7.2.1.1)
+	t, err := s.entryHandler.transactions.Create(transactionID)
+	if err != nil {
+		return nil, err
+	}
+
+	chunkStreamID := 3 // TODO: fix
+	err = s.writeCommandMessage(
+		chunkStreamID, 0, // Timestamp is 0
+		"connect",
+		transactionID,
+		&message.NetConnectionConnect{},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: support timeout
+	// TODO: check result
+	select {
+	case <-t.doneCh:
+		r := bytes.NewReader(t.body)
+		amfDec := message.NewAMFDecoder(r, t.encoding)
+
+		var value message.AMFConvertible
+		if err := message.DecodeBodyConnectResult(r, amfDec, &value); err != nil {
+			return nil, errors.Wrap(err, "Failed to decode result")
+		}
+		result := value.(*message.NetConnectionConnectResult)
+
+		return result, nil
+	}
+
+	//return nil, errors.New("Failed to get result")
+}
+
 func (s *Stream) ReplyConnect(
 	chunkStreamID int,
 	timestamp uint32,
@@ -64,6 +103,43 @@ func (s *Stream) ReplyConnect(
 		1, // 7.2.1.2, flow.6
 		body,
 	)
+}
+
+func (s *Stream) CreateStream() (*message.NetConnectionCreateStreamResult, error) {
+	transactionID := int64(2) // TODO: fix
+	t, err := s.entryHandler.transactions.Create(transactionID)
+	if err != nil {
+		return nil, err
+	}
+
+	chunkStreamID := 3 // TODO: fix
+	err = s.writeCommandMessage(
+		chunkStreamID, 0, // TODO: fix, Timestamp is 0
+		"createStream",
+		transactionID,
+		&message.NetConnectionConnect{},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: support timeout
+	// TODO: check result
+	select {
+	case <-t.doneCh:
+		r := bytes.NewReader(t.body)
+		amfDec := message.NewAMFDecoder(r, t.encoding)
+
+		var value message.AMFConvertible
+		if err := message.DecodeBodyCreateStreamResult(r, amfDec, &value); err != nil {
+			return nil, errors.Wrap(err, "Failed to decode result")
+		}
+		result := value.(*message.NetConnectionCreateStreamResult)
+
+		return result, nil
+	}
+
+	//return nil, errors.New("Failed to get result")
 }
 
 func (s *Stream) ReplyCreateStream(

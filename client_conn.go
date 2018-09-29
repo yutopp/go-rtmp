@@ -13,7 +13,6 @@ import (
 	"sync"
 
 	"github.com/yutopp/go-rtmp/handshake"
-	"github.com/yutopp/go-rtmp/message"
 )
 
 // ClientConn A wrapper of a connection. It prorives client-side specific features.
@@ -72,44 +71,17 @@ func (cc *ClientConn) Connect() error {
 		return err
 	}
 
-	connectedCh := make(chan *message.NetConnectionConnectResult)
-	errCh := make(chan error)
-	transactionID := int64(1) // Always 1 (7.2.1.1)
-	err = stream.entryHandler.transactions.Create(transactionID, transaction{
-		decoder: message.DecodeBodyConnectResult,
-		callback: func(v interface{}, err error) {
-			if err != nil {
-				errCh <- err
-				return
-			}
-			connectedCh <- v.(*message.NetConnectionConnectResult)
-		},
-	})
+	result, err := stream.Connect()
 	if err != nil {
-		return err
+		return err // TODO: wrap an error
 	}
 
-	chunkStreamID := 3 // TODO: fix
-	err = stream.writeCommandMessage(
-		chunkStreamID, 0, // Timestamp is 0
-		"connect",
-		transactionID,
-		&message.NetConnectionConnect{},
-	)
-	if err != nil {
-		return err
-	}
-
-	// TODO: support timeout
 	// TODO: check result
-	select {
-	case <-connectedCh:
-	}
+	_ = result
 
 	return nil
 }
 
-/*
 func (cc *ClientConn) CreateStream() (*Stream, error) {
 	if err := cc.controllable(); err != nil {
 		return nil, err
@@ -120,58 +92,19 @@ func (cc *ClientConn) CreateStream() (*Stream, error) {
 		return nil, err
 	}
 
-	connectedCh := make(chan *message.NetConnectionCreateStreamResult)
-	errCh := make(chan error)
-	transactionID := int64(2)
-	err = stream.entryHandler.transactions.Create(transactionID, transaction{
-		decoder: message.DecodeBodyConnectResult,
-		callback: func(v interface{}, err error) {
-			if err != nil {
-				errCh <- err
-				return
-			}
-			connectedCh <- v.(*message.NetConnectionCreateStreamResult)
-		},
-	})
+	result, err := stream.CreateStream()
 	if err != nil {
-		return nil, err
+		return nil, err // TODO: wrap an error
 	}
 
-	bodyEnc := &message.BodyEncoder{
-		Value: &message.NetConnectionCreateStream{},
-		MsgEncoder: message.EncodeBodyAnyValues,
-	}
-	cmdMsg := &message.CommandMessage{
-		CommandName:   "createStream",
-		TransactionID: transactionID,
-		Encoder:       bodyEnc,
-	}
-
-	chunkStreamID := 3 // TODO: fix
-	err = stream.WriteCommandMessage(
-		chunkStreamID,
-		0, // Timestamp is 0
-		message.EncodingTypeAMF0,
-		cmdMsg,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	// TODO: support timeout
 	// TODO: check result
-	select {
-	case res := <-connectedCh:
-		// Create a stream which handles messages for data(play, publish, video, audio, etc...)
-		cc.conn.
-		eh := cc.conn.entry.Clone()
-		eh.ChangeState(&serverDataInactiveHandler{entry: eh})
-		s, err := cc.conn.streams.Create(res.StreamID, entryHandler *entryHandler)
-
+	newStream, err := cc.conn.streams.Create(result.StreamID, nil)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil
-}*/
+	return newStream, nil
+}
 
 func (cc *ClientConn) startHandleMessageLoop() {
 	if err := cc.conn.handleMessageLoop(); err != nil {
