@@ -8,6 +8,7 @@
 package rtmp
 
 import (
+	"bytes"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"sync"
@@ -49,6 +50,7 @@ type entryHandler struct {
 	conn *Conn
 
 	transactions *transactions
+	encTy        message.EncodingType
 	msgHandler   messageHandler
 	m            sync.Mutex
 
@@ -62,6 +64,7 @@ func newEntryHandler(conn *Conn) *entryHandler {
 	return &entryHandler{
 		conn:         conn,
 		transactions: newTransactions(),
+		encTy:        message.EncodingTypeAMF0, // Defaule encoder type
 	}
 }
 
@@ -70,25 +73,11 @@ func (h *entryHandler) Handle(chunkStreamID int, timestamp uint32, msg message.M
 	l := h.Logger()
 
 	switch msg := msg.(type) {
-	case *message.CommandMessageAMF0:
-		encTy := message.EncodingTypeAMF0
-		cmdMsg := &msg.CommandMessage
-		return h.handleCommand(chunkStreamID, timestamp, encTy, cmdMsg, stream)
+	case *message.DataMessage:
+		return h.handleData(chunkStreamID, timestamp, msg, stream)
 
-	case *message.CommandMessageAMF3:
-		encTy := message.EncodingTypeAMF3
-		cmdMsg := &msg.CommandMessage
-		return h.handleCommand(chunkStreamID, timestamp, encTy, cmdMsg, stream)
-
-	case *message.DataMessageAMF0:
-		encTy := message.EncodingTypeAMF0
-		dataMsg := &msg.DataMessage
-		return h.handleData(chunkStreamID, timestamp, encTy, dataMsg, stream)
-
-	case *message.DataMessageAMF3:
-		encTy := message.EncodingTypeAMF3
-		dataMsg := &msg.DataMessage
-		return h.handleData(chunkStreamID, timestamp, encTy, dataMsg, stream)
+	case *message.CommandMessage:
+		return h.handleCommand(chunkStreamID, timestamp, msg, stream)
 
 	case *message.SetChunkSize:
 		l.Infof("Handle SetChunkSize: Msg = %#v", msg)
@@ -164,14 +153,36 @@ func (h *entryHandler) Logger() *logrus.Entry {
 	return h.loggerEntry
 }
 
+func (h *entryHandler) handleData(
+	chunkStreamID int,
+	timestamp uint32,
+	dataMsg *message.DataMessage,
+	stream *Stream,
+) error {
+	bodyDecoder := message.DataBodyDecoderFor(dataMsg.Name)
+
+	r := bytes.NewReader(dataMsg.Body)
+	amfDec := message.NewAMFDecoder(r, dataMsg.Encoding)
+	var value message.AMFConvertible
+	if err := bodyDecoder(r, amfDec, &value); err != nil {
+		return err
+	}
+
+	err := h.msgHandler.HandleData(chunkStreamID, timestamp, dataMsg, value, stream)
+	if err == internal.ErrPassThroughMsg {
+		return h.conn.handler.OnUnknownDataMessage(timestamp, dataMsg)
+	}
+	return err
+}
+
 func (h *entryHandler) handleCommand(
 	chunkStreamID int,
 	timestamp uint32,
-	encTy message.EncodingType,
 	cmdMsg *message.CommandMessage,
 	stream *Stream,
 ) error {
 	var callback func(v interface{}, err error)
+	var bodyDecoder message.BodyDecoderFunc
 	switch cmdMsg.CommandName {
 	case "_result":
 		t, err := h.transactions.At(cmdMsg.TransactionID)
@@ -183,13 +194,18 @@ func (h *entryHandler) handleCommand(
 			return errors.Wrap(err, "Unexpected behaviour: transaction is not found")
 		}
 
-		cmdMsg.Decoder.MsgDecoder = t.decoder
+		bodyDecoder = t.decoder
+		callback = t.callback
 
 	default:
 		// TODO: support onStatus
-		cmdMsg.Decoder.MsgDecoder = message.CmdBodyDecoderFor(cmdMsg.CommandName, cmdMsg.TransactionID)
+		bodyDecoder = message.CmdBodyDecoderFor(cmdMsg.CommandName, cmdMsg.TransactionID)
 	}
-	if err := cmdMsg.Decoder.Decode(); err != nil {
+
+	r := bytes.NewReader(cmdMsg.Body)
+	amfDec := message.NewAMFDecoder(r, cmdMsg.Encoding)
+	var value message.AMFConvertible
+	if err := bodyDecoder(r, amfDec, &value); err != nil {
 		if callback != nil {
 			callback(nil, err)
 		}
@@ -197,31 +213,12 @@ func (h *entryHandler) handleCommand(
 	}
 
 	if callback != nil {
-		callback(cmdMsg.Decoder.Value, nil)
+		callback(value, nil)
 	}
 
-	err := h.msgHandler.HandleCommand(chunkStreamID, timestamp, encTy, cmdMsg, cmdMsg.Decoder.Value, stream)
+	err := h.msgHandler.HandleCommand(chunkStreamID, timestamp, cmdMsg, value, stream)
 	if err == internal.ErrPassThroughMsg {
 		return h.conn.handler.OnUnknownCommandMessage(timestamp, cmdMsg)
-	}
-	return err
-}
-
-func (h *entryHandler) handleData(
-	chunkStreamID int,
-	timestamp uint32,
-	encTy message.EncodingType,
-	dataMsg *message.DataMessage,
-	stream *Stream,
-) error {
-	dataMsg.Decoder.MsgDecoder = message.DataBodyDecoderFor(dataMsg.Name)
-	if err := dataMsg.Decoder.Decode(); err != nil {
-		return err
-	}
-
-	err := h.msgHandler.HandleData(chunkStreamID, timestamp, encTy, dataMsg, dataMsg.Decoder.Value, stream)
-	if err == internal.ErrPassThroughMsg {
-		return h.conn.handler.OnUnknownDataMessage(timestamp, dataMsg)
 	}
 	return err
 }

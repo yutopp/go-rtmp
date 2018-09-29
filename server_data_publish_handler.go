@@ -39,21 +39,9 @@ func (h *serverDataPublishHandler) Handle(
 	}
 }
 
-func (h *serverDataPublishHandler) HandleCommand(
-	chunkStreamID int,
-	timestamp uint32,
-	encTy message.EncodingType,
-	cmdMsg *message.CommandMessage,
-	body interface{},
-	stream *Stream,
-) error {
-	return internal.ErrPassThroughMsg
-}
-
 func (h *serverDataPublishHandler) HandleData(
 	chunkStreamID int,
 	timestamp uint32,
-	encTy message.EncodingType,
 	dataMsg *message.DataMessage,
 	body interface{},
 	stream *Stream,
@@ -65,4 +53,14 @@ func (h *serverDataPublishHandler) HandleData(
 	default:
 		return internal.ErrPassThroughMsg
 	}
+}
+
+func (h *serverDataPublishHandler) HandleCommand(
+	chunkStreamID int,
+	timestamp uint32,
+	cmdMsg *message.CommandMessage,
+	body interface{},
+	stream *Stream,
+) error {
+	return internal.ErrPassThroughMsg
 }

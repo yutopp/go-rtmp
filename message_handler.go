@@ -13,19 +13,17 @@ import (
 
 type messageHandler interface {
 	Handle(chunkStreamID int, timestamp uint32, msg message.Message, stream *Stream) error
-	HandleCommand(
-		chunkStreamID int,
-		timestamp uint32,
-		encTy message.EncodingType,
-		cmdMsg *message.CommandMessage,
-		body interface{},
-		stream *Stream,
-	) error
 	HandleData(
 		chunkStreamID int,
 		timestamp uint32,
-		encTy message.EncodingType,
 		dataMsg *message.DataMessage,
+		body interface{},
+		stream *Stream,
+	) error
+	HandleCommand(
+		chunkStreamID int,
+		timestamp uint32,
+		cmdMsg *message.CommandMessage,
 		body interface{},
 		stream *Stream,
 	) error

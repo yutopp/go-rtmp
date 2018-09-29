@@ -115,25 +115,20 @@ func (m *VideoMessage) TypeID() TypeID {
 
 // DataMessage (15, 18)
 type DataMessage struct {
-	Name    string
-	Decoder *BodyDecoder // Can be used when decoding
-	Encoder *BodyEncoder // Can be used when encoding
+	Name     string
+	Encoding EncodingType
+	Body     []byte
 }
 
-type DataMessageAMF3 struct {
-	DataMessage
-}
-
-func (m *DataMessageAMF3) TypeID() TypeID {
-	return TypeIDDataMessageAMF3
-}
-
-type DataMessageAMF0 struct {
-	DataMessage
-}
-
-func (m *DataMessageAMF0) TypeID() TypeID {
-	return TypeIDDataMessageAMF0
+func (m *DataMessage) TypeID() TypeID {
+	switch m.Encoding {
+	case EncodingTypeAMF3:
+		return TypeIDDataMessageAMF3
+	case EncodingTypeAMF0:
+		return TypeIDDataMessageAMF0
+	default:
+		panic("Unreachable")
+	}
 }
 
 // SharedObjectMessage (16, 19)
@@ -160,24 +155,19 @@ func (m *SharedObjectMessageAMF0) TypeID() TypeID {
 type CommandMessage struct {
 	CommandName   string
 	TransactionID int64
-	Decoder       *BodyDecoder // Can be used when decoding
-	Encoder       *BodyEncoder // Can be used when encoding
+	Encoding      EncodingType
+	Body          []byte
 }
 
-type CommandMessageAMF3 struct {
-	CommandMessage
-}
-
-func (m *CommandMessageAMF3) TypeID() TypeID {
-	return TypeIDCommandMessageAMF3
-}
-
-type CommandMessageAMF0 struct {
-	CommandMessage
-}
-
-func (m *CommandMessageAMF0) TypeID() TypeID {
-	return TypeIDCommandMessageAMF0
+func (m *CommandMessage) TypeID() TypeID {
+	switch m.Encoding {
+	case EncodingTypeAMF3:
+		return TypeIDCommandMessageAMF3
+	case EncodingTypeAMF0:
+		return TypeIDCommandMessageAMF0
+	default:
+		panic("Unreachable")
+	}
 }
 
 // AggregateMessage (22)

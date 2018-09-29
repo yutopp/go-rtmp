@@ -46,14 +46,7 @@ func (ss *streams) Create(streamID uint32, entryHandler *entryHandler) (*Stream,
 		)
 	}
 
-	ss.streams[streamID] = &Stream{
-		streamID:     streamID,
-		entryHandler: entryHandler,
-		streamer:     ss.streamer,
-		cmsg: ChunkMessage{
-			StreamID: streamID,
-		},
-	}
+	ss.streams[streamID] = newStream(streamID, entryHandler, ss.streamer)
 
 	return ss.streams[streamID], nil
 }

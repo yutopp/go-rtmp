@@ -8,11 +8,10 @@
 package message
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"io"
-
-	"github.com/yutopp/go-amf0"
 )
 
 type Encoder struct {
@@ -44,18 +43,14 @@ func (enc *Encoder) Encode(msg Message) error {
 		return enc.encodeAudioMessage(msg)
 	case *VideoMessage:
 		return enc.encodeVideoMessage(msg)
-	case *DataMessageAMF3:
-		return enc.encodeDataMessageAMF3(msg)
+	case *DataMessage:
+		return enc.encodeDataMessage(msg)
 	case *SharedObjectMessageAMF3:
 		return enc.encodeSharedObjectMessageAMF3(msg)
-	case *CommandMessageAMF3:
-		return enc.encodeCommandMessageAMF3(msg)
-	case *DataMessageAMF0:
-		return enc.encodeDataMessageAMF0(msg)
+	case *CommandMessage:
+		return enc.encodeCommandMessage(msg)
 	case *SharedObjectMessageAMF0:
 		return enc.encodeSharedObjectMessageAMF0(msg)
-	case *CommandMessageAMF0:
-		return enc.encodeCommandMessageAMF0(msg)
 	case *AggregateMessage:
 		return enc.encodeAggregateMessage(msg)
 	default:
@@ -144,63 +139,45 @@ func (enc *Encoder) encodeVideoMessage(m *VideoMessage) error {
 	return nil
 }
 
-func (enc *Encoder) encodeDataMessageAMF3(m *DataMessageAMF3) error {
-	return fmt.Errorf("Not implemented: DataMessageAMF3")
-}
-
 func (enc *Encoder) encodeSharedObjectMessageAMF3(m *SharedObjectMessageAMF3) error {
 	return fmt.Errorf("Not implemented: SharedObjectMessageAMF3")
 }
 
-func (enc *Encoder) encodeCommandMessageAMF3(m *CommandMessageAMF3) error {
-	return fmt.Errorf("Not implemented: CommandMessageAMF3")
-}
+func (enc *Encoder) encodeDataMessage(m *DataMessage) error {
+	e := NewAMFEncoder(enc.w, m.Encoding)
 
-func (enc *Encoder) encodeDataMessageAMF0(m *DataMessageAMF0) error {
-	e := amf0.NewEncoder(enc.w)
-	return enc.encodeDataMessage(enc.w, e, &m.DataMessage)
+	if err := e.Encode(m.Name); err != nil {
+		return err
+	}
+
+	if _, err := io.Copy(enc.w, bytes.NewReader(m.Body)); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (enc *Encoder) encodeSharedObjectMessageAMF0(m *SharedObjectMessageAMF0) error {
 	return fmt.Errorf("Not implemented: SharedObjectMessageAMF0")
 }
 
-func (enc *Encoder) encodeCommandMessageAMF0(m *CommandMessageAMF0) error {
-	e := amf0.NewEncoder(enc.w)
-	return enc.encodeCommandMessage(enc.w, e, &m.CommandMessage)
+func (enc *Encoder) encodeCommandMessage(m *CommandMessage) error {
+	e := NewAMFEncoder(enc.w, m.Encoding)
+
+	if err := e.Encode(m.CommandName); err != nil {
+		return err
+	}
+	if err := e.Encode(m.TransactionID); err != nil {
+		return err
+	}
+
+	if _, err := io.Copy(enc.w, bytes.NewReader(m.Body)); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (enc *Encoder) encodeAggregateMessage(m *AggregateMessage) error {
 	return fmt.Errorf("Not implemented: AggregateMessage")
-}
-
-func (enc *Encoder) encodeDataMessage(w io.Writer, e AMFEncoder, dataMsg *DataMessage) error {
-	if err := e.Encode(dataMsg.Name); err != nil {
-		return err
-	}
-
-	dataMsg.Encoder.writer = w
-	dataMsg.Encoder.amfEnc = e
-	if err := dataMsg.Encoder.Encode(); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (enc *Encoder) encodeCommandMessage(w io.Writer, e AMFEncoder, cmdMsg *CommandMessage) error {
-	if err := e.Encode(cmdMsg.CommandName); err != nil {
-		return err
-	}
-	if err := e.Encode(cmdMsg.TransactionID); err != nil {
-		return err
-	}
-
-	cmdMsg.Encoder.writer = w
-	cmdMsg.Encoder.amfEnc = e
-	if err := cmdMsg.Encoder.Encode(); err != nil {
-		return err
-	}
-
-	return nil
 }

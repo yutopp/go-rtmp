@@ -33,10 +33,19 @@ func (h *clientControlNotConnectedHandler) Handle(
 	return internal.ErrPassThroughMsg
 }
 
+func (h *clientControlNotConnectedHandler) HandleData(
+	chunkStreamID int,
+	timestamp uint32,
+	dataMsg *message.DataMessage,
+	body interface{},
+	stream *Stream,
+) error {
+	return internal.ErrPassThroughMsg
+}
+
 func (h *clientControlNotConnectedHandler) HandleCommand(
 	chunkStreamID int,
 	timestamp uint32,
-	encTy message.EncodingType,
 	cmdMsg *message.CommandMessage,
 	body interface{},
 	stream *Stream,
@@ -53,15 +62,4 @@ func (h *clientControlNotConnectedHandler) HandleCommand(
 	default:
 		return internal.ErrPassThroughMsg
 	}
-}
-
-func (h *clientControlNotConnectedHandler) HandleData(
-	chunkStreamID int,
-	timestamp uint32,
-	encTy message.EncodingType,
-	dataMsg *message.DataMessage,
-	body interface{},
-	stream *Stream,
-) error {
-	return internal.ErrPassThroughMsg
 }

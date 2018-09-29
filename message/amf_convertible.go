@@ -7,6 +7,11 @@
 
 package message
 
+import (
+	"github.com/yutopp/go-amf0"
+	"io"
+)
+
 type EncodingType uint8
 
 const (
@@ -21,8 +26,32 @@ type AMFConvertible interface {
 
 type AMFDecoder interface {
 	Decode(interface{}) error
+	Reset(r io.Reader)
+}
+
+func NewAMFDecoder(r io.Reader, encTy EncodingType) AMFDecoder {
+	switch encTy {
+	case EncodingTypeAMF3:
+		panic("Unsupported encoding: AMF3")
+	case EncodingTypeAMF0:
+		return amf0.NewDecoder(r)
+	default:
+		panic("Unreachable")
+	}
 }
 
 type AMFEncoder interface {
 	Encode(interface{}) error
+	Reset(w io.Writer)
+}
+
+func NewAMFEncoder(w io.Writer, encTy EncodingType) AMFEncoder {
+	switch encTy {
+	case EncodingTypeAMF3:
+		panic("Unsupported encoding: AMF3")
+	case EncodingTypeAMF0:
+		return amf0.NewEncoder(w)
+	default:
+		panic("Unreachable")
+	}
 }

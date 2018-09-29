@@ -30,22 +30,20 @@ func (h *serverDataPlayHandler) Handle(
 	return internal.ErrPassThroughMsg
 }
 
-func (h *serverDataPlayHandler) HandleCommand(
+func (h *serverDataPlayHandler) HandleData(
 	chunkStreamID int,
 	timestamp uint32,
-	encTy message.EncodingType,
-	cmdMsg *message.CommandMessage,
+	dataMsg *message.DataMessage,
 	body interface{},
 	stream *Stream,
 ) error {
 	return internal.ErrPassThroughMsg
 }
 
-func (h *serverDataPlayHandler) HandleData(
+func (h *serverDataPlayHandler) HandleCommand(
 	chunkStreamID int,
 	timestamp uint32,
-	encTy message.EncodingType,
-	dataMsg *message.DataMessage,
+	cmdMsg *message.CommandMessage,
 	body interface{},
 	stream *Stream,
 ) error {

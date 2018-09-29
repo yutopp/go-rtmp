@@ -224,20 +224,11 @@ func (dec *Decoder) decodeCommandMessageAMF3(msg *Message) error {
 }
 
 func (dec *Decoder) decodeDataMessageAMF0(msg *Message) error {
-	// Copy ownership
-	var buf bytes.Buffer
-	if _, err := io.Copy(&buf, dec.r); err != nil {
-		return errors.Wrap(err, "Failed to copy buffer of DataMessageAMF0")
-	}
-
-	d := amf0.NewDecoder(&buf)
-
-	var body DataMessageAMF0
-	if err := dec.decodeDataMessage(&buf, d, &body.DataMessage); err != nil {
+	if err := dec.decodeDataMessage(dec.r, msg, func(r io.Reader) (AMFDecoder, EncodingType) {
+		return amf0.NewDecoder(r), EncodingTypeAMF0
+	}); err != nil {
 		return err
 	}
-
-	*msg = &body
 
 	return nil
 }
@@ -247,20 +238,11 @@ func (dec *Decoder) decodeSharedObjectMessageAMF0(msg *Message) error {
 }
 
 func (dec *Decoder) decodeCommandMessageAMF0(msg *Message) error {
-	// Copy ownership
-	var buf bytes.Buffer
-	if _, err := io.Copy(&buf, dec.r); err != nil {
-		return errors.Wrap(err, "Failed to copy buffer of CommandMessageAMF0")
-	}
-
-	d := amf0.NewDecoder(&buf)
-
-	var body CommandMessageAMF0
-	if err := dec.decodeCommandMessage(&buf, d, &body.CommandMessage); err != nil {
+	if err := dec.decodeCommandMessage(dec.r, msg, func(r io.Reader) (AMFDecoder, EncodingType) {
+		return amf0.NewDecoder(r), EncodingTypeAMF0
+	}); err != nil {
 		return err
 	}
-
-	*msg = &body
 
 	return nil
 }
@@ -269,53 +251,65 @@ func (dec *Decoder) decodeAggregateMessage(msg *Message) error {
 	return fmt.Errorf("Not implemented: AggregateMessage")
 }
 
-func (dec *Decoder) decodeDataMessage(r io.Reader, d AMFDecoder, dataMsg *DataMessage) error {
+func (dec *Decoder) decodeDataMessage(r io.Reader, msg *Message, f func(r io.Reader) (AMFDecoder, EncodingType)) error {
+	d, encTy := f(r)
+
 	var name string
 	if err := d.Decode(&name); err != nil {
-		return err
+		return errors.Wrap(err, "Failed to decode name")
 	}
 
-	// Not decoding body in this function to make an user select a decoder of the body.
-	// The caller of this function should call `msg.Decoder.Decode()` with arbitrary `MsgDecoder`
-	bodyDec := &BodyDecoder{
-		reader:     r,
-		amfDec:     d,
-		Value:      nil, // Caller can get a decoded value from this
-		MsgDecoder: nil, // Caller MUST set this function
+	buf := &dec.cacheBuffer // TODO: Provide thread safety if needed
+	buf.Reset()
+
+	_, err := io.Copy(buf, dec.r)
+	if err != nil {
+		return errors.Wrap(err, "Failed to copy body payload")
 	}
 
-	*dataMsg = DataMessage{
-		Name:    name,
-		Decoder: bodyDec,
+	// Copy ownership
+	bin := make([]byte, len(buf.Bytes()))
+	copy(bin, buf.Bytes())
+
+	*msg = &DataMessage{
+		Name:     name,
+		Encoding: encTy,
+		Body:     bin,
 	}
 
 	return nil
 }
 
-func (dec *Decoder) decodeCommandMessage(r io.Reader, d AMFDecoder, cmdMsg *CommandMessage) error {
+func (dec *Decoder) decodeCommandMessage(r io.Reader, msg *Message, f func(r io.Reader) (AMFDecoder, EncodingType)) error {
+	d, encTy := f(r)
+
 	var name string
 	if err := d.Decode(&name); err != nil {
-		return err
+		return errors.Wrap(err, "Failed to decode name")
 	}
 
 	var transactionID int64
 	if err := d.Decode(&transactionID); err != nil {
-		return err
+		return errors.Wrap(err, "Failed to decode transactionID")
 	}
 
-	// Not decoding body in this function to make an user select a decoder of the body.
-	// The caller of this function should call `msg.Decoder.Decode()` with arbitrary `MsgDecoder`
-	bodyDec := &BodyDecoder{
-		reader:     r,
-		amfDec:     d,
-		Value:      nil, // Caller can get a decoded value from this
-		MsgDecoder: nil, // Caller MUST set this function
+	buf := &dec.cacheBuffer // TODO: Provide thread safety if needed
+	buf.Reset()
+
+	_, err := io.Copy(buf, dec.r)
+	if err != nil {
+		return errors.Wrap(err, "Failed to copy body payload")
 	}
 
-	*cmdMsg = CommandMessage{
+	// Copy ownership
+	bin := make([]byte, len(buf.Bytes()))
+	copy(bin, buf.Bytes())
+
+	*msg = &CommandMessage{
 		CommandName:   name,
 		TransactionID: transactionID,
-		Decoder:       bodyDec,
+		Encoding:      encTy,
+		Body:          bin,
 	}
 
 	return nil

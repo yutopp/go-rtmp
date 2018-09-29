@@ -15,17 +15,6 @@ import (
 
 type BodyDecoderFunc func(r io.Reader, e AMFDecoder, v *AMFConvertible) error
 
-type BodyDecoder struct {
-	reader     io.Reader
-	amfDec     AMFDecoder
-	Value      AMFConvertible
-	MsgDecoder BodyDecoderFunc
-}
-
-func (bd *BodyDecoder) Decode() error {
-	return bd.MsgDecoder(bd.reader, bd.amfDec, &bd.Value)
-}
-
 var DataBodyDecoders = map[string]BodyDecoderFunc{
 	"@setDataFrame": DecodeBodyAtSetDataFrame,
 }

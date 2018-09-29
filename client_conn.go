@@ -89,24 +89,12 @@ func (cc *ClientConn) Connect() error {
 		return err
 	}
 
-	bodyEnc := &message.BodyEncoder{
-		Value: &message.NetConnectionConnect{
-			Command: message.NetConnectionConnectCommand{},
-		},
-		MsgEncoder: message.EncodeBodyAnyValues,
-	}
-	cmdMsg := &message.CommandMessage{
-		CommandName:   "connect",
-		TransactionID: transactionID,
-		Encoder:       bodyEnc,
-	}
-
 	chunkStreamID := 3 // TODO: fix
-	err = stream.WriteCommandMessage(
-		chunkStreamID,
-		0, // Timestamp is 0
-		message.EncodingTypeAMF0,
-		cmdMsg,
+	err = stream.writeCommandMessage(
+		chunkStreamID, 0, // Timestamp is 0
+		"connect",
+		transactionID,
+		&message.NetConnectionConnect{},
 	)
 	if err != nil {
 		return err
@@ -120,6 +108,70 @@ func (cc *ClientConn) Connect() error {
 
 	return nil
 }
+
+/*
+func (cc *ClientConn) CreateStream() (*Stream, error) {
+	if err := cc.controllable(); err != nil {
+		return nil, err
+	}
+
+	stream, err := cc.conn.streams.At(ControlStreamID)
+	if err != nil {
+		return nil, err
+	}
+
+	connectedCh := make(chan *message.NetConnectionCreateStreamResult)
+	errCh := make(chan error)
+	transactionID := int64(2)
+	err = stream.entryHandler.transactions.Create(transactionID, transaction{
+		decoder: message.DecodeBodyConnectResult,
+		callback: func(v interface{}, err error) {
+			if err != nil {
+				errCh <- err
+				return
+			}
+			connectedCh <- v.(*message.NetConnectionCreateStreamResult)
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	bodyEnc := &message.BodyEncoder{
+		Value: &message.NetConnectionCreateStream{},
+		MsgEncoder: message.EncodeBodyAnyValues,
+	}
+	cmdMsg := &message.CommandMessage{
+		CommandName:   "createStream",
+		TransactionID: transactionID,
+		Encoder:       bodyEnc,
+	}
+
+	chunkStreamID := 3 // TODO: fix
+	err = stream.WriteCommandMessage(
+		chunkStreamID,
+		0, // Timestamp is 0
+		message.EncodingTypeAMF0,
+		cmdMsg,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: support timeout
+	// TODO: check result
+	select {
+	case res := <-connectedCh:
+		// Create a stream which handles messages for data(play, publish, video, audio, etc...)
+		cc.conn.
+		eh := cc.conn.entry.Clone()
+		eh.ChangeState(&serverDataInactiveHandler{entry: eh})
+		s, err := cc.conn.streams.Create(res.StreamID, entryHandler *entryHandler)
+
+	}
+
+	return nil
+}*/
 
 func (cc *ClientConn) startHandleMessageLoop() {
 	if err := cc.conn.handleMessageLoop(); err != nil {

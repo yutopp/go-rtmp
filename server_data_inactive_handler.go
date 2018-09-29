@@ -34,10 +34,19 @@ func (h *serverDataInactiveHandler) Handle(
 	return internal.ErrPassThroughMsg
 }
 
+func (h *serverDataInactiveHandler) HandleData(
+	chunkStreamID int,
+	timestamp uint32,
+	dataMsg *message.DataMessage,
+	body interface{},
+	stream *Stream,
+) error {
+	return internal.ErrPassThroughMsg
+}
+
 func (h *serverDataInactiveHandler) HandleCommand(
 	chunkStreamID int,
 	timestamp uint32,
-	encTy message.EncodingType,
 	cmdMsg *message.CommandMessage,
 	body interface{},
 	stream *Stream,
@@ -50,23 +59,18 @@ func (h *serverDataInactiveHandler) HandleCommand(
 
 		if err := h.entry.conn.handler.OnPublish(timestamp, cmd); err != nil {
 			// TODO: Support message.NetStreamOnStatusCodePublishBadName
-			cmdRespMsg := h.newOnStatusMessage(
-				message.NetStreamOnStatusCodePublishFailed,
-				"Publish failed.",
-			)
-			l.Infof("Reject a Publish request: Response = %#v", cmdRespMsg.Encoder.Value)
-			if writeErr := stream.WriteCommandMessage(chunkStreamID, timestamp, encTy, cmdRespMsg); writeErr != nil {
-				return errors.Wrapf(err, "Write failed: Err = %+v", writeErr)
+			result := h.newOnStatus(message.NetStreamOnStatusCodePublishFailed, "Publish failed.")
+
+			l.Infof("Reject a Publish request: Response = %#v", result)
+			if err1 := stream.NotifyStatus(chunkStreamID, timestamp, result); err1 != nil {
+				return errors.Wrapf(err, "Failed to reply response: Err = %+v", err1)
 			}
 
 			return err
 		}
 
-		cmdRespMsg := h.newOnStatusMessage(
-			message.NetStreamOnStatusCodePublishStart,
-			"Publish succeeded.",
-		)
-		if err := stream.WriteCommandMessage(chunkStreamID, timestamp, encTy, cmdRespMsg); err != nil {
+		result := h.newOnStatus(message.NetStreamOnStatusCodePublishStart, "Publish succeeded.")
+		if err := stream.NotifyStatus(chunkStreamID, timestamp, result); err != nil {
 			return err
 		}
 		l.Infof("Publisher accepted")
@@ -79,23 +83,18 @@ func (h *serverDataInactiveHandler) HandleCommand(
 		l.Infof("Player is comming: %#v", cmd)
 
 		if err := h.entry.conn.handler.OnPlay(timestamp, cmd); err != nil {
-			cmdRespMsg := h.newOnStatusMessage(
-				message.NetStreamOnStatusCodePlayFailed,
-				"Play failed.",
-			)
-			l.Infof("Reject a Play request: Response = %#v", cmdRespMsg.Encoder.Value)
-			if writeErr := stream.WriteCommandMessage(chunkStreamID, timestamp, encTy, cmdRespMsg); writeErr != nil {
-				return errors.Wrapf(err, "Write failed: Err = %+v", writeErr)
+			result := h.newOnStatus(message.NetStreamOnStatusCodePlayFailed, "Play failed.")
+
+			l.Infof("Reject a Play request: Response = %#v", result)
+			if err1 := stream.NotifyStatus(chunkStreamID, timestamp, result); err1 != nil {
+				return errors.Wrapf(err, "Failed to reply response: Err = %+v", err1)
 			}
 
 			return err
 		}
 
-		cmdRespMsg := h.newOnStatusMessage(
-			message.NetStreamOnStatusCodePlayStart,
-			"Play succeeded.",
-		)
-		if err := stream.WriteCommandMessage(chunkStreamID, timestamp, encTy, cmdRespMsg); err != nil {
+		result := h.newOnStatus(message.NetStreamOnStatusCodePlayStart, "Play succeeded.")
+		if err := stream.NotifyStatus(chunkStreamID, timestamp, result); err != nil {
 			return err
 		}
 		l.Infof("Player accepted")
@@ -109,10 +108,10 @@ func (h *serverDataInactiveHandler) HandleCommand(
 	}
 }
 
-func (h *serverDataInactiveHandler) newOnStatusMessage(
+func (h *serverDataInactiveHandler) newOnStatus(
 	code message.NetStreamOnStatusCode,
 	description string,
-) *message.CommandMessage {
+) *message.NetStreamOnStatus {
 	// https://helpx.adobe.com/adobe-media-server/ssaslr/netstream-class.html#netstream_onstatus
 	level := message.NetStreamOnStatusLevelStatus
 	switch code {
@@ -124,30 +123,11 @@ func (h *serverDataInactiveHandler) newOnStatusMessage(
 		level = message.NetStreamOnStatusLevelError
 	}
 
-	bodyEnc := &message.BodyEncoder{
-		Value: &message.NetStreamOnStatus{
-			InfoObject: message.NetStreamOnStatusInfoObject{
-				Level:       level,
-				Code:        code,
-				Description: description,
-			},
+	return &message.NetStreamOnStatus{
+		InfoObject: message.NetStreamOnStatusInfoObject{
+			Level:       level,
+			Code:        code,
+			Description: description,
 		},
-		MsgEncoder: message.EncodeBodyAnyValues,
 	}
-	return &message.CommandMessage{
-		CommandName:   "onStatus",
-		TransactionID: 0, // 7.2.2
-		Encoder:       bodyEnc,
-	}
-}
-
-func (h *serverDataInactiveHandler) HandleData(
-	chunkStreamID int,
-	timestamp uint32,
-	encTy message.EncodingType,
-	dataMsg *message.DataMessage,
-	body interface{},
-	stream *Stream,
-) error {
-	return internal.ErrPassThroughMsg
 }
