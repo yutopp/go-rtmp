@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	client, err := rtmp.Dial("rtmp://localhost:1935", &rtmp.ConnConfig{
+	client, err := rtmp.Dial("rtmp", "localhost:1935", &rtmp.ConnConfig{
 		Logger: log.StandardLogger(),
 	})
 	if err != nil {
@@ -25,8 +25,7 @@ func main() {
 	if err != nil {
 		log.Infof("Failed to create stream: Err=%+v", err)
 	}
-	//defer stream.Close()
-	_ = stream
+	defer stream.Close()
 
 	log.Infof("stream created")
 }

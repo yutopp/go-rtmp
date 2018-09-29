@@ -16,22 +16,21 @@ import (
 const ControlStreamID = 0
 
 type streams struct {
-	streamer *ChunkStreamer
-	streams  map[uint32]*Stream
-	m        sync.Mutex
+	streams map[uint32]*Stream
+	m       sync.Mutex
 
-	config *StreamControlStateConfig
+	conn *Conn
 }
 
-func newStreams(streamer *ChunkStreamer, config *StreamControlStateConfig) *streams {
+func newStreams(conn *Conn) *streams {
 	return &streams{
-		streamer: streamer,
-		streams:  make(map[uint32]*Stream),
-		config:   config,
+		streams: make(map[uint32]*Stream),
+
+		conn: conn,
 	}
 }
 
-func (ss *streams) Create(streamID uint32, entryHandler *entryHandler) (*Stream, error) {
+func (ss *streams) Create(streamID uint32) (*Stream, error) {
 	ss.m.Lock()
 	defer ss.m.Unlock()
 
@@ -39,28 +38,31 @@ func (ss *streams) Create(streamID uint32, entryHandler *entryHandler) (*Stream,
 	if ok {
 		return nil, errors.Errorf("Stream already exists: StreamID = %d", streamID)
 	}
-	if len(ss.streams) >= ss.config.MaxMessageStreams {
+	if len(ss.streams) >= ss.conn.config.ControlState.MaxMessageStreams {
 		return nil, errors.Errorf(
 			"Creating message streams limit exceeded: Limit = %d",
-			ss.config.MaxMessageStreams,
+			ss.conn.config.ControlState.MaxMessageStreams,
 		)
 	}
 
-	ss.streams[streamID] = newStream(streamID, entryHandler, ss.streamer)
+	ss.streams[streamID] = newStream(streamID, ss.conn)
 
 	return ss.streams[streamID], nil
 }
 
-func (ss *streams) CreateIfAvailable(entryHandler *entryHandler) (uint32, error) {
-	for i := 0; i < ss.config.MaxMessageStreams; i++ {
-		s, err := ss.Create(uint32(i), entryHandler)
+func (ss *streams) CreateIfAvailable() (*Stream, error) {
+	for i := 0; i < ss.conn.config.ControlState.MaxMessageStreams; i++ {
+		s, err := ss.Create(uint32(i))
 		if err != nil {
 			continue
 		}
-		return s.streamID, nil
+		return s, nil
 	}
 
-	return 0, errors.Errorf("Creating streams limit exceeded: Limit = %d", ss.config.MaxMessageStreams)
+	return nil, errors.Errorf(
+		"Creating streams limit exceeded: Limit = %d",
+		ss.conn.config.ControlState.MaxMessageStreams,
+	)
 }
 
 func (ss *streams) Delete(streamID uint32) error {

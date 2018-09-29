@@ -10,11 +10,14 @@ package rtmp
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"github.com/fortytw2/leaktest"
 	"github.com/stretchr/testify/assert"
+	"io/ioutil"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/yutopp/go-rtmp/message"
 )
@@ -33,7 +36,7 @@ func TestStreamerSingleChunk(t *testing.T) {
 	timestamp := uint32(72)
 
 	// write a message
-	w, err := streamer.NewChunkWriter(chunkStreamID)
+	w, err := streamer.NewChunkWriter(context.Background(), chunkStreamID)
 	assert.Nil(t, err)
 	assert.NotNil(t, w)
 
@@ -46,7 +49,7 @@ func TestStreamerSingleChunk(t *testing.T) {
 	err = streamer.Sched(w)
 	assert.Nil(t, err)
 
-	_, err = streamer.NewChunkWriter(chunkStreamID) // wait for writing
+	_, err = streamer.NewChunkWriter(context.Background(), chunkStreamID) // wait for writing
 	assert.Nil(t, err)
 
 	// read a message
@@ -84,7 +87,7 @@ func TestStreamerMultipleChunk(t *testing.T) {
 	timestamp := uint32(72)
 
 	// write a message
-	w, err := streamer.NewChunkWriter(chunkStreamID)
+	w, err := streamer.NewChunkWriter(context.Background(), chunkStreamID)
 	assert.Nil(t, err)
 	assert.NotNil(t, w)
 
@@ -97,7 +100,7 @@ func TestStreamerMultipleChunk(t *testing.T) {
 	err = streamer.Sched(w)
 	assert.Nil(t, err)
 
-	_, err = streamer.NewChunkWriter(chunkStreamID) // wait for writing
+	_, err = streamer.NewChunkWriter(context.Background(), chunkStreamID) // wait for writing
 	assert.Nil(t, err)
 
 	// read a message
@@ -204,7 +207,7 @@ func TestStreamerChunkExample1(t *testing.T) {
 
 			for i, wc := range tc.writeCases {
 				t.Run(fmt.Sprintf("Write: %d", i), func(t *testing.T) {
-					w, err := streamer.NewChunkWriter(tc.chunkStreamID)
+					w, err := streamer.NewChunkWriter(context.Background(), tc.chunkStreamID)
 					assert.Nil(t, err)
 					assert.NotNil(t, w)
 
@@ -221,7 +224,7 @@ func TestStreamerChunkExample1(t *testing.T) {
 				})
 			}
 
-			_, err := streamer.NewChunkWriter(tc.chunkStreamID) // wait for writing
+			_, err := streamer.NewChunkWriter(context.Background(), tc.chunkStreamID) // wait for writing
 			assert.Nil(t, err)
 
 			for i, rc := range tc.readCases {
@@ -252,7 +255,7 @@ func TestWriteToInvalidWriter(t *testing.T) {
 	// Write some data
 	chunkStreamID := 10
 	timestamp := uint32(0)
-	err := streamer.Write(chunkStreamID, timestamp, &ChunkMessage{
+	err := streamer.Write(context.Background(), chunkStreamID, timestamp, &ChunkMessage{
 		StreamID: 0,
 		Message:  &message.Ack{},
 	})
@@ -308,4 +311,94 @@ func TestChunkStreamerStreamsLimitation(t *testing.T) {
 		_, err = streamer.prepareChunkWriter(1)
 		assert.EqualError(t, err, "Creating chunk streams limit exceeded(Writer): Limit = 1")
 	}
+}
+
+func TestChunkStreamerDualWriter(t *testing.T) {
+	buf := new(bytes.Buffer)
+	inbuf := bufio.NewReaderSize(buf, 2048)
+	outbuf := bufio.NewWriterSize(ioutil.Discard, 2048)
+
+	streamer := NewChunkStreamer(inbuf, outbuf, nil)
+
+	largePayload := []byte(strings.Repeat("abcdabcd12341234", 512))
+
+	// Writes messages alternately to two streams 20 times without clogging
+	const N = 20
+	for i := 0; i < N; i++ {
+		chunkStreamID := 10 + i%2
+
+		// Write some data
+		timestamp := uint32(0)
+		err := streamer.Write(context.Background(), chunkStreamID, timestamp, &ChunkMessage{
+			StreamID: 0,
+			Message: &message.VideoMessage{
+				Payload: largePayload,
+			},
+		})
+		assert.Nil(t, err)
+	}
+
+	streamer.waitWriters()
+
+	err := streamer.Close()
+	assert.Nil(t, err)
+
+	<-streamer.Done()
+	assert.Equal(t, nil, streamer.Err())
+}
+
+func TestChunkStreamerDualWriterWithoutWaiting(t *testing.T) {
+	buf := new(bytes.Buffer)
+	inbuf := bufio.NewReaderSize(buf, 2048)
+	outbuf := bufio.NewWriterSize(ioutil.Discard, 2048)
+
+	streamer := NewChunkStreamer(inbuf, outbuf, nil)
+
+	largePayload := []byte(strings.Repeat("abcdabcd12341234", 512))
+
+	// Writes messages alternately to two streams 20 times without clogging
+	const N = 20
+	for i := 0; i < N; i++ {
+		chunkStreamID := 10 + i%2
+
+		// Write some data
+		timestamp := uint32(0)
+		err := streamer.Write(context.Background(), chunkStreamID, timestamp, &ChunkMessage{
+			StreamID: 0,
+			Message: &message.VideoMessage{
+				Payload: largePayload,
+			},
+		})
+		assert.Nil(t, err)
+	}
+
+	err := streamer.Close()
+	assert.Nil(t, err)
+
+	<-streamer.Done()
+	assert.Equal(t, nil, streamer.Err())
+}
+
+func TestChunkStreamerNewChunkWriterTwice(t *testing.T) {
+	buf := new(bytes.Buffer)
+	inbuf := bufio.NewReaderSize(buf, 2048)
+	outbuf := bufio.NewWriterSize(ioutil.Discard, 2048)
+
+	streamer := NewChunkStreamer(inbuf, outbuf, nil)
+
+	chunkStreamID := 10
+
+	_, err := streamer.NewChunkWriter(context.Background(), chunkStreamID)
+	assert.Nil(t, err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	_, err = streamer.NewChunkWriter(ctx, chunkStreamID) // Try to acquire same chunk writer
+	assert.EqualError(t, err, "Failed to wait chunk writer: context deadline exceeded")
+
+	err = streamer.Close()
+	assert.Nil(t, err)
+
+	<-streamer.Done()
+	assert.Equal(t, nil, streamer.Err())
 }

@@ -12,7 +12,7 @@ import (
 	"github.com/yutopp/go-rtmp/message"
 )
 
-var _ messageHandler = (*clientControlNotConnectedHandler)(nil)
+var _ stateHandler = (*clientControlNotConnectedHandler)(nil)
 
 // clientControlNotConnectedHandler Handle control messages from a server in flow of connecting.
 //   transitions:
@@ -20,37 +20,33 @@ var _ messageHandler = (*clientControlNotConnectedHandler)(nil)
 //     | _         -> self
 //
 type clientControlNotConnectedHandler struct {
-	entry       *entryHandler
-	connectedCh chan struct{}
+	sh *streamHandler
 }
 
-func (h *clientControlNotConnectedHandler) Handle(
+func (h *clientControlNotConnectedHandler) onMessage(
 	chunkStreamID int,
 	timestamp uint32,
 	msg message.Message,
-	stream *Stream,
 ) error {
 	return internal.ErrPassThroughMsg
 }
 
-func (h *clientControlNotConnectedHandler) HandleData(
+func (h *clientControlNotConnectedHandler) onData(
 	chunkStreamID int,
 	timestamp uint32,
 	dataMsg *message.DataMessage,
 	body interface{},
-	stream *Stream,
 ) error {
 	return internal.ErrPassThroughMsg
 }
 
-func (h *clientControlNotConnectedHandler) HandleCommand(
+func (h *clientControlNotConnectedHandler) onCommand(
 	chunkStreamID int,
 	timestamp uint32,
 	cmdMsg *message.CommandMessage,
 	body interface{},
-	stream *Stream,
 ) error {
-	l := h.entry.Logger()
+	l := h.sh.Logger()
 
 	switch cmd := body.(type) {
 	case *message.NetConnectionConnectResult:

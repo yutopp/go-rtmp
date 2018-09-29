@@ -14,24 +14,26 @@ import (
 
 func TestStreams(t *testing.T) {
 	b := &rwcMock{}
-
-	streamer := NewChunkStreamer(b, b, nil)
-	streams := newStreams(streamer, &StreamControlStateConfig{
-		MaxMessageStreams: 1,
+	conn := newConnFromIO(b, &ConnConfig{
+		ControlState: StreamControlStateConfig{
+			MaxMessageStreams: 1,
+		},
 	})
 
-	sid, err := streams.CreateIfAvailable(nil)
+	streams := newStreams(conn)
+
+	s, err := streams.CreateIfAvailable()
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(0), sid)
+	assert.Equal(t, uint32(0), s.streamID)
 
 	// Becomes error because number of max streams is 1
-	_, err = streams.CreateIfAvailable(nil)
+	_, err = streams.CreateIfAvailable()
 	assert.NotNil(t, err)
 
-	err = streams.Delete(sid)
+	err = streams.Delete(s.streamID)
 	assert.Nil(t, err)
 
 	// Becomes error because the stream is already deleted
-	err = streams.Delete(sid)
+	err = streams.Delete(s.streamID)
 	assert.NotNil(t, err)
 }

@@ -31,12 +31,12 @@ func (sc *serverConn) Serve() error {
 		return errors.Wrap(err, "Failed to handshake")
 	}
 
-	eh := newEntryHandler(sc.conn)
-	eh.ChangeState(&serverControlNotConnectedHandler{entry: eh})
-	ctrlStream, err := sc.conn.streams.Create(ControlStreamID, eh)
+	ctrlStream, err := sc.conn.streams.Create(ControlStreamID)
 	if err != nil {
 		return errors.Wrap(err, "Failed to create control stream")
 	}
+	ctrlStream.handler.ChangeState(streamStateServerNotConnected)
+
 	sc.conn.streamer.controlStreamWriter = ctrlStream.write
 
 	if sc.conn.handler != nil {

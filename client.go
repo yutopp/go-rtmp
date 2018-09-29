@@ -8,30 +8,34 @@
 package rtmp
 
 import (
+	"github.com/pkg/errors"
 	"net"
-	"net/url"
 )
 
-func Dial(urlBase string, config *ConnConfig) (*ClientConn, error) {
-	return DialWithDialer(&net.Dialer{}, urlBase, config)
+func Dial(protocol, addr string, config *ConnConfig) (*ClientConn, error) {
+	return DialWithDialer(&net.Dialer{}, protocol, addr, config)
 }
 
-func DialWithDialer(dialer *net.Dialer, urlBase string, config *ConnConfig) (*ClientConn, error) {
-	u, err := url.Parse(urlBase)
-	if err != nil {
-		return nil, err
+func DialWithDialer(dialer *net.Dialer, protocol, addr string, config *ConnConfig) (*ClientConn, error) {
+	if protocol != "rtmp" {
+		return nil, errors.Errorf("Unknown protocol: %s", protocol)
 	}
 
-	host := u.Hostname()
-	port := u.Port()
-	if port == "" {
-		port = "1935" // RTMP default port
-	}
-
-	rwc, err := dialer.Dial("tcp", host+":"+port)
+	rwc, err := dialer.Dial("tcp", addr)
 	if err != nil {
 		return nil, err
 	}
 
 	return newClientConnWithSetup(rwc, config)
+}
+
+func makeValidAddr(addr string) (string, error) {
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		if err, ok := err.(*net.AddrError); ok && err.Err == "missing port in address" {
+			return makeValidAddr(addr + ":1935") // Default RTMP port
+		}
+		return "", err
+	}
+	return net.JoinHostPort(host, port), nil
 }

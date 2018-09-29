@@ -14,16 +14,18 @@ import (
 )
 
 func BenchmarkHandlePublisherVideoMessage(b *testing.B) {
-	c := newConn(nil, nil)
-	h := &serverDataPublishHandler{entry: newEntryHandler(c)}
+	rwc := &rwcMock{}
+	c := newConnFromIO(rwc, nil)
+
+	s := newStream(42, c)
+	s.handler.ChangeState(streamStateServerPublish)
 
 	chunkStreamID := 0
 	timestamp := uint32(0)
 	msg := &message.VideoMessage{}
-	stream := &Stream{}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		h.Handle(chunkStreamID, timestamp, msg, stream)
+		s.handle(chunkStreamID, timestamp, msg)
 	}
 }

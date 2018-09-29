@@ -12,40 +12,37 @@ import (
 	"github.com/yutopp/go-rtmp/message"
 )
 
-var _ messageHandler = (*serverDataPlayHandler)(nil)
+var _ stateHandler = (*serverDataPlayHandler)(nil)
 
 // serverDataPlayHandler Handle data messages from a player at server side (NOT IMPLEMENTED).
 //   transitions:
 //     | _ -> self
 type serverDataPlayHandler struct {
-	entry *entryHandler
+	sh *streamHandler
 }
 
-func (h *serverDataPlayHandler) Handle(
+func (h *serverDataPlayHandler) onMessage(
 	chunkStreamID int,
 	timestamp uint32,
 	msg message.Message,
-	stream *Stream,
 ) error {
 	return internal.ErrPassThroughMsg
 }
 
-func (h *serverDataPlayHandler) HandleData(
+func (h *serverDataPlayHandler) onData(
 	chunkStreamID int,
 	timestamp uint32,
 	dataMsg *message.DataMessage,
 	body interface{},
-	stream *Stream,
 ) error {
 	return internal.ErrPassThroughMsg
 }
 
-func (h *serverDataPlayHandler) HandleCommand(
+func (h *serverDataPlayHandler) onCommand(
 	chunkStreamID int,
 	timestamp uint32,
 	cmdMsg *message.CommandMessage,
 	body interface{},
-	stream *Stream,
 ) error {
 	return internal.ErrPassThroughMsg
 }

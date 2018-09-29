@@ -108,7 +108,7 @@ func (t *NetConnectionCreateStream) ToArgs(ty EncodingType) ([]interface{}, erro
 	panic("Not implemented")
 }
 
-//
+// TODO: fix for error messages
 type NetConnectionCreateStreamResult struct {
 	StreamID uint32
 }

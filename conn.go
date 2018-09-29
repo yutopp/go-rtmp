@@ -128,7 +128,7 @@ func newConnFromIO(rwc io.ReadWriteCloser, config *ConnConfig) *Conn {
 	)
 	conn.streamer.logger = conn.logger
 
-	conn.streams = newStreams(conn.streamer, &conn.config.ControlState)
+	conn.streams = newStreams(conn)
 
 	return conn
 }
@@ -148,6 +148,7 @@ func (c *Conn) Close() error {
 
 	var result error
 	if c.streamer != nil {
+		c.streamer.waitWriters()
 		if err := c.streamer.Close(); err != nil {
 			result = multierror.Append(result, err)
 		}

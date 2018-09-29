@@ -14,7 +14,7 @@ import (
 	"github.com/yutopp/go-rtmp/message"
 )
 
-var _ messageHandler = (*serverControlNotConnectedHandler)(nil)
+var _ stateHandler = (*serverControlNotConnectedHandler)(nil)
 
 // serverControlNotConnectedHandler Handle control messages from a client which has not send connect at server side.
 //   transitions:
@@ -22,36 +22,33 @@ var _ messageHandler = (*serverControlNotConnectedHandler)(nil)
 //     | _         -> self
 //
 type serverControlNotConnectedHandler struct {
-	entry *entryHandler
+	sh *streamHandler
 }
 
-func (h *serverControlNotConnectedHandler) Handle(
+func (h *serverControlNotConnectedHandler) onMessage(
 	chunkStreamID int,
 	timestamp uint32,
 	msg message.Message,
-	stream *Stream,
 ) error {
 	return internal.ErrPassThroughMsg
 }
 
-func (h *serverControlNotConnectedHandler) HandleData(
+func (h *serverControlNotConnectedHandler) onData(
 	chunkStreamID int,
 	timestamp uint32,
 	dataMsg *message.DataMessage,
 	body interface{},
-	stream *Stream,
 ) error {
 	return internal.ErrPassThroughMsg
 }
 
-func (h *serverControlNotConnectedHandler) HandleCommand(
+func (h *serverControlNotConnectedHandler) onCommand(
 	chunkStreamID int,
 	timestamp uint32,
 	cmdMsg *message.CommandMessage,
 	body interface{},
-	stream *Stream,
 ) (err error) {
-	l := h.entry.Logger()
+	l := h.sh.Logger()
 
 	switch cmd := body.(type) {
 	case *message.NetConnectionConnect:
@@ -60,39 +57,39 @@ func (h *serverControlNotConnectedHandler) HandleCommand(
 			if err != nil {
 				result := h.newConnectErrorResult()
 
-				l.Infof("Connect(Error): ResponseBody = %#v", result)
-				if err1 := stream.ReplyConnect(chunkStreamID, timestamp, result); err1 != nil {
+				l.Infof("Connect(Error): ResponseBody = %#v, Err = %+v", result, err)
+				if err1 := h.sh.stream.ReplyConnect(chunkStreamID, timestamp, result); err1 != nil {
 					err = errors.Wrapf(err, "Failed to reply response: Err = %+v", err1)
 				}
 			}
 		}()
 
-		if err := h.entry.conn.handler.OnConnect(timestamp, cmd); err != nil {
+		if err := h.sh.stream.userHandler().OnConnect(timestamp, cmd); err != nil {
 			return err
 		}
 
-		l.Infof("Set win ack size: Size = %+v", h.entry.conn.streamer.SelfState().AckWindowSize())
-		if err := stream.WriteWinAckSize(ctrlMsgChunkStreamID, timestamp, &message.WinAckSize{
-			Size: h.entry.conn.streamer.SelfState().AckWindowSize(),
+		l.Infof("Set win ack size: Size = %+v", h.sh.stream.streamer().SelfState().AckWindowSize())
+		if err := h.sh.stream.WriteWinAckSize(ctrlMsgChunkStreamID, timestamp, &message.WinAckSize{
+			Size: h.sh.stream.streamer().SelfState().AckWindowSize(),
 		}); err != nil {
 			return err
 		}
 
 		l.Infof("Set peer bandwidth: Size = %+v, Limit = %+v",
-			h.entry.conn.streamer.SelfState().BandwidthWindowSize(),
-			h.entry.conn.streamer.SelfState().BandwidthLimitType(),
+			h.sh.stream.streamer().SelfState().BandwidthWindowSize(),
+			h.sh.stream.streamer().SelfState().BandwidthLimitType(),
 		)
-		if err := stream.WriteSetPeerBandwidth(ctrlMsgChunkStreamID, timestamp, &message.SetPeerBandwidth{
-			Size:  h.entry.conn.streamer.SelfState().BandwidthWindowSize(),
-			Limit: h.entry.conn.streamer.SelfState().BandwidthLimitType(),
+		if err := h.sh.stream.WriteSetPeerBandwidth(ctrlMsgChunkStreamID, timestamp, &message.SetPeerBandwidth{
+			Size:  h.sh.stream.streamer().SelfState().BandwidthWindowSize(),
+			Limit: h.sh.stream.streamer().SelfState().BandwidthLimitType(),
 		}); err != nil {
 			return err
 		}
 
-		l.Infof("Stream Begin: ID = %d", 0)
-		if err := stream.WriteUserCtrl(ctrlMsgChunkStreamID, timestamp, &message.UserCtrl{
+		l.Infof("Stream Begin: ID = %d", h.sh.stream.streamID)
+		if err := h.sh.stream.WriteUserCtrl(ctrlMsgChunkStreamID, timestamp, &message.UserCtrl{
 			Event: &message.UserCtrlEventStreamBegin{
-				StreamID: 0,
+				StreamID: h.sh.stream.streamID,
 			},
 		}); err != nil {
 			return err
@@ -101,12 +98,12 @@ func (h *serverControlNotConnectedHandler) HandleCommand(
 		result := h.newConnectSuccessResult()
 
 		l.Infof("Connect: ResponseBody = %#v", result)
-		if err := stream.ReplyConnect(chunkStreamID, timestamp, result); err != nil {
+		if err := h.sh.stream.ReplyConnect(chunkStreamID, timestamp, result); err != nil {
 			return err
 		}
 		l.Info("Connected")
 
-		h.entry.ChangeState(&serverControlConnectedHandler{entry: h.entry})
+		h.sh.ChangeState(streamStateServerConnected)
 
 		return nil
 

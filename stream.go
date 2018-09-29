@@ -9,7 +9,11 @@ package rtmp
 
 import (
 	"bytes"
+	"context"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"time"
+
 	"github.com/yutopp/go-rtmp/message"
 )
 
@@ -17,21 +21,27 @@ import (
 type Stream struct {
 	streamID     uint32
 	encTy        message.EncodingType
-	entryHandler *entryHandler
-	streamer     *ChunkStreamer
+	transactions *transactions
+	handler      *streamHandler
 	cmsg         ChunkMessage
+
+	conn *Conn
 }
 
-func newStream(streamID uint32, entryHandler *entryHandler, streamer *ChunkStreamer) *Stream {
-	return &Stream{
+func newStream(streamID uint32, conn *Conn) *Stream {
+	s := &Stream{
 		streamID:     streamID,
 		encTy:        message.EncodingTypeAMF0, // Default AMF encoding type
-		entryHandler: entryHandler,
-		streamer:     streamer,
+		transactions: newTransactions(),
 		cmsg: ChunkMessage{
 			StreamID: streamID,
 		},
+
+		conn: conn,
 	}
+	s.handler = newStreamHandler(s)
+
+	return s
 }
 
 func (s *Stream) WriteWinAckSize(chunkStreamID int, timestamp uint32, msg *message.WinAckSize) error {
@@ -49,7 +59,7 @@ func (s *Stream) WriteUserCtrl(chunkStreamID int, timestamp uint32, msg *message
 // TODO: return server response
 func (s *Stream) Connect() (*message.NetConnectionConnectResult, error) {
 	transactionID := int64(1) // Always 1 (7.2.1.1)
-	t, err := s.entryHandler.transactions.Create(transactionID)
+	t, err := s.transactions.Create(transactionID)
 	if err != nil {
 		return nil, err
 	}
@@ -77,6 +87,13 @@ func (s *Stream) Connect() (*message.NetConnectionConnectResult, error) {
 			return nil, errors.Wrap(err, "Failed to decode result")
 		}
 		result := value.(*message.NetConnectionConnectResult)
+
+		if t.commandName == "_error" {
+			return nil, &ConnectRejectedError{
+				TransactionID: transactionID,
+				Result:        result,
+			}
+		}
 
 		return result, nil
 	}
@@ -107,7 +124,7 @@ func (s *Stream) ReplyConnect(
 
 func (s *Stream) CreateStream() (*message.NetConnectionCreateStreamResult, error) {
 	transactionID := int64(2) // TODO: fix
-	t, err := s.entryHandler.transactions.Create(transactionID)
+	t, err := s.transactions.Create(transactionID)
 	if err != nil {
 		return nil, err
 	}
@@ -135,6 +152,13 @@ func (s *Stream) CreateStream() (*message.NetConnectionCreateStreamResult, error
 			return nil, errors.Wrap(err, "Failed to decode result")
 		}
 		result := value.(*message.NetConnectionCreateStreamResult)
+
+		if t.commandName == "_error" {
+			return nil, &CreateStreamRejectedError{
+				TransactionID: transactionID,
+				Result:        result,
+			}
+		}
 
 		return result, nil
 	}
@@ -177,6 +201,10 @@ func (s *Stream) NotifyStatus(
 	)
 }
 
+func (s *Stream) Close() error {
+	return nil // TODO: implement
+}
+
 func (s *Stream) writeCommandMessage(
 	chunkStreamID int,
 	timestamp uint32,
@@ -199,10 +227,29 @@ func (s *Stream) writeCommandMessage(
 }
 
 func (s *Stream) write(chunkStreamID int, timestamp uint32, msg message.Message) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second) // TODO: Fix 5s
+	defer cancel()
+
 	s.cmsg.Message = msg
-	return s.streamer.Write(chunkStreamID, timestamp, &s.cmsg)
+	return s.streamer().Write(ctx, chunkStreamID, timestamp, &s.cmsg)
 }
 
 func (s *Stream) handle(chunkStreamID int, timestamp uint32, msg message.Message) error {
-	return s.entryHandler.Handle(chunkStreamID, timestamp, msg, s)
+	return s.handler.Handle(chunkStreamID, timestamp, msg)
+}
+
+func (s *Stream) streams() *streams {
+	return s.conn.streams
+}
+
+func (s *Stream) streamer() *ChunkStreamer {
+	return s.conn.streamer
+}
+
+func (s *Stream) userHandler() Handler {
+	return s.conn.handler
+}
+
+func (s *Stream) logger() logrus.FieldLogger {
+	return s.conn.logger
 }

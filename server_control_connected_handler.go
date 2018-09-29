@@ -14,7 +14,7 @@ import (
 	"github.com/yutopp/go-rtmp/message"
 )
 
-var _ messageHandler = (*serverControlConnectedHandler)(nil)
+var _ stateHandler = (*serverControlConnectedHandler)(nil)
 
 // serverControlConnectedHandler Handle control messages from a client at server side.
 //   transitions:
@@ -22,36 +22,34 @@ var _ messageHandler = (*serverControlConnectedHandler)(nil)
 //     | _              -> self
 //
 type serverControlConnectedHandler struct {
-	entry *entryHandler
+	sh *streamHandler
 }
 
-func (h *serverControlConnectedHandler) Handle(
+func (h *serverControlConnectedHandler) onMessage(
 	chunkStreamID int,
 	timestamp uint32,
 	msg message.Message,
-	stream *Stream,
 ) error {
 	return internal.ErrPassThroughMsg
 }
 
-func (h *serverControlConnectedHandler) HandleData(
+func (h *serverControlConnectedHandler) onData(
 	chunkStreamID int,
 	timestamp uint32,
 	dataMsg *message.DataMessage,
 	body interface{},
-	stream *Stream,
 ) error {
 	return internal.ErrPassThroughMsg
 }
 
-func (h *serverControlConnectedHandler) HandleCommand(
+func (h *serverControlConnectedHandler) onCommand(
 	chunkStreamID int,
 	timestamp uint32,
 	cmdMsg *message.CommandMessage,
 	body interface{},
-	stream *Stream,
 ) (err error) {
-	l := h.entry.Logger()
+	l := h.sh.Logger()
+	tID := cmdMsg.TransactionID
 
 	switch cmd := body.(type) {
 	case *message.NetConnectionCreateStream:
@@ -60,49 +58,49 @@ func (h *serverControlConnectedHandler) HandleCommand(
 			if err != nil {
 				result := h.newCreateStreamErrorResult()
 
-				l.Infof("CreateStream(Error): ResponseBody = %#v", result)
-				if err1 := stream.ReplyCreateStream(chunkStreamID, timestamp, cmdMsg.TransactionID, result); err1 != nil {
+				l.Infof("CreateStream(Error): ResponseBody = %#v, Err = %+v", result, err)
+				if err1 := h.sh.stream.ReplyCreateStream(chunkStreamID, timestamp, tID, result); err1 != nil {
 					err = errors.Wrapf(err, "Failed to reply response: Err = %+v", err1)
 				}
 			}
 		}()
 
-		if err := h.entry.conn.handler.OnCreateStream(timestamp, cmd); err != nil {
+		if err := h.sh.stream.userHandler().OnCreateStream(timestamp, cmd); err != nil {
 			return err
 		}
 
 		// Create a stream which handles messages for data(play, publish, video, audio, etc...)
-		eh := h.entry.Clone()
-		eh.ChangeState(&serverDataInactiveHandler{entry: eh})
-		streamID, err := h.entry.conn.streams.CreateIfAvailable(eh)
+		newStream, err := h.sh.stream.streams().conn.streams.CreateIfAvailable()
 		if err != nil {
 			l.Errorf("Failed to create stream: Err = %+v", err)
+
 			result := h.newCreateStreamErrorResult()
-			if err1 := stream.ReplyCreateStream(chunkStreamID, timestamp, cmdMsg.TransactionID, result); err1 != nil {
+			if err1 := h.sh.stream.ReplyCreateStream(chunkStreamID, timestamp, tID, result); err1 != nil {
 				return errors.Wrapf(err, "Failed to reply response: Err = %+v", err1)
 			}
 
 			return nil // Keep the connection
 		}
+		newStream.handler.ChangeState(streamStateServerInactive)
 
-		result := h.newCreateStreamSuccessResult(streamID)
-		if err := stream.ReplyCreateStream(chunkStreamID, timestamp, cmdMsg.TransactionID, result); err != nil {
-			_ = h.entry.conn.streams.Delete(streamID) // TODO: error handling
+		result := h.newCreateStreamSuccessResult(newStream.streamID)
+		if err := h.sh.stream.ReplyCreateStream(chunkStreamID, timestamp, tID, result); err != nil {
+			_ = h.sh.stream.streams().Delete(newStream.streamID) // TODO: error handling
 			return err
 		}
 
-		l.Infof("Stream created...: NewStreamID = %d", streamID)
+		l.Infof("Stream created...: NewStreamID = %d", newStream.streamID)
 
 		return nil
 
 	case *message.NetStreamDeleteStream:
 		l.Infof("Stream deleting...: TargetStreamID = %d", cmd.StreamID)
 
-		if err := h.entry.conn.handler.OnDeleteStream(timestamp, cmd); err != nil {
+		if err := h.sh.stream.userHandler().OnDeleteStream(timestamp, cmd); err != nil {
 			return err
 		}
 
-		if err := h.entry.conn.streams.Delete(cmd.StreamID); err != nil {
+		if err := h.sh.stream.streams().Delete(cmd.StreamID); err != nil {
 			return err
 		}
 
@@ -115,7 +113,7 @@ func (h *serverControlConnectedHandler) HandleCommand(
 	case *message.NetConnectionReleaseStream:
 		l.Infof("Release stream...: StreamName = %s", cmd.StreamName)
 
-		if err := h.entry.conn.handler.OnReleaseStream(timestamp, cmd); err != nil {
+		if err := h.sh.stream.userHandler().OnReleaseStream(timestamp, cmd); err != nil {
 			return err
 		}
 
@@ -126,7 +124,7 @@ func (h *serverControlConnectedHandler) HandleCommand(
 	case *message.NetStreamFCPublish:
 		l.Infof("FCPublish stream...: StreamName = %s", cmd.StreamName)
 
-		if err := h.entry.conn.handler.OnFCPublish(timestamp, cmd); err != nil {
+		if err := h.sh.stream.userHandler().OnFCPublish(timestamp, cmd); err != nil {
 			return err
 		}
 
@@ -137,7 +135,7 @@ func (h *serverControlConnectedHandler) HandleCommand(
 	case *message.NetStreamFCUnpublish:
 		l.Infof("FCUnpublish stream...: StreamName = %s", cmd.StreamName)
 
-		if err := h.entry.conn.handler.OnFCUnpublish(timestamp, cmd); err != nil {
+		if err := h.sh.stream.userHandler().OnFCUnpublish(timestamp, cmd); err != nil {
 			return err
 		}
 

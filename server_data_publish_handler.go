@@ -12,55 +12,52 @@ import (
 	"github.com/yutopp/go-rtmp/message"
 )
 
-var _ messageHandler = (*serverDataPublishHandler)(nil)
+var _ stateHandler = (*serverDataPublishHandler)(nil)
 
 // serverDataPublishHandler Handle data messages from a publiser at server side.
 //   transitions:
 //     | _ -> self
 type serverDataPublishHandler struct {
-	entry *entryHandler
+	sh *streamHandler
 }
 
-func (h *serverDataPublishHandler) Handle(
+func (h *serverDataPublishHandler) onMessage(
 	chunkStreamID int,
 	timestamp uint32,
 	msg message.Message,
-	stream *Stream,
 ) error {
 	switch msg := msg.(type) {
 	case *message.AudioMessage:
-		return h.entry.conn.handler.OnAudio(timestamp, msg.Payload)
+		return h.sh.stream.userHandler().OnAudio(timestamp, msg.Payload)
 
 	case *message.VideoMessage:
-		return h.entry.conn.handler.OnVideo(timestamp, msg.Payload)
+		return h.sh.stream.userHandler().OnVideo(timestamp, msg.Payload)
 
 	default:
 		return internal.ErrPassThroughMsg
 	}
 }
 
-func (h *serverDataPublishHandler) HandleData(
+func (h *serverDataPublishHandler) onData(
 	chunkStreamID int,
 	timestamp uint32,
 	dataMsg *message.DataMessage,
 	body interface{},
-	stream *Stream,
 ) error {
 	switch data := body.(type) {
 	case *message.NetStreamSetDataFrame:
-		return h.entry.conn.handler.OnSetDataFrame(timestamp, data)
+		return h.sh.stream.userHandler().OnSetDataFrame(timestamp, data)
 
 	default:
 		return internal.ErrPassThroughMsg
 	}
 }
 
-func (h *serverDataPublishHandler) HandleCommand(
+func (h *serverDataPublishHandler) onCommand(
 	chunkStreamID int,
 	timestamp uint32,
 	cmdMsg *message.CommandMessage,
 	body interface{},
-	stream *Stream,
 ) error {
 	return internal.ErrPassThroughMsg
 }

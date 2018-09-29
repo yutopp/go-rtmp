@@ -31,15 +31,12 @@ func newClientConnWithSetup(c net.Conn, config *ConnConfig) (*ClientConn, error)
 		return nil, errors.Wrap(err, "Failed to handshake")
 	}
 
-	eh := newEntryHandler(conn)
-	eh.ChangeState(&clientControlNotConnectedHandler{
-		entry:       eh,
-		connectedCh: make(chan struct{}),
-	})
-	ctrlStream, err := conn.streams.Create(ControlStreamID, eh)
+	ctrlStream, err := conn.streams.Create(ControlStreamID)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to create control stream")
 	}
+	ctrlStream.handler.ChangeState(streamStateClientNotConnected)
+
 	conn.streamer.controlStreamWriter = ctrlStream.write
 
 	cc := &ClientConn{
@@ -98,7 +95,7 @@ func (cc *ClientConn) CreateStream() (*Stream, error) {
 	}
 
 	// TODO: check result
-	newStream, err := cc.conn.streams.Create(result.StreamID, nil)
+	newStream, err := cc.conn.streams.Create(result.StreamID)
 	if err != nil {
 		return nil, err
 	}

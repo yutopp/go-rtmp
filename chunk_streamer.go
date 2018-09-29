@@ -8,16 +8,20 @@
 package rtmp
 
 import (
+	"context"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"io"
 	"math"
 	"sync"
+	"time"
 
 	"github.com/yutopp/go-rtmp/message"
 )
 
 const ctrlMsgChunkStreamID = 2
+
+const maxWriterQueueSize = 64
 
 type ChunkMessage struct {
 	StreamID uint32
@@ -63,9 +67,8 @@ func NewChunkStreamer(r io.Reader, w io.Writer, config *StreamControlStateConfig
 		writers: make(map[int]*ChunkStreamWriter),
 
 		writerSched: &chunkStreamerWriterSched{
-			writers:  make(map[int]*ChunkStreamWriter),
-			activeCh: make(chan bool, 1),
-			closeCh:  make(chan struct{}),
+			writers: make(chan *ChunkStreamWriter, maxWriterQueueSize),
+			stopCh:  make(chan struct{}),
 		},
 
 		selfState: NewStreamControlState(config),
@@ -99,8 +102,13 @@ func (cs *ChunkStreamer) Read(cmsg *ChunkMessage) (int, uint32, error) {
 	return reader.basicHeader.chunkStreamID, uint32(reader.timestamp), nil
 }
 
-func (cs *ChunkStreamer) Write(chunkStreamID int, timestamp uint32, cmsg *ChunkMessage) error {
-	writer, err := cs.NewChunkWriter(chunkStreamID)
+func (cs *ChunkStreamer) Write(
+	ctx context.Context, // NOTE: Retire writing when a current chunk is busy
+	chunkStreamID int,
+	timestamp uint32,
+	cmsg *ChunkMessage,
+) error {
+	writer, err := cs.NewChunkWriter(ctx, chunkStreamID)
 	if err != nil {
 		return err
 	}
@@ -139,10 +147,13 @@ again:
 
 // NewChunkWriter Returns a writer for a chunkStreamID.
 // Wait until writing have been finished if the writer is running.
-func (cs *ChunkStreamer) NewChunkWriter(chunkStreamID int) (*ChunkStreamWriter, error) {
+func (cs *ChunkStreamer) NewChunkWriter(ctx context.Context, chunkStreamID int) (*ChunkStreamWriter, error) {
 	writer, err := cs.prepareChunkWriter(chunkStreamID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to prepare chunk writer")
+	}
+	if err := writer.Wait(ctx); err != nil {
+		return nil, errors.Wrapf(err, "Failed to wait chunk writer")
 	}
 
 	return writer, nil
@@ -308,9 +319,38 @@ func (cs *ChunkStreamer) updateWriterHeader(writer *ChunkStreamWriter) {
 	writer.basicHeader.fmt = fmt
 }
 
+func (cs *ChunkStreamer) waitWriters() {
+	cs.mu.Lock()
+	defer cs.mu.Unlock()
+
+	// Wait until that writers are finished for 3 seconds. (NOTE: 3s is adhoc value...)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	for k, writer := range cs.writers {
+		if err := writer.Wait(ctx); err != nil {
+			cs.logger.Warnf("Failed to wait writer: ID = %d", k)
+		}
+	}
+}
+
+func (cs *ChunkStreamer) forceCloseWriters() {
+	cs.mu.Lock()
+	defer cs.mu.Unlock()
+
+	for _, writer := range cs.writers {
+		//writer.lastErr = cs.err
+		close(writer.closeCh)
+	}
+}
+
 func (cs *ChunkStreamer) schedWriteLoop() {
 	defer close(cs.done)
 	cs.err = cs.writerSched.Run()
+
+	if cs.err != nil {
+		cs.forceCloseWriters()
+	}
 }
 
 func (cs *ChunkStreamer) prepareChunkReader(chunkStreamID int) (*ChunkStreamReader, error) {
@@ -353,12 +393,11 @@ func (cs *ChunkStreamer) prepareChunkWriter(chunkStreamID int) (*ChunkStreamWrit
 			messageHeader: chunkMessageHeader{
 				timestamp: math.MaxUint32, // initial state will be updated by writer.timestamp
 			},
-			doneCh: make(chan struct{}),
+			doneCh:  make(chan struct{}),
+			closeCh: make(chan struct{}),
 		}
+		close(writer.doneCh)
 		cs.writers[chunkStreamID] = writer
-	} else {
-		<-writer.doneCh
-		writer.doneCh = make(chan struct{})
 	}
 
 	return writer, nil
@@ -374,40 +413,12 @@ func (cs *ChunkStreamer) sendAck(readBytes uint32) error {
 
 type chunkStreamerWriterSched struct {
 	streamer *ChunkStreamer
-	writers  map[int]*ChunkStreamWriter
-	m        sync.Mutex
-
-	activeCh chan bool
-	closeCh  chan struct{}
-	isClosed bool
+	writers  chan *ChunkStreamWriter
+	stopCh   chan struct{}
 }
 
 func (sched *chunkStreamerWriterSched) Sched(writer *ChunkStreamWriter) error {
-	sched.m.Lock()
-	defer sched.m.Unlock()
-
-	_, ok := sched.writers[writer.basicHeader.chunkStreamID]
-	if ok {
-		return errors.New("Running writer")
-	}
-
-	sched.writers[writer.basicHeader.chunkStreamID] = writer
-
-	sched.activate()
-
-	return nil
-}
-
-func (sched *chunkStreamerWriterSched) UnSched(writer *ChunkStreamWriter) error {
-	// Lock must be taken before calling this function.
-
-	_, ok := sched.writers[writer.basicHeader.chunkStreamID]
-	if !ok {
-		return errors.New("Not running writer")
-	}
-
-	close(writer.doneCh)
-	delete(sched.writers, writer.basicHeader.chunkStreamID)
+	sched.writers <- writer
 
 	return nil
 }
@@ -424,61 +435,30 @@ func (sched *chunkStreamerWriterSched) Run() (err error) {
 	}()
 
 	for {
-		if sched.workersLen() > 0 {
-			if err := sched.runActives(); err != nil {
+		select {
+		case writer := <-sched.writers:
+			isCompleted, err := sched.streamer.writeChunk(writer)
+			if err != nil {
+				writer.lastErr = err
+				close(writer.doneCh)
 				return err
 			}
-		} else {
-			select {
-			case <-sched.closeCh:
-				return nil
-			case <-sched.activeCh:
+			if isCompleted {
+				close(writer.doneCh)
 				continue
 			}
+
+			// Enqueue writer
+			sched.writers <- writer
+
+		case <-sched.stopCh:
+			return nil
 		}
 	}
 }
 
 func (sched *chunkStreamerWriterSched) Close() error {
-	sched.m.Lock()
-	defer sched.m.Unlock()
-
-	if sched.isClosed {
-		return nil
-	}
-	sched.isClosed = true
-
-	close(sched.closeCh)
+	close(sched.stopCh)
 
 	return nil
-}
-
-func (sched *chunkStreamerWriterSched) runActives() error {
-	sched.m.Lock()
-	defer sched.m.Unlock()
-
-	for _, writer := range sched.writers {
-		isCompleted, err := sched.streamer.writeChunk(writer)
-		if isCompleted || err != nil {
-			_ = sched.UnSched(writer) // TODO: error check
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-func (sched *chunkStreamerWriterSched) activate() {
-	if len(sched.writers) > 0 {
-		sched.activeCh <- true
-	}
-}
-
-func (sched *chunkStreamerWriterSched) workersLen() int {
-	sched.m.Lock()
-	defer sched.m.Unlock()
-
-	return len(sched.writers)
 }
