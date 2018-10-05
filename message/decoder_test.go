@@ -31,20 +31,26 @@ func TestDecodeCommon(t *testing.T) {
 	}
 }
 
-func BenchmarkDecodeVideoMessage(b *testing.B) {
-	buf := new(bytes.Buffer)
-	for i := 0; i < 1024; i++ {
-		buf.WriteString("abcde")
+func BenchmarkDecode5KBVideoMessage(b *testing.B) {
+	sizes := []struct {
+		name string
+		len  int
+	}{
+		{"5KB", 5 * 1024},
+		{"2MB", 2 * 1024 * 1024},
 	}
-	if buf.Len() != 5*1024 {
-		b.Fatalf("Buffer becomes unexpected state: Len = %d", buf.Len())
-	}
+	for _, size := range sizes {
+		b.Run(size.name, func(b *testing.B) {
+			buf := make([]byte, size.len)
+			r := bytes.NewReader(buf)
 
-	dec := NewDecoder(buf, TypeIDVideoMessage)
+			dec := NewDecoder(r, TypeIDVideoMessage)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		var msg Message
-		dec.Decode(&msg)
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				var msg Message
+				dec.Decode(&msg)
+			}
+		})
 	}
 }
