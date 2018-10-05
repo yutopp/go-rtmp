@@ -30,8 +30,9 @@ func TestStreamerSingleChunk(t *testing.T) {
 	streamer := NewChunkStreamer(inbuf, outbuf, nil)
 
 	chunkStreamID := 2
+	videoContent := []byte("testtesttest")
 	msg := &message.VideoMessage{
-		Payload: []byte("testtesttest"),
+		Payload: bytes.NewReader(videoContent),
 	}
 	timestamp := uint32(72)
 
@@ -66,7 +67,10 @@ func TestStreamerSingleChunk(t *testing.T) {
 	assert.Equal(t, uint64(timestamp), r.timestamp)
 
 	// check message
-	assert.Equal(t, msg, actualMsg)
+	assert.Equal(t, actualMsg.TypeID(), msg.TypeID())
+	actualMsgT := actualMsg.(*message.VideoMessage)
+	actualContent, _ := ioutil.ReadAll(actualMsgT.Payload)
+	assert.Equal(t, actualContent, videoContent)
 }
 
 func TestStreamerMultipleChunk(t *testing.T) {
@@ -80,9 +84,10 @@ func TestStreamerMultipleChunk(t *testing.T) {
 	streamer := NewChunkStreamer(inbuf, outbuf, nil)
 
 	chunkStreamID := 2
+	videoContent := []byte(strings.Repeat(payloadUnit, chunkSize))
 	msg := &message.VideoMessage{
 		// will be chunked (chunkSize * len(payloadUnit))
-		Payload: []byte(strings.Repeat(payloadUnit, chunkSize)),
+		Payload: bytes.NewReader(videoContent),
 	}
 	timestamp := uint32(72)
 
@@ -119,7 +124,10 @@ func TestStreamerMultipleChunk(t *testing.T) {
 	assert.Equal(t, uint64(timestamp), r.timestamp)
 
 	// check message
-	assert.Equal(t, msg, actualMsg)
+	assert.Equal(t, actualMsg.TypeID(), msg.TypeID())
+	actualMsgT := actualMsg.(*message.VideoMessage)
+	actualContent, _ := ioutil.ReadAll(actualMsgT.Payload)
+	assert.Equal(t, actualContent, videoContent)
 }
 
 func TestStreamerChunkExample1(t *testing.T) {
@@ -332,7 +340,7 @@ func TestChunkStreamerDualWriter(t *testing.T) {
 		err := streamer.Write(context.Background(), chunkStreamID, timestamp, &ChunkMessage{
 			StreamID: 0,
 			Message: &message.VideoMessage{
-				Payload: largePayload,
+				Payload: bytes.NewReader(largePayload),
 			},
 		})
 		assert.Nil(t, err)
@@ -366,7 +374,7 @@ func TestChunkStreamerDualWriterWithoutWaiting(t *testing.T) {
 		err := streamer.Write(context.Background(), chunkStreamID, timestamp, &ChunkMessage{
 			StreamID: 0,
 			Message: &message.VideoMessage{
-				Payload: largePayload,
+				Payload: bytes.NewReader(largePayload),
 			},
 		})
 		assert.Nil(t, err)

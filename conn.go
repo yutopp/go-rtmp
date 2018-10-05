@@ -183,19 +183,21 @@ func (c *Conn) runHandleMessageLoop() error {
 			return c.streamer.Err()
 
 		default:
-			chunkStreamID, timestamp, err := c.streamer.Read(&cmsg)
+			chunkStreamID, timestamp, closer, err := c.streamer.Read(&cmsg)
 			if err != nil {
 				return err
 			}
 
-			if err := c.dispatchStreamHandler(chunkStreamID, timestamp, &cmsg); err != nil {
+			if err := c.handleMessage(chunkStreamID, timestamp, closer, &cmsg); err != nil {
 				return err // Shutdown the connection
 			}
 		}
 	}
 }
 
-func (c *Conn) dispatchStreamHandler(chunkStreamID int, timestamp uint32, cmsg *ChunkMessage) error {
+func (c *Conn) handleMessage(chunkStreamID int, timestamp uint32, closer func(), cmsg *ChunkMessage) error {
+	defer closer()
+
 	stream, err := c.streams.At(cmsg.StreamID)
 	if err != nil {
 		if c.config.IgnoreMessagesOnNotExistStream {

@@ -26,7 +26,7 @@ func TestDecodeCommon(t *testing.T) {
 			var msg Message
 			err := dec.Decode(tc.TypeID, &msg)
 			assert.Nil(t, err)
-			assert.Equal(t, tc.Value, msg)
+			assertEqualMessage(t, tc.Value, msg)
 		})
 	}
 }
@@ -42,12 +42,12 @@ func BenchmarkDecode5KBVideoMessage(b *testing.B) {
 	for _, size := range sizes {
 		b.Run(size.name, func(b *testing.B) {
 			buf := make([]byte, size.len)
-			dec := NewDecoder(nil)
+			r := bytes.NewReader(buf)
+			dec := NewDecoder(r)
 
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				r := bytes.NewReader(buf)
-				dec.Reset(r)
+				r.Reset(buf)
 
 				var msg Message
 				dec.Decode(TypeIDVideoMessage, &msg)

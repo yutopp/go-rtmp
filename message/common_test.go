@@ -7,6 +7,10 @@
 
 package message
 
+import (
+	"bytes"
+)
+
 type testCase struct {
 	Name string
 	TypeID
@@ -78,7 +82,7 @@ var testCases = []testCase{
 		Name:   "AudioMessage",
 		TypeID: TypeIDAudioMessage,
 		Value: &AudioMessage{
-			Payload: []byte("audio data"),
+			Payload: bytes.NewReader([]byte("audio data")),
 		},
 		Binary: []byte("audio data"),
 	},
@@ -86,7 +90,7 @@ var testCases = []testCase{
 		Name:   "VideoMessage",
 		TypeID: TypeIDVideoMessage,
 		Value: &VideoMessage{
-			Payload: []byte("video data"),
+			Payload: bytes.NewReader([]byte("video data")),
 		},
 		Binary: []byte("video data"),
 	},

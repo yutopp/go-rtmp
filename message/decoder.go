@@ -174,40 +174,16 @@ func (dec *Decoder) decodeSetPeerBandwidth(msg *Message) error {
 }
 
 func (dec *Decoder) decodeAudioMessage(msg *Message) error {
-	buf := &dec.cacheBuffer // TODO: Provide thread safety if needed
-	buf.Reset()
-
-	_, err := io.Copy(buf, dec.r)
-	if err != nil {
-		return err
-	}
-
-	// Copy ownership
-	bin := make([]byte, len(buf.Bytes()))
-	copy(bin, buf.Bytes())
-
 	*msg = &AudioMessage{
-		Payload: bin,
+		Payload: dec.r, // Share an ownership of the reader
 	}
 
 	return nil
 }
 
 func (dec *Decoder) decodeVideoMessage(msg *Message) error {
-	buf := &dec.cacheBuffer // TODO: Provide thread safety if needed
-	buf.Reset()
-
-	_, err := io.Copy(buf, dec.r)
-	if err != nil {
-		return err
-	}
-
-	// Copy ownership
-	bin := make([]byte, len(buf.Bytes()))
-	copy(bin, buf.Bytes())
-
 	*msg = &VideoMessage{
-		Payload: bin,
+		Payload: dec.r, // Share an ownership of the reader
 	}
 
 	return nil

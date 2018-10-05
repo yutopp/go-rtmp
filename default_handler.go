@@ -9,6 +9,7 @@ package rtmp
 
 import (
 	"github.com/yutopp/go-rtmp/message"
+	"io"
 )
 
 var _ Handler = (*DefaultHandler)(nil)
@@ -55,11 +56,11 @@ func (h *DefaultHandler) OnSetDataFrame(timestamp uint32, data *message.NetStrea
 	return nil
 }
 
-func (h *DefaultHandler) OnAudio(timestamp uint32, payload []byte) error {
+func (h *DefaultHandler) OnAudio(timestamp uint32, payload io.Reader) error {
 	return nil
 }
 
-func (h *DefaultHandler) OnVideo(timestamp uint32, payload []byte) error {
+func (h *DefaultHandler) OnVideo(timestamp uint32, payload io.Reader) error {
 	return nil
 }
 

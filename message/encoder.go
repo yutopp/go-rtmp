@@ -128,7 +128,7 @@ func (enc *Encoder) encodeSetPeerBandwidth(m *SetPeerBandwidth) error {
 }
 
 func (enc *Encoder) encodeAudioMessage(m *AudioMessage) error {
-	if _, err := enc.w.Write(m.Payload); err != nil {
+	if _, err := io.Copy(enc.w, m.Payload); err != nil {
 		return err
 	}
 
@@ -136,7 +136,7 @@ func (enc *Encoder) encodeAudioMessage(m *AudioMessage) error {
 }
 
 func (enc *Encoder) encodeVideoMessage(m *VideoMessage) error {
-	if _, err := enc.w.Write(m.Payload); err != nil {
+	if _, err := io.Copy(enc.w, m.Payload); err != nil {
 		return err
 	}
 
