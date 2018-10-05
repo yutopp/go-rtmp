@@ -79,11 +79,10 @@ func (s *Stream) Connect() (*message.NetConnectionConnectResult, error) {
 	// TODO: check result
 	select {
 	case <-t.doneCh:
-		r := bytes.NewReader(t.body)
-		amfDec := message.NewAMFDecoder(r, t.encoding)
+		amfDec := message.NewAMFDecoder(t.body, t.encoding)
 
 		var value message.AMFConvertible
-		if err := message.DecodeBodyConnectResult(r, amfDec, &value); err != nil {
+		if err := message.DecodeBodyConnectResult(t.body, amfDec, &value); err != nil {
 			return nil, errors.Wrap(err, "Failed to decode result")
 		}
 		result := value.(*message.NetConnectionConnectResult)
@@ -144,11 +143,10 @@ func (s *Stream) CreateStream() (*message.NetConnectionCreateStreamResult, error
 	// TODO: check result
 	select {
 	case <-t.doneCh:
-		r := bytes.NewReader(t.body)
-		amfDec := message.NewAMFDecoder(r, t.encoding)
+		amfDec := message.NewAMFDecoder(t.body, t.encoding)
 
 		var value message.AMFConvertible
-		if err := message.DecodeBodyCreateStreamResult(r, amfDec, &value); err != nil {
+		if err := message.DecodeBodyCreateStreamResult(t.body, amfDec, &value); err != nil {
 			return nil, errors.Wrap(err, "Failed to decode result")
 		}
 		result := value.(*message.NetConnectionCreateStreamResult)
@@ -222,7 +220,7 @@ func (s *Stream) writeCommandMessage(
 		CommandName:   commandName,
 		TransactionID: transactionID,
 		Encoding:      s.encTy,
-		Body:          buf.Bytes(),
+		Body:          buf,
 	})
 }
 

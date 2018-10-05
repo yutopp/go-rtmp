@@ -8,7 +8,6 @@
 package message
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -154,7 +153,7 @@ func (enc *Encoder) encodeDataMessage(m *DataMessage) error {
 		return err
 	}
 
-	if _, err := io.Copy(enc.w, bytes.NewReader(m.Body)); err != nil {
+	if _, err := io.Copy(enc.w, m.Body); err != nil {
 		return err
 	}
 
@@ -175,7 +174,7 @@ func (enc *Encoder) encodeCommandMessage(m *CommandMessage) error {
 		return err
 	}
 
-	if _, err := io.Copy(enc.w, bytes.NewReader(m.Body)); err != nil {
+	if _, err := io.Copy(enc.w, m.Body); err != nil {
 		return err
 	}
 

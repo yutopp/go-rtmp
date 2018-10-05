@@ -31,6 +31,23 @@ func assertEqualMessage(t *testing.T, expected, actual Message) {
 
 		assertEqualPayload(t, expected.Payload, actual.Payload)
 
+	case *DataMessage:
+		actual, ok := actual.(*DataMessage)
+		assert.True(t, ok)
+
+		assert.Equal(t, expected.Name, actual.Name)
+		assert.Equal(t, expected.Encoding, actual.Encoding)
+		assertEqualPayload(t, expected.Body, actual.Body)
+
+	case *CommandMessage:
+		actual, ok := actual.(*CommandMessage)
+		assert.True(t, ok)
+
+		assert.Equal(t, expected.CommandName, actual.CommandName)
+		assert.Equal(t, expected.TransactionID, actual.TransactionID)
+		assert.Equal(t, expected.Encoding, actual.Encoding)
+		assertEqualPayload(t, expected.Body, actual.Body)
+
 	default:
 		assert.Equal(t, expected, actual)
 	}

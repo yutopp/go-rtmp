@@ -101,7 +101,7 @@ var testCases = []testCase{
 		Value: &DataMessage{
 			Name:     "test",
 			Encoding: EncodingTypeAMF0,
-			Body:     []byte("test"),
+			Body:     bytes.NewReader([]byte("test")),
 		},
 		Binary: []byte{
 			// Name: AMF0 / string marker
@@ -124,7 +124,7 @@ var testCases = []testCase{
 			CommandName:   "_result",
 			TransactionID: 10,
 			Encoding:      EncodingTypeAMF0,
-			Body:          []byte("test"),
+			Body:          bytes.NewReader([]byte("test")),
 		},
 		Binary: []byte{
 			// CommandName: AMF0 / string marker
