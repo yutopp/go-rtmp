@@ -8,7 +8,6 @@
 package message
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -22,6 +21,10 @@ func NewEncoder(w io.Writer) *Encoder {
 	return &Encoder{
 		w: w,
 	}
+}
+
+func (enc *Encoder) Reset(w io.Writer) {
+	enc.w = w
 }
 
 // Encode
@@ -124,7 +127,7 @@ func (enc *Encoder) encodeSetPeerBandwidth(m *SetPeerBandwidth) error {
 }
 
 func (enc *Encoder) encodeAudioMessage(m *AudioMessage) error {
-	if _, err := enc.w.Write(m.Payload); err != nil {
+	if _, err := io.Copy(enc.w, m.Payload); err != nil {
 		return err
 	}
 
@@ -132,7 +135,7 @@ func (enc *Encoder) encodeAudioMessage(m *AudioMessage) error {
 }
 
 func (enc *Encoder) encodeVideoMessage(m *VideoMessage) error {
-	if _, err := enc.w.Write(m.Payload); err != nil {
+	if _, err := io.Copy(enc.w, m.Payload); err != nil {
 		return err
 	}
 
@@ -150,7 +153,7 @@ func (enc *Encoder) encodeDataMessage(m *DataMessage) error {
 		return err
 	}
 
-	if _, err := io.Copy(enc.w, bytes.NewReader(m.Body)); err != nil {
+	if _, err := io.Copy(enc.w, m.Body); err != nil {
 		return err
 	}
 
@@ -171,7 +174,7 @@ func (enc *Encoder) encodeCommandMessage(m *CommandMessage) error {
 		return err
 	}
 
-	if _, err := io.Copy(enc.w, bytes.NewReader(m.Body)); err != nil {
+	if _, err := io.Copy(enc.w, m.Body); err != nil {
 		return err
 	}
 

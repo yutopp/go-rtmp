@@ -8,7 +8,6 @@
 package rtmp
 
 import (
-	"bytes"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"sync"
@@ -152,10 +151,9 @@ func (h *streamHandler) handleData(
 ) error {
 	bodyDecoder := message.DataBodyDecoderFor(dataMsg.Name)
 
-	r := bytes.NewReader(dataMsg.Body)
-	amfDec := message.NewAMFDecoder(r, dataMsg.Encoding)
+	amfDec := message.NewAMFDecoder(dataMsg.Body, dataMsg.Encoding)
 	var value message.AMFConvertible
-	if err := bodyDecoder(r, amfDec, &value); err != nil {
+	if err := bodyDecoder(dataMsg.Body, amfDec, &value); err != nil {
 		return err
 	}
 
@@ -179,10 +177,7 @@ func (h *streamHandler) handleCommand(
 		}
 
 		// Set result (NOTE: shoule use a mutex for t?)
-		t.commandName = cmdMsg.CommandName
-		t.encoding = cmdMsg.Encoding
-		t.body = cmdMsg.Body
-		close(t.doneCh)
+		t.Reply(cmdMsg.CommandName, cmdMsg.Encoding, cmdMsg.Body)
 
 		// Remove transacaction because this transaction is resolved
 		if err := h.stream.transactions.Delete(cmdMsg.TransactionID); err != nil {
@@ -194,12 +189,11 @@ func (h *streamHandler) handleCommand(
 		// TODO: Support onStatus
 	}
 
-	r := bytes.NewReader(cmdMsg.Body)
-	amfDec := message.NewAMFDecoder(r, cmdMsg.Encoding)
+	amfDec := message.NewAMFDecoder(cmdMsg.Body, cmdMsg.Encoding)
 	bodyDecoder := message.CmdBodyDecoderFor(cmdMsg.CommandName, cmdMsg.TransactionID)
 
 	var value message.AMFConvertible
-	if err := bodyDecoder(r, amfDec, &value); err != nil {
+	if err := bodyDecoder(cmdMsg.Body, amfDec, &value); err != nil {
 		return err
 	}
 

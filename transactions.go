@@ -8,7 +8,9 @@
 package rtmp
 
 import (
+	"bytes"
 	"github.com/pkg/errors"
+	"io"
 	"sync"
 
 	"github.com/yutopp/go-rtmp/message"
@@ -17,8 +19,18 @@ import (
 type transaction struct {
 	commandName string
 	encoding    message.EncodingType
-	body        []byte
+	body        *bytes.Buffer
+	lastErr     error
 	doneCh      chan struct{}
+}
+
+func (t *transaction) Reply(commandName string, encoding message.EncodingType, body io.Reader) {
+	t.commandName = commandName
+	t.encoding = encoding
+	t.body = new(bytes.Buffer)
+	_, err := io.Copy(t.body, body)
+	t.lastErr = err
+	close(t.doneCh)
 }
 
 type transactions struct {

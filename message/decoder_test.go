@@ -21,30 +21,37 @@ func TestDecodeCommon(t *testing.T) {
 			t.Parallel()
 
 			buf := bytes.NewReader(tc.Binary)
-			dec := NewDecoder(buf, tc.TypeID)
+			dec := NewDecoder(buf)
 
 			var msg Message
-			err := dec.Decode(&msg)
+			err := dec.Decode(tc.TypeID, &msg)
 			assert.Nil(t, err)
-			assert.Equal(t, tc.Value, msg)
+			assertEqualMessage(t, tc.Value, msg)
 		})
 	}
 }
 
-func BenchmarkDecodeVideoMessage(b *testing.B) {
-	buf := new(bytes.Buffer)
-	for i := 0; i < 1024; i++ {
-		buf.WriteString("abcde")
+func BenchmarkDecode5KBVideoMessage(b *testing.B) {
+	sizes := []struct {
+		name string
+		len  int
+	}{
+		{"5KB", 5 * 1024},
+		{"2MB", 2 * 1024 * 1024},
 	}
-	if buf.Len() != 5*1024 {
-		b.Fatalf("Buffer becomes unexpected state: Len = %d", buf.Len())
-	}
+	for _, size := range sizes {
+		b.Run(size.name, func(b *testing.B) {
+			buf := make([]byte, size.len)
+			r := bytes.NewReader(buf)
+			dec := NewDecoder(r)
 
-	dec := NewDecoder(buf, TypeIDVideoMessage)
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				r.Reset(buf)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		var msg Message
-		dec.Decode(&msg)
+				var msg Message
+				dec.Decode(TypeIDVideoMessage, &msg)
+			}
+		})
 	}
 }

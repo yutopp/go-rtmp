@@ -7,6 +7,10 @@
 
 package message
 
+import (
+	"io"
+)
+
 type TypeID byte
 
 const (
@@ -97,7 +101,7 @@ func (m *SetPeerBandwidth) TypeID() TypeID {
 
 // AudioMessage(8)
 type AudioMessage struct {
-	Payload []byte
+	Payload io.Reader
 }
 
 func (m *AudioMessage) TypeID() TypeID {
@@ -106,7 +110,7 @@ func (m *AudioMessage) TypeID() TypeID {
 
 // VideoMessage(9)
 type VideoMessage struct {
-	Payload []byte
+	Payload io.Reader
 }
 
 func (m *VideoMessage) TypeID() TypeID {
@@ -117,7 +121,7 @@ func (m *VideoMessage) TypeID() TypeID {
 type DataMessage struct {
 	Name     string
 	Encoding EncodingType
-	Body     []byte
+	Body     io.Reader
 }
 
 func (m *DataMessage) TypeID() TypeID {
@@ -156,7 +160,7 @@ type CommandMessage struct {
 	CommandName   string
 	TransactionID int64
 	Encoding      EncodingType
-	Body          []byte
+	Body          io.Reader
 }
 
 func (m *CommandMessage) TypeID() TypeID {

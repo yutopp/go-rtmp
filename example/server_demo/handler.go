@@ -8,6 +8,7 @@ import (
 	flvtag "github.com/yutopp/go-flv/tag"
 	"github.com/yutopp/go-rtmp"
 	rtmpmsg "github.com/yutopp/go-rtmp/message"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -80,11 +81,9 @@ func (h *Handler) OnSetDataFrame(timestamp uint32, data *rtmpmsg.NetStreamSetDat
 	return nil
 }
 
-func (h *Handler) OnAudio(timestamp uint32, payload []byte) error {
-	r := bytes.NewReader(payload)
-
+func (h *Handler) OnAudio(timestamp uint32, payload io.Reader) error {
 	var audio flvtag.AudioData
-	if err := flvtag.DecodeAudioData(r, &audio); err != nil {
+	if err := flvtag.DecodeAudioData(payload, &audio); err != nil {
 		return err
 	}
 
@@ -109,11 +108,9 @@ func (h *Handler) OnAudio(timestamp uint32, payload []byte) error {
 	return nil
 }
 
-func (h *Handler) OnVideo(timestamp uint32, payload []byte) error {
-	r := bytes.NewReader(payload)
-
+func (h *Handler) OnVideo(timestamp uint32, payload io.Reader) error {
 	var video flvtag.VideoData
-	if err := flvtag.DecodeVideoData(r, &video); err != nil {
+	if err := flvtag.DecodeVideoData(payload, &video); err != nil {
 		return err
 	}
 

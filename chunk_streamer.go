@@ -38,6 +38,9 @@ type ChunkStreamer struct {
 
 	writerSched *chunkStreamerWriterSched
 
+	msgDec *message.Decoder
+	msgEnc *message.Encoder
+
 	selfState *StreamControlState
 	peerState *StreamControlState
 
@@ -71,6 +74,9 @@ func NewChunkStreamer(r io.Reader, w io.Writer, config *StreamControlStateConfig
 			stopCh:  make(chan struct{}),
 		},
 
+		msgDec: message.NewDecoder(nil),
+		msgEnc: message.NewEncoder(nil),
+
 		selfState: NewStreamControlState(config),
 		peerState: NewStreamControlState(config),
 
@@ -85,21 +91,31 @@ func NewChunkStreamer(r io.Reader, w io.Writer, config *StreamControlStateConfig
 	return cs
 }
 
-func (cs *ChunkStreamer) Read(cmsg *ChunkMessage) (int, uint32, error) {
+func (cs *ChunkStreamer) Read(cmsg *ChunkMessage) (
+	chunkStreamID int,
+	timestamp uint32,
+	closer func(),
+	err error,
+) {
 	reader, err := cs.NewChunkReader()
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, nil, err
 	}
-	defer reader.Close()
+	closer = func() { reader.Close() }
+	defer func() {
+		if err != nil {
+			closer()
+		}
+	}()
 
-	dec := message.NewDecoder(reader, message.TypeID(reader.messageTypeID))
-	if err := dec.Decode(&cmsg.Message); err != nil {
-		return 0, 0, err
+	cs.msgDec.Reset(reader)
+	if err := cs.msgDec.Decode(message.TypeID(reader.messageTypeID), &cmsg.Message); err != nil {
+		return 0, 0, nil, err
 	}
 
 	cmsg.StreamID = reader.messageStreamID
 
-	return reader.basicHeader.chunkStreamID, uint32(reader.timestamp), nil
+	return reader.basicHeader.chunkStreamID, uint32(reader.timestamp), closer, nil
 }
 
 func (cs *ChunkStreamer) Write(
@@ -114,8 +130,8 @@ func (cs *ChunkStreamer) Write(
 	}
 	//defer writer.Close()
 
-	enc := message.NewEncoder(writer)
-	if err := enc.Encode(cmsg.Message); err != nil {
+	cs.msgEnc.Reset(writer)
+	if err := cs.msgEnc.Encode(cmsg.Message); err != nil {
 		return err
 	}
 	writer.timestamp = timestamp

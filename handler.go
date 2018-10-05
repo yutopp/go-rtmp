@@ -9,6 +9,7 @@ package rtmp
 
 import (
 	"github.com/yutopp/go-rtmp/message"
+	"io"
 )
 
 type Handler interface {
@@ -22,8 +23,8 @@ type Handler interface {
 	OnFCPublish(timestamp uint32, cmd *message.NetStreamFCPublish) error
 	OnFCUnpublish(timestamp uint32, cmd *message.NetStreamFCUnpublish) error
 	OnSetDataFrame(timestamp uint32, data *message.NetStreamSetDataFrame) error
-	OnAudio(timestamp uint32, payload []byte) error
-	OnVideo(timestamp uint32, payload []byte) error
+	OnAudio(timestamp uint32, payload io.Reader) error
+	OnVideo(timestamp uint32, payload io.Reader) error
 	OnUnknownMessage(timestamp uint32, msg message.Message) error
 	OnUnknownCommandMessage(timestamp uint32, cmd *message.CommandMessage) error
 	OnUnknownDataMessage(timestamp uint32, data *message.DataMessage) error

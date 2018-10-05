@@ -8,7 +8,6 @@
 package message
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 	"github.com/pkg/errors"
@@ -18,21 +17,21 @@ import (
 )
 
 type Decoder struct {
-	r      io.Reader
-	typeID TypeID
-
-	cacheBuffer bytes.Buffer
+	r io.Reader
 }
 
-func NewDecoder(r io.Reader, typeID TypeID) *Decoder {
+func NewDecoder(r io.Reader) *Decoder {
 	return &Decoder{
-		r:      r,
-		typeID: typeID,
+		r: r,
 	}
 }
 
-func (dec *Decoder) Decode(msg *Message) error {
-	switch dec.typeID {
+func (dec *Decoder) Reset(r io.Reader) {
+	dec.r = r
+}
+
+func (dec *Decoder) Decode(typeID TypeID, msg *Message) error {
+	switch typeID {
 	case TypeIDSetChunkSize:
 		return dec.decodeSetChunkSize(msg)
 	case TypeIDAbortMessage:
@@ -64,7 +63,7 @@ func (dec *Decoder) Decode(msg *Message) error {
 	case TypeIDAggregateMessage:
 		return dec.decodeAggregateMessage(msg)
 	default:
-		return fmt.Errorf("Unexpected message type(decode): ID = %d", dec.typeID)
+		return fmt.Errorf("Unexpected message type(decode): ID = %d", typeID)
 	}
 }
 
@@ -172,40 +171,16 @@ func (dec *Decoder) decodeSetPeerBandwidth(msg *Message) error {
 }
 
 func (dec *Decoder) decodeAudioMessage(msg *Message) error {
-	buf := &dec.cacheBuffer // TODO: Provide thread safety if needed
-	buf.Reset()
-
-	_, err := io.Copy(buf, dec.r)
-	if err != nil {
-		return err
-	}
-
-	// Copy ownership
-	bin := make([]byte, len(buf.Bytes()))
-	copy(bin, buf.Bytes())
-
 	*msg = &AudioMessage{
-		Payload: bin,
+		Payload: dec.r, // Share an ownership of the reader
 	}
 
 	return nil
 }
 
 func (dec *Decoder) decodeVideoMessage(msg *Message) error {
-	buf := &dec.cacheBuffer // TODO: Provide thread safety if needed
-	buf.Reset()
-
-	_, err := io.Copy(buf, dec.r)
-	if err != nil {
-		return err
-	}
-
-	// Copy ownership
-	bin := make([]byte, len(buf.Bytes()))
-	copy(bin, buf.Bytes())
-
 	*msg = &VideoMessage{
-		Payload: bin,
+		Payload: dec.r, // Share an ownership of the reader
 	}
 
 	return nil
@@ -224,7 +199,7 @@ func (dec *Decoder) decodeCommandMessageAMF3(msg *Message) error {
 }
 
 func (dec *Decoder) decodeDataMessageAMF0(msg *Message) error {
-	if err := dec.decodeDataMessage(dec.r, msg, func(r io.Reader) (AMFDecoder, EncodingType) {
+	if err := dec.decodeDataMessage(msg, func(r io.Reader) (AMFDecoder, EncodingType) {
 		return amf0.NewDecoder(r), EncodingTypeAMF0
 	}); err != nil {
 		return err
@@ -238,7 +213,7 @@ func (dec *Decoder) decodeSharedObjectMessageAMF0(msg *Message) error {
 }
 
 func (dec *Decoder) decodeCommandMessageAMF0(msg *Message) error {
-	if err := dec.decodeCommandMessage(dec.r, msg, func(r io.Reader) (AMFDecoder, EncodingType) {
+	if err := dec.decodeCommandMessage(msg, func(r io.Reader) (AMFDecoder, EncodingType) {
 		return amf0.NewDecoder(r), EncodingTypeAMF0
 	}); err != nil {
 		return err
@@ -251,37 +226,25 @@ func (dec *Decoder) decodeAggregateMessage(msg *Message) error {
 	return fmt.Errorf("Not implemented: AggregateMessage")
 }
 
-func (dec *Decoder) decodeDataMessage(r io.Reader, msg *Message, f func(r io.Reader) (AMFDecoder, EncodingType)) error {
-	d, encTy := f(r)
+func (dec *Decoder) decodeDataMessage(msg *Message, f func(r io.Reader) (AMFDecoder, EncodingType)) error {
+	d, encTy := f(dec.r)
 
 	var name string
 	if err := d.Decode(&name); err != nil {
 		return errors.Wrap(err, "Failed to decode name")
 	}
 
-	buf := &dec.cacheBuffer // TODO: Provide thread safety if needed
-	buf.Reset()
-
-	_, err := io.Copy(buf, dec.r)
-	if err != nil {
-		return errors.Wrap(err, "Failed to copy body payload")
-	}
-
-	// Copy ownership
-	bin := make([]byte, len(buf.Bytes()))
-	copy(bin, buf.Bytes())
-
 	*msg = &DataMessage{
 		Name:     name,
 		Encoding: encTy,
-		Body:     bin,
+		Body:     dec.r, // Share an ownership of the reader
 	}
 
 	return nil
 }
 
-func (dec *Decoder) decodeCommandMessage(r io.Reader, msg *Message, f func(r io.Reader) (AMFDecoder, EncodingType)) error {
-	d, encTy := f(r)
+func (dec *Decoder) decodeCommandMessage(msg *Message, f func(r io.Reader) (AMFDecoder, EncodingType)) error {
+	d, encTy := f(dec.r)
 
 	var name string
 	if err := d.Decode(&name); err != nil {
@@ -293,23 +256,11 @@ func (dec *Decoder) decodeCommandMessage(r io.Reader, msg *Message, f func(r io.
 		return errors.Wrap(err, "Failed to decode transactionID")
 	}
 
-	buf := &dec.cacheBuffer // TODO: Provide thread safety if needed
-	buf.Reset()
-
-	_, err := io.Copy(buf, dec.r)
-	if err != nil {
-		return errors.Wrap(err, "Failed to copy body payload")
-	}
-
-	// Copy ownership
-	bin := make([]byte, len(buf.Bytes()))
-	copy(bin, buf.Bytes())
-
 	*msg = &CommandMessage{
 		CommandName:   name,
 		TransactionID: transactionID,
 		Encoding:      encTy,
-		Body:          bin,
+		Body:          dec.r, // Share an ownership of the reader
 	}
 
 	return nil
