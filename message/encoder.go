@@ -24,6 +24,10 @@ func NewEncoder(w io.Writer) *Encoder {
 	}
 }
 
+func (enc *Encoder) Reset(w io.Writer) {
+	enc.w = w
+}
+
 // Encode
 func (enc *Encoder) Encode(msg Message) error {
 	switch msg := msg.(type) {

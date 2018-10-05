@@ -18,21 +18,23 @@ import (
 )
 
 type Decoder struct {
-	r      io.Reader
-	typeID TypeID
+	r io.Reader
 
 	cacheBuffer bytes.Buffer
 }
 
-func NewDecoder(r io.Reader, typeID TypeID) *Decoder {
+func NewDecoder(r io.Reader) *Decoder {
 	return &Decoder{
-		r:      r,
-		typeID: typeID,
+		r: r,
 	}
 }
 
-func (dec *Decoder) Decode(msg *Message) error {
-	switch dec.typeID {
+func (dec *Decoder) Reset(r io.Reader) {
+	dec.r = r
+}
+
+func (dec *Decoder) Decode(typeID TypeID, msg *Message) error {
+	switch typeID {
 	case TypeIDSetChunkSize:
 		return dec.decodeSetChunkSize(msg)
 	case TypeIDAbortMessage:
@@ -64,7 +66,7 @@ func (dec *Decoder) Decode(msg *Message) error {
 	case TypeIDAggregateMessage:
 		return dec.decodeAggregateMessage(msg)
 	default:
-		return fmt.Errorf("Unexpected message type(decode): ID = %d", dec.typeID)
+		return fmt.Errorf("Unexpected message type(decode): ID = %d", typeID)
 	}
 }
 

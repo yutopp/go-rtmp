@@ -38,6 +38,9 @@ type ChunkStreamer struct {
 
 	writerSched *chunkStreamerWriterSched
 
+	msgDec *message.Decoder
+	msgEnc *message.Encoder
+
 	selfState *StreamControlState
 	peerState *StreamControlState
 
@@ -71,6 +74,9 @@ func NewChunkStreamer(r io.Reader, w io.Writer, config *StreamControlStateConfig
 			stopCh:  make(chan struct{}),
 		},
 
+		msgDec: message.NewDecoder(nil),
+		msgEnc: message.NewEncoder(nil),
+
 		selfState: NewStreamControlState(config),
 		peerState: NewStreamControlState(config),
 
@@ -92,8 +98,8 @@ func (cs *ChunkStreamer) Read(cmsg *ChunkMessage) (int, uint32, error) {
 	}
 	defer reader.Close()
 
-	dec := message.NewDecoder(reader, message.TypeID(reader.messageTypeID))
-	if err := dec.Decode(&cmsg.Message); err != nil {
+	cs.msgDec.Reset(reader)
+	if err := cs.msgDec.Decode(message.TypeID(reader.messageTypeID), &cmsg.Message); err != nil {
 		return 0, 0, err
 	}
 
@@ -114,8 +120,8 @@ func (cs *ChunkStreamer) Write(
 	}
 	//defer writer.Close()
 
-	enc := message.NewEncoder(writer)
-	if err := enc.Encode(cmsg.Message); err != nil {
+	cs.msgEnc.Reset(writer)
+	if err := cs.msgEnc.Encode(cmsg.Message); err != nil {
 		return err
 	}
 	writer.timestamp = timestamp
