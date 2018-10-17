@@ -18,10 +18,8 @@ import (
 func TestConnConfig(t *testing.T) {
 	b := &rwcMock{}
 
-	conn := newConnFromIO(b, &ConnConfig{
+	conn := newConn(b, &ConnConfig{
 		SkipHandshakeVerification: true,
-
-		MaxBitrateKbps: 1234,
 
 		ReaderBufferSize: 1234,
 		WriterBufferSize: 1234,
@@ -44,8 +42,6 @@ func TestConnConfig(t *testing.T) {
 	})
 
 	assert.Equal(t, true, conn.config.SkipHandshakeVerification)
-
-	assert.Equal(t, uint32(1234), conn.config.MaxBitrateKbps)
 
 	assert.Equal(t, 1234, conn.config.ReaderBufferSize)
 	assert.Equal(t, 1234, conn.config.WriterBufferSize)

@@ -15,7 +15,7 @@ import (
 
 func BenchmarkHandlePublisherVideoMessage(b *testing.B) {
 	rwc := &rwcMock{}
-	c := newConnFromIO(rwc, nil)
+	c := newConn(rwc, nil)
 
 	s := newStream(42, c)
 	s.handler.ChangeState(streamStateServerPublish)

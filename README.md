@@ -16,6 +16,12 @@ RTMP 1.0 server/client library written in Go.
 go get github.com/yutopp/go-rtmp
 ```
 
+## NOTES
+
+### How to limit bitrates or set timeouts
+
+- Please use [yutopp/go-iowrap](https://github.com/yutopp/go-iowrap).
+
 ## License
 
 [Boost Software License - Version 1.0](./LICENSE_1_0.txt)

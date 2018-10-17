@@ -23,12 +23,10 @@ func TestHandlerCallback(t *testing.T) {
 		closer: closer,
 	}
 
-	conn := newConnFromIO(b, &ConnConfig{
+	conn := newConn(b, &ConnConfig{
 		Handler: handler,
 
 		SkipHandshakeVerification: true,
-
-		MaxBitrateKbps: 1234,
 
 		ReaderBufferSize: 1234,
 		WriterBufferSize: 1234,

@@ -14,9 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
-	"net"
 	"sync"
-	"time"
 
 	"github.com/yutopp/go-rtmp/message"
 )
@@ -45,13 +43,8 @@ type ConnConfig struct {
 	IgnoreMessagesOnNotExistStream          bool
 	IgnoreMessagesOnNotExistStreamThreshold uint32
 
-	MaxBitrateKbps uint32
-
 	ReaderBufferSize int
 	WriterBufferSize int
-
-	ReadTimeout  time.Duration
-	WriteTimeout time.Duration
 
 	ControlState StreamControlStateConfig
 
@@ -63,10 +56,6 @@ func (cb *ConnConfig) normalize() *ConnConfig {
 
 	if c.Handler == nil {
 		c.Handler = &DefaultHandler{}
-	}
-
-	if c.MaxBitrateKbps == 0 {
-		c.MaxBitrateKbps = 8 * 1024 // 8MBps (Default)
 	}
 
 	if c.ReaderBufferSize == 0 {
@@ -89,23 +78,7 @@ func (cb *ConnConfig) normalize() *ConnConfig {
 	return &c
 }
 
-func newConn(conn net.Conn, config *ConnConfig) *Conn {
-	if config == nil {
-		config = &ConnConfig{}
-	}
-	config = config.normalize()
-
-	rwc := &rwcHasTimeout{
-		conn:         conn,
-		readTimeout:  config.ReadTimeout,
-		writeTimeout: config.WriteTimeout,
-		now:          time.Now,
-	}
-
-	return newConnFromIO(rwc, config)
-}
-
-func newConnFromIO(rwc io.ReadWriteCloser, config *ConnConfig) *Conn {
+func newConn(rwc io.ReadWriteCloser, config *ConnConfig) *Conn {
 	if config == nil {
 		config = &ConnConfig{}
 	}
@@ -121,11 +94,7 @@ func newConnFromIO(rwc io.ReadWriteCloser, config *ConnConfig) *Conn {
 		logger: config.Logger,
 	}
 
-	conn.streamer = NewChunkStreamer(
-		NewBitrateRejectorReader(conn.bufr, conn.config.MaxBitrateKbps),
-		conn.bufw,
-		&conn.config.ControlState,
-	)
+	conn.streamer = NewChunkStreamer(conn.bufr, conn.bufw, &conn.config.ControlState)
 	conn.streamer.logger = conn.logger
 
 	conn.streams = newStreams(conn)

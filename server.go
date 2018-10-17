@@ -23,7 +23,7 @@ type Server struct {
 }
 
 type ServerConfig struct {
-	OnConnect func() *ConnConfig
+	OnConnect func(net.Conn) (io.ReadWriteCloser, *ConnConfig)
 }
 
 func NewServer(config *ServerConfig) *Server {
@@ -104,9 +104,9 @@ func (srv *Server) getDoneChLocked() chan struct{} {
 }
 
 func (srv *Server) handleConn(conn net.Conn) {
-	connConfig := srv.config.OnConnect()
+	userConn, connConfig := srv.config.OnConnect(conn)
 
-	c := newConn(conn, connConfig)
+	c := newConn(userConn, connConfig)
 	sc := &serverConn{
 		conn: c,
 	}

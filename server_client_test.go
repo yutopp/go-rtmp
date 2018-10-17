@@ -12,6 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/yutopp/go-amf0"
+	"io"
 	"net"
 	"testing"
 
@@ -107,8 +108,8 @@ func prepareConnection(t *testing.T, config *ConnConfig, f func(c *ClientConn)) 
 	assert.Nil(t, err)
 
 	srv := NewServer(&ServerConfig{
-		OnConnect: func() *ConnConfig {
-			return config
+		OnConnect: func(conn net.Conn) (io.ReadWriteCloser, *ConnConfig) {
+			return conn, config
 		},
 	})
 	defer func() {

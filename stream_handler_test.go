@@ -14,7 +14,7 @@ import (
 
 func TestStreamHandlerChangeState(t *testing.T) {
 	rwc := &rwcMock{}
-	c := newConnFromIO(rwc, nil)
+	c := newConn(rwc, nil)
 	s := newStream(42, c)
 
 	s.handler.ChangeState(streamStateUnknown)

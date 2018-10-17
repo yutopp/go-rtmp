@@ -14,7 +14,7 @@ import (
 
 func TestStreams(t *testing.T) {
 	b := &rwcMock{}
-	conn := newConnFromIO(b, &ConnConfig{
+	conn := newConn(b, &ConnConfig{
 		ControlState: StreamControlStateConfig{
 			MaxMessageStreams: 1,
 		},
