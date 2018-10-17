@@ -49,8 +49,9 @@ type ChunkStreamer struct {
 
 	controlStreamWriter func(chunkStreamID int, timestamp uint32, msg message.Message) error
 
-	config *StreamControlStateConfig
-	logger logrus.FieldLogger
+	cacheBuffer []byte
+	config      *StreamControlStateConfig
+	logger      logrus.FieldLogger
 }
 
 func NewChunkStreamer(r io.Reader, w io.Writer, config *StreamControlStateConfig) *ChunkStreamer {
@@ -82,8 +83,9 @@ func NewChunkStreamer(r io.Reader, w io.Writer, config *StreamControlStateConfig
 
 		done: make(chan struct{}),
 
-		config: config,
-		logger: logrus.StandardLogger(),
+		cacheBuffer: make([]byte, 64*1024), // cache 64KB
+		config:      config,
+		logger:      logrus.StandardLogger(),
 	}
 	cs.writerSched.streamer = cs
 	go cs.schedWriteLoop()
@@ -91,31 +93,20 @@ func NewChunkStreamer(r io.Reader, w io.Writer, config *StreamControlStateConfig
 	return cs
 }
 
-func (cs *ChunkStreamer) Read(cmsg *ChunkMessage) (
-	chunkStreamID int,
-	timestamp uint32,
-	closer func(),
-	err error,
-) {
+func (cs *ChunkStreamer) Read(cmsg *ChunkMessage) (int, uint32, error) {
 	reader, err := cs.NewChunkReader()
 	if err != nil {
-		return 0, 0, nil, err
+		return 0, 0, err
 	}
-	closer = func() { reader.Close() }
-	defer func() {
-		if err != nil {
-			closer()
-		}
-	}()
 
 	cs.msgDec.Reset(reader)
 	if err := cs.msgDec.Decode(message.TypeID(reader.messageTypeID), &cmsg.Message); err != nil {
-		return 0, 0, nil, err
+		return 0, 0, err
 	}
 
 	cmsg.StreamID = reader.messageStreamID
 
-	return reader.basicHeader.chunkStreamID, uint32(reader.timestamp), closer, nil
+	return reader.basicHeader.chunkStreamID, uint32(reader.timestamp), nil
 }
 
 func (cs *ChunkStreamer) Write(
@@ -144,7 +135,7 @@ func (cs *ChunkStreamer) Write(
 
 func (cs *ChunkStreamer) NewChunkReader() (*ChunkStreamReader, error) {
 again:
-	isCompleted, reader, err := cs.readChunk()
+	reader, err := cs.readChunk()
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +146,7 @@ again:
 		cs.r.ResetFragmentReadBytes()
 	}
 
-	if !isCompleted {
+	if !reader.completed {
 		goto again
 	}
 	return reader, nil
@@ -200,22 +191,26 @@ func (cs *ChunkStreamer) Close() error {
 }
 
 // returns nil reader when chunk is fragmented.
-func (cs *ChunkStreamer) readChunk() (bool, *ChunkStreamReader, error) {
+func (cs *ChunkStreamer) readChunk() (*ChunkStreamReader, error) {
 	var bh chunkBasicHeader
 	if err := decodeChunkBasicHeader(cs.r, &bh); err != nil {
-		return false, nil, err
+		return nil, err
 	}
 	cs.logger.Debugf("(READ) BasicHeader = %+v", bh)
 
 	var mh chunkMessageHeader
 	if err := decodeChunkMessageHeader(cs.r, bh.fmt, &mh); err != nil {
-		return false, nil, err
+		return nil, err
 	}
 	cs.logger.Debugf("(READ) MessageHeader = %+v", mh)
 
 	reader, err := cs.prepareChunkReader(bh.chunkStreamID)
 	if err != nil {
-		return false, nil, errors.Wrapf(err, "Failed to prepare chunk reader")
+		return nil, errors.Wrapf(err, "Failed to prepare chunk reader")
+	}
+	if reader.completed {
+		reader.buf.Reset()
+		reader.completed = false
 	}
 
 	reader.basicHeader = bh
@@ -256,20 +251,22 @@ func (cs *ChunkStreamer) readChunk() (bool, *ChunkStreamReader, error) {
 	}
 	cs.logger.Debugf("(READ) Length = %d", expectLen)
 
-	if _, err := io.CopyN(&reader.buf, cs.r, int64(expectLen)); err != nil {
-		return false, nil, err
+	lr := io.LimitReader(cs.r, int64(expectLen))
+	if _, err := io.CopyBuffer(&reader.buf, lr, cs.cacheBuffer); err != nil {
+		return nil, err
 	}
 	//cs.logger.Debugf("(READ) Buffer: %+v", reader.buf.Bytes())
 
 	if int(reader.messageLength)-reader.buf.Len() != 0 {
 		// fragmented
-		return false, reader, nil
+		return reader, nil
 	}
 
 	// read completed, update timestamp
 	reader.timestamp += reader.timestampDelta
+	reader.completed = true
 
-	return true, reader, nil
+	return reader, nil
 }
 
 func (cs *ChunkStreamer) writeChunk(writer *ChunkStreamWriter) (bool, error) {

@@ -22,14 +22,10 @@ type ChunkStreamReader struct {
 	messageTypeID   byte
 	messageStreamID uint32
 
-	buf bytes.Buffer
+	buf       bytes.Buffer
+	completed bool
 }
 
 func (r *ChunkStreamReader) Read(b []byte) (int, error) {
 	return r.buf.Read(b)
-}
-
-func (r *ChunkStreamReader) Close() error {
-	r.buf.Reset()
-	return nil
 }

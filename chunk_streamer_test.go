@@ -54,11 +54,10 @@ func TestStreamerSingleChunk(t *testing.T) {
 	assert.Nil(t, err)
 
 	// read a message
-	isCompleted, r, err := streamer.readChunk()
+	r, err := streamer.readChunk()
 	assert.Nil(t, err)
-	assert.True(t, isCompleted)
 	assert.NotNil(t, r)
-	defer r.Close()
+	assert.True(t, r.completed)
 
 	dec := message.NewDecoder(r)
 	var actualMsg message.Message
@@ -111,11 +110,10 @@ func TestStreamerMultipleChunk(t *testing.T) {
 	// read a message
 	var r *ChunkStreamReader
 	for i := 0; i < len(payloadUnit); i++ {
-		_, r, err = streamer.readChunk()
+		r, err = streamer.readChunk()
 		assert.Nil(t, err)
 	}
 	assert.NotNil(t, r)
-	defer r.Close()
 
 	dec := message.NewDecoder(r)
 	var actualMsg message.Message
@@ -237,17 +235,13 @@ func TestStreamerChunkExample1(t *testing.T) {
 
 			for i, rc := range tc.readCases {
 				t.Run(fmt.Sprintf("Read: %d", i), func(t *testing.T) {
-					isCompleted, r, err := streamer.readChunk()
+					r, err := streamer.readChunk()
 					assert.Nil(t, err)
 					assert.NotNil(t, r)
 
 					assert.Equal(t, rc.fmt, r.basicHeader.fmt)
 					assert.Equal(t, uint32(rc.timestamp), r.timestamp)
-					assert.Equal(t, rc.isComplete, isCompleted)
-
-					if isCompleted {
-						r.Close()
-					}
+					assert.Equal(t, rc.isComplete, r.completed)
 				})
 			}
 		})
@@ -409,4 +403,45 @@ func TestChunkStreamerNewChunkWriterTwice(t *testing.T) {
 
 	<-streamer.Done()
 	assert.Equal(t, nil, streamer.Err())
+}
+
+func BenchmarkStreamerMultipleChunkRead(b *testing.B) {
+	const chunkSize = 128
+	const payloadUnit = "test"
+
+	buf := bytes.NewBuffer(nil)
+	streamer := NewChunkStreamer(buf, buf, nil)
+
+	chunkStreamID := 2
+	videoContent := []byte(strings.Repeat(payloadUnit, chunkSize))
+	msg := &message.VideoMessage{
+		// will be chunked (chunkSize * len(payloadUnit))
+		Payload: bytes.NewReader(videoContent),
+	}
+	timestamp := uint32(72)
+
+	// write a message
+	w, _ := streamer.NewChunkWriter(context.Background(), chunkStreamID)
+	enc := message.NewEncoder(w)
+	_ = enc.Encode(msg)
+
+	w.messageLength = uint32(w.buf.Len())
+	w.messageTypeID = byte(msg.TypeID())
+	w.timestamp = timestamp
+	_ = streamer.Sched(w)
+
+	_, _ = streamer.NewChunkWriter(context.Background(), chunkStreamID) // wait for writing
+
+	r := bytes.NewReader(buf.Bytes())
+	s := NewChunkStreamer(r, nil, nil)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		r.Reset(buf.Bytes())
+
+		_, err := s.NewChunkReader()
+		if err != nil {
+			b.Error(err)
+		}
+	}
 }
