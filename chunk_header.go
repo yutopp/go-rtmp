@@ -18,27 +18,27 @@ type chunkBasicHeader struct {
 	chunkStreamID int /* [0, 65599] */
 }
 
-func decodeChunkBasicHeader(r io.Reader, bh *chunkBasicHeader) error {
-	buf := make([]byte, 3)
-	_, err := io.ReadAtLeast(r, buf[:1], 1)
-	if err != nil {
+func decodeChunkBasicHeader(r io.Reader, buf []byte, bh *chunkBasicHeader) error {
+	if buf == nil || len(buf) < 3 {
+		buf = make([]byte, 3)
+	}
+
+	if _, err := io.ReadAtLeast(r, buf[:1], 1); err != nil {
 		return err
 	}
 
-	fmtTy := (buf[0] & 0xC0) >> 6 // 0b11000000 >> 6
+	fmtTy := (buf[0] & 0xc0) >> 6 // 0b11000000 >> 6
 	csID := int(buf[0] & 0x3f)    // 0b00111111
 
 	switch csID {
 	case 0:
-		_, err := io.ReadAtLeast(r, buf[1:2], 1)
-		if err != nil {
+		if _, err := io.ReadAtLeast(r, buf[1:2], 1); err != nil {
 			return err
 		}
 		csID = int(buf[1]) + 64
 
 	case 1:
-		_, err := io.ReadAtLeast(r, buf[1:], 2)
-		if err != nil {
+		if _, err := io.ReadAtLeast(r, buf[1:], 2); err != nil {
 			return err
 		}
 		csID = int(buf[2])*256 + int(buf[1]) + 64
@@ -86,14 +86,15 @@ type chunkMessageHeader struct {
 	messageStreamID uint32 // fmt = 0
 }
 
-func decodeChunkMessageHeader(r io.Reader, fmt byte, mh *chunkMessageHeader) error {
+func decodeChunkMessageHeader(r io.Reader, fmt byte, buf []byte, mh *chunkMessageHeader) error {
+	if buf == nil || len(buf) < 11 {
+		buf = make([]byte, 11)
+	}
 	cache32bits := make([]byte, 4)
 
 	switch fmt {
 	case 0:
-		buf := make([]byte, 11)
-		_, err := io.ReadAtLeast(r, buf, len(buf))
-		if err != nil {
+		if _, err := io.ReadAtLeast(r, buf[:11], 11); err != nil {
 			return err
 		}
 
@@ -113,9 +114,7 @@ func decodeChunkMessageHeader(r io.Reader, fmt byte, mh *chunkMessageHeader) err
 		}
 
 	case 1:
-		buf := make([]byte, 7)
-		_, err := io.ReadAtLeast(r, buf, len(buf))
-		if err != nil {
+		if _, err := io.ReadAtLeast(r, buf[:7], 7); err != nil {
 			return err
 		}
 
@@ -134,9 +133,7 @@ func decodeChunkMessageHeader(r io.Reader, fmt byte, mh *chunkMessageHeader) err
 		}
 
 	case 2:
-		buf := make([]byte, 3)
-		_, err := io.ReadAtLeast(r, buf, len(buf))
-		if err != nil {
+		if _, err := io.ReadAtLeast(r, buf[:3], 3); err != nil {
 			return err
 		}
 

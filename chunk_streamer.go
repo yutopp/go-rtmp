@@ -193,16 +193,16 @@ func (cs *ChunkStreamer) Close() error {
 // returns nil reader when chunk is fragmented.
 func (cs *ChunkStreamer) readChunk() (*ChunkStreamReader, error) {
 	var bh chunkBasicHeader
-	if err := decodeChunkBasicHeader(cs.r, &bh); err != nil {
+	if err := decodeChunkBasicHeader(cs.r, cs.cacheBuffer, &bh); err != nil {
 		return nil, err
 	}
-	cs.logger.Debugf("(READ) BasicHeader = %+v", bh)
+	//cs.logger.Debugf("(READ) BasicHeader = %+v", bh)
 
 	var mh chunkMessageHeader
-	if err := decodeChunkMessageHeader(cs.r, bh.fmt, &mh); err != nil {
+	if err := decodeChunkMessageHeader(cs.r, bh.fmt, cs.cacheBuffer, &mh); err != nil {
 		return nil, err
 	}
-	cs.logger.Debugf("(READ) MessageHeader = %+v", mh)
+	//cs.logger.Debugf("(READ) MessageHeader = %+v", mh)
 
 	reader, err := cs.prepareChunkReader(bh.chunkStreamID)
 	if err != nil {
@@ -239,7 +239,7 @@ func (cs *ChunkStreamer) readChunk() (*ChunkStreamReader, error) {
 		panic("unsupported chunk") // TODO: fix
 	}
 
-	cs.logger.Debugf("(READ) MessageLength = %d, Current = %d", reader.messageLength, reader.buf.Len())
+	//cs.logger.Debugf("(READ) MessageLength = %d, Current = %d", reader.messageLength, reader.buf.Len())
 
 	expectLen := int(reader.messageLength) - reader.buf.Len()
 	if expectLen <= 0 {
@@ -249,7 +249,7 @@ func (cs *ChunkStreamer) readChunk() (*ChunkStreamReader, error) {
 	if uint32(expectLen) > cs.peerState.chunkSize {
 		expectLen = int(cs.peerState.chunkSize)
 	}
-	cs.logger.Debugf("(READ) Length = %d", expectLen)
+	//cs.logger.Debugf("(READ) Length = %d", expectLen)
 
 	lr := io.LimitReader(cs.r, int64(expectLen))
 	if _, err := io.CopyBuffer(&reader.buf, lr, cs.cacheBuffer); err != nil {
@@ -272,7 +272,7 @@ func (cs *ChunkStreamer) readChunk() (*ChunkStreamReader, error) {
 func (cs *ChunkStreamer) writeChunk(writer *ChunkStreamWriter) (bool, error) {
 	cs.updateWriterHeader(writer)
 
-	cs.logger.Debugf("(WRITE) Headers: Basic = %+v / Message = %+v", writer.basicHeader, writer.messageHeader)
+	//cs.logger.Debugf("(WRITE) Headers: Basic = %+v / Message = %+v", writer.basicHeader, writer.messageHeader)
 	//cs.logger.Debugf("(WRITE) Buffer: %+v", writer.buf.Bytes())
 
 	expectLen := writer.buf.Len()

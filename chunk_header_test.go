@@ -128,12 +128,9 @@ func TestChunkBasicHeader(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
 
-				bin := make([]byte, len(tc.binary))
-				copy(bin, tc.binary) // copy ownership
-
-				buf := bytes.NewBuffer(bin)
+				r := bytes.NewReader(tc.binary)
 				var mh chunkBasicHeader
-				err := decodeChunkBasicHeader(buf, &mh)
+				err := decodeChunkBasicHeader(r, nil, &mh)
 				assert.Nil(t, err)
 				assert.Equal(t, tc.value, &mh)
 			})
@@ -382,12 +379,9 @@ func TestChunkMessageHeader(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
 
-				bin := make([]byte, len(tc.binary))
-				copy(bin, tc.binary) // copy ownership
-
-				buf := bytes.NewBuffer(bin)
+				r := bytes.NewReader(tc.binary)
 				var mh chunkMessageHeader
-				err := decodeChunkMessageHeader(buf, tc.fmt, &mh)
+				err := decodeChunkMessageHeader(r, tc.fmt, nil, &mh)
 				assert.Nil(t, err)
 				assert.Equal(t, tc.value, &mh)
 			})

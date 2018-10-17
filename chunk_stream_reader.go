@@ -11,7 +11,6 @@ import (
 	"bytes"
 )
 
-// Must call Close after reading.
 type ChunkStreamReader struct {
 	basicHeader   chunkBasicHeader
 	messageHeader chunkMessageHeader
