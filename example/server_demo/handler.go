@@ -87,6 +87,12 @@ func (h *Handler) OnAudio(timestamp uint32, payload io.Reader) error {
 		return err
 	}
 
+	flvBody := new(bytes.Buffer)
+	if _, err := io.Copy(flvBody, audio.Data); err != nil {
+		return err
+	}
+	audio.Data = flvBody
+
 	log.Printf("FLV Audio Data: Timestamp = %d, SoundFormat = %+v, SoundRate = %+v, SoundSize = %+v, SoundType = %+v, AACPacketType = %+v, Data length = %+v",
 		timestamp,
 		audio.SoundFormat,
@@ -94,7 +100,7 @@ func (h *Handler) OnAudio(timestamp uint32, payload io.Reader) error {
 		audio.SoundSize,
 		audio.SoundType,
 		audio.AACPacketType,
-		len(audio.Data),
+		len(flvBody.Bytes()),
 	)
 
 	if err := h.flvEnc.Encode(&flvtag.FlvTag{
@@ -114,13 +120,19 @@ func (h *Handler) OnVideo(timestamp uint32, payload io.Reader) error {
 		return err
 	}
 
+	flvBody := new(bytes.Buffer)
+	if _, err := io.Copy(flvBody, video.Data); err != nil {
+		return err
+	}
+	video.Data = flvBody
+
 	log.Printf("FLV Video Data: Timestamp = %d, FrameType = %+v, CodecID = %+v, AVCPacketType = %+v, CT = %+v, Data length = %+v",
 		timestamp,
 		video.FrameType,
 		video.CodecID,
 		video.AVCPacketType,
 		video.CompositionTime,
-		len(video.Data),
+		len(flvBody.Bytes()),
 	)
 
 	if err := h.flvEnc.Encode(&flvtag.FlvTag{
