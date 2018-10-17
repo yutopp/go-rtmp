@@ -223,7 +223,7 @@ func (cs *ChunkStreamer) readChunk() (bool, *ChunkStreamReader, error) {
 
 	switch bh.fmt {
 	case 0:
-		reader.timestamp = uint64(mh.timestamp)
+		reader.timestamp = mh.timestamp
 		reader.timestampDelta = 0 // reset
 		reader.messageLength = mh.messageLength
 		reader.messageTypeID = mh.messageTypeID
@@ -267,7 +267,7 @@ func (cs *ChunkStreamer) readChunk() (bool, *ChunkStreamReader, error) {
 	}
 
 	// read completed, update timestamp
-	reader.timestamp += uint64(reader.timestampDelta)
+	reader.timestamp += reader.timestampDelta
 
 	return true, reader, nil
 }
@@ -403,11 +403,13 @@ func (cs *ChunkStreamer) prepareChunkWriter(chunkStreamID int) (*ChunkStreamWrit
 		}
 
 		writer = &ChunkStreamWriter{
-			basicHeader: chunkBasicHeader{
-				chunkStreamID: chunkStreamID,
-			},
-			messageHeader: chunkMessageHeader{
-				timestamp: math.MaxUint32, // initial state will be updated by writer.timestamp
+			ChunkStreamReader: ChunkStreamReader{
+				basicHeader: chunkBasicHeader{
+					chunkStreamID: chunkStreamID,
+				},
+				messageHeader: chunkMessageHeader{
+					timestamp: math.MaxUint32, // initial state will be updated by writer.timestamp
+				},
 			},
 			doneCh:  make(chan struct{}),
 			closeCh: make(chan struct{}),

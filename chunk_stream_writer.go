@@ -8,30 +8,17 @@
 package rtmp
 
 import (
-	"bytes"
 	"context"
 	"sync"
 )
 
 type ChunkStreamWriter struct {
-	basicHeader   chunkBasicHeader
-	messageHeader chunkMessageHeader
+	ChunkStreamReader
 
-	timestamp       uint32
-	timestampDelta  uint32
-	messageLength   uint32 // max, 24bits
-	messageTypeID   byte
-	messageStreamID uint32
-
-	buf     bytes.Buffer
 	doneCh  chan struct{}
 	closeCh chan struct{}
 	lastErr error
 	aqM     sync.Mutex
-}
-
-func (w *ChunkStreamWriter) Read(b []byte) (int, error) {
-	return w.buf.Read(b)
 }
 
 func (w *ChunkStreamWriter) Write(b []byte) (int, error) {

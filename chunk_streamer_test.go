@@ -64,7 +64,7 @@ func TestStreamerSingleChunk(t *testing.T) {
 	var actualMsg message.Message
 	err = dec.Decode(message.TypeID(r.messageTypeID), &actualMsg)
 	assert.Nil(t, err)
-	assert.Equal(t, uint64(timestamp), r.timestamp)
+	assert.Equal(t, uint32(timestamp), r.timestamp)
 
 	// check message
 	assert.Equal(t, actualMsg.TypeID(), msg.TypeID())
@@ -121,7 +121,7 @@ func TestStreamerMultipleChunk(t *testing.T) {
 	var actualMsg message.Message
 	err = dec.Decode(message.TypeID(r.messageTypeID), &actualMsg)
 	assert.Nil(t, err)
-	assert.Equal(t, uint64(timestamp), r.timestamp)
+	assert.Equal(t, uint32(timestamp), r.timestamp)
 
 	// check message
 	assert.Equal(t, actualMsg.TypeID(), msg.TypeID())
@@ -242,7 +242,7 @@ func TestStreamerChunkExample1(t *testing.T) {
 					assert.NotNil(t, r)
 
 					assert.Equal(t, rc.fmt, r.basicHeader.fmt)
-					assert.Equal(t, uint64(rc.timestamp), r.timestamp)
+					assert.Equal(t, uint32(rc.timestamp), r.timestamp)
 					assert.Equal(t, rc.isComplete, isCompleted)
 
 					if isCompleted {

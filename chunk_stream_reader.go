@@ -16,7 +16,7 @@ type ChunkStreamReader struct {
 	basicHeader   chunkBasicHeader
 	messageHeader chunkMessageHeader
 
-	timestamp       uint64
+	timestamp       uint32
 	timestampDelta  uint32
 	messageLength   uint32 // max, 24bits
 	messageTypeID   byte
