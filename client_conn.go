@@ -13,6 +13,7 @@ import (
 	"sync"
 
 	"github.com/yutopp/go-rtmp/handshake"
+	"github.com/yutopp/go-rtmp/message"
 )
 
 // ClientConn A wrapper of a connection. It prorives client-side specific features.
@@ -58,7 +59,7 @@ func (cc *ClientConn) LastError() error {
 	return cc.lastErr
 }
 
-func (cc *ClientConn) Connect() error {
+func (cc *ClientConn) Connect(body *message.NetConnectionConnect) error {
 	if err := cc.controllable(); err != nil {
 		return err
 	}
@@ -68,7 +69,7 @@ func (cc *ClientConn) Connect() error {
 		return err
 	}
 
-	result, err := stream.Connect()
+	result, err := stream.Connect(body)
 	if err != nil {
 		return err // TODO: wrap an error
 	}
@@ -79,7 +80,7 @@ func (cc *ClientConn) Connect() error {
 	return nil
 }
 
-func (cc *ClientConn) CreateStream() (*Stream, error) {
+func (cc *ClientConn) CreateStream(body *message.NetConnectionConnect) (*Stream, error) {
 	if err := cc.controllable(); err != nil {
 		return nil, err
 	}
@@ -89,12 +90,13 @@ func (cc *ClientConn) CreateStream() (*Stream, error) {
 		return nil, err
 	}
 
-	result, err := stream.CreateStream()
+	result, err := stream.CreateStream(body)
 	if err != nil {
 		return nil, err // TODO: wrap an error
 	}
 
 	// TODO: check result
+
 	newStream, err := cc.conn.streams.Create(result.StreamID)
 	if err != nil {
 		return nil, err

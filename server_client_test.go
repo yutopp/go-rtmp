@@ -26,7 +26,7 @@ func TestServerCanAcceptConnect(t *testing.T) {
 	}
 
 	prepareConnection(t, config, func(c *ClientConn) {
-		err := c.Connect()
+		err := c.Connect(nil)
 		assert.Nil(t, err)
 	})
 }
@@ -42,7 +42,7 @@ func TestServerCanRejectConnect(t *testing.T) {
 	}
 
 	prepareConnection(t, config, func(c *ClientConn) {
-		err := c.Connect()
+		err := c.Connect(nil)
 		assert.Equal(t, &ConnectRejectedError{
 			TransactionID: 1,
 			Result: &message.NetConnectionConnectResult{
@@ -80,15 +80,15 @@ func TestServerCanAcceptCreateStream(t *testing.T) {
 	}
 
 	prepareConnection(t, config, func(c *ClientConn) {
-		err := c.Connect()
+		err := c.Connect(nil)
 		assert.Nil(t, err)
 
-		s0, err := c.CreateStream()
+		s0, err := c.CreateStream(nil)
 		assert.Nil(t, err)
 		defer s0.Close()
 
 		// Rejected because a number of message streams is exceeded the limits
-		s1, err := c.CreateStream()
+		s1, err := c.CreateStream(nil)
 		assert.Equal(t, &CreateStreamRejectedError{
 			TransactionID: 2,
 			Result: &message.NetConnectionCreateStreamResult{

@@ -56,12 +56,17 @@ func (s *Stream) WriteUserCtrl(chunkStreamID int, timestamp uint32, msg *message
 	return s.write(chunkStreamID, timestamp, msg)
 }
 
-// TODO: return server response
-func (s *Stream) Connect() (*message.NetConnectionConnectResult, error) {
+func (s *Stream) Connect(
+	body *message.NetConnectionConnect,
+) (*message.NetConnectionConnectResult, error) {
 	transactionID := int64(1) // Always 1 (7.2.1.1)
 	t, err := s.transactions.Create(transactionID)
 	if err != nil {
 		return nil, err
+	}
+
+	if body == nil {
+		body = &message.NetConnectionConnect{}
 	}
 
 	chunkStreamID := 3 // TODO: fix
@@ -69,14 +74,13 @@ func (s *Stream) Connect() (*message.NetConnectionConnectResult, error) {
 		chunkStreamID, 0, // Timestamp is 0
 		"connect",
 		transactionID,
-		&message.NetConnectionConnect{},
+		body,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	// TODO: support timeout
-	// TODO: check result
 	select {
 	case <-t.doneCh:
 		amfDec := message.NewAMFDecoder(t.body, t.encoding)
@@ -121,11 +125,17 @@ func (s *Stream) ReplyConnect(
 	)
 }
 
-func (s *Stream) CreateStream() (*message.NetConnectionCreateStreamResult, error) {
+func (s *Stream) CreateStream(
+	body *message.NetConnectionConnect,
+) (*message.NetConnectionCreateStreamResult, error) {
 	transactionID := int64(2) // TODO: fix
 	t, err := s.transactions.Create(transactionID)
 	if err != nil {
 		return nil, err
+	}
+
+	if body == nil {
+		body = &message.NetConnectionConnect{}
 	}
 
 	chunkStreamID := 3 // TODO: fix
@@ -133,7 +143,7 @@ func (s *Stream) CreateStream() (*message.NetConnectionCreateStreamResult, error
 		chunkStreamID, 0, // TODO: fix, Timestamp is 0
 		"createStream",
 		transactionID,
-		&message.NetConnectionConnect{},
+		body,
 	)
 	if err != nil {
 		return nil, err
@@ -182,6 +192,22 @@ func (s *Stream) ReplyCreateStream(
 		chunkStreamID, timestamp,
 		commandName,
 		transactionID,
+		body,
+	)
+}
+
+func (s *Stream) Publish(
+	body *message.NetStreamPublish,
+) error {
+	if body == nil {
+		body = &message.NetStreamPublish{}
+	}
+
+	chunkStreamID := 3 // TODO: fix
+	return s.writeCommandMessage(
+		chunkStreamID, 0, // TODO: fix, Timestamp is 0
+		"publish",
+		int64(0), // Always 0, 7.2.2.6
 		body,
 	)
 }

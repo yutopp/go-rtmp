@@ -23,7 +23,11 @@ func (t *NetStreamPublish) FromArgs(args ...interface{}) error {
 }
 
 func (t *NetStreamPublish) ToArgs(ty EncodingType) ([]interface{}, error) {
-	panic("Not implemented")
+	return []interface{}{
+		nil, // Always nil
+		t.PublishingName,
+		t.PublishingType,
+	}, nil
 }
 
 //

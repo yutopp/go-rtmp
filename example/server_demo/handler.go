@@ -16,6 +16,7 @@ import (
 
 var _ rtmp.Handler = (*Handler)(nil)
 
+// Handler An RTMP connection handler
 type Handler struct {
 	rtmp.DefaultHandler
 	flvFile *os.File
@@ -38,7 +39,12 @@ func (h *Handler) OnCreateStream(timestamp uint32, cmd *rtmpmsg.NetConnectionCre
 func (h *Handler) OnPublish(timestamp uint32, cmd *rtmpmsg.NetStreamPublish) error {
 	log.Printf("OnPublish: %#v", cmd)
 
-	// record streams as FLV!
+	// (example) Reject a connection when PublishingName is empty
+	if cmd.PublishingName == "" {
+		return errors.New("PublishingName is empty")
+	}
+
+	// Record streams as FLV!
 	p := filepath.Join(
 		os.TempDir(),
 		filepath.Clean(filepath.Join("/", fmt.Sprintf("%s.flv", cmd.PublishingName))),
