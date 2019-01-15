@@ -29,4 +29,5 @@ type Handler interface {
 	OnUnknownCommandMessage(timestamp uint32, cmd *message.CommandMessage) error
 	OnUnknownDataMessage(timestamp uint32, data *message.DataMessage) error
 	OnClose()
+	OnError(args ...interface{})
 }
