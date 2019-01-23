@@ -14,19 +14,6 @@ import (
 	"github.com/yutopp/go-rtmp/message"
 )
 
-// ServerConnectResultProperties Sent to clients as result when Connect message received
-var ServerConnectResultProperties = message.NetConnectionConnectResultProperties{
-	FMSVer:       "GO-RTMP/0,0,0,0", // TODO: fix
-	Capabilities: 31,                // TODO: fix
-	Mode:         1,                 // TODO: fix
-}
-
-// ServerConnectResultData Sent to clients as result when Connect message received
-var ServerConnectResultData = map[string]interface{}{
-	"type":    "go-rtmp",
-	"version": "master", // TODO: fix
-}
-
 var _ stateHandler = (*serverControlNotConnectedHandler)(nil)
 
 // serverControlNotConnectedHandler Handle control messages from a client which has not send connect at server side.
@@ -126,25 +113,33 @@ func (h *serverControlNotConnectedHandler) onCommand(
 }
 
 func (h *serverControlNotConnectedHandler) newConnectSuccessResult() *message.NetConnectionConnectResult {
+	sInfo := h.sh.stream.conn.config.SInfo
+	if sInfo == nil {
+		sInfo = getDefaultServerInfo()
+	}
 	return &message.NetConnectionConnectResult{
-		Properties: ServerConnectResultProperties,
+		Properties: sInfo.GetServerConnectResultProperties(),
 		Information: message.NetConnectionConnectResultInformation{
 			Level:       "status",
 			Code:        message.NetConnectionConnectCodeSuccess,
 			Description: "Connection succeeded.",
-			Data:        ServerConnectResultData,
+			Data:        sInfo.GetServerConnectResultData(),
 		},
 	}
 }
 
 func (h *serverControlNotConnectedHandler) newConnectErrorResult() *message.NetConnectionConnectResult {
+	sInfo := h.sh.stream.conn.config.SInfo
+	if sInfo == nil {
+		sInfo = getDefaultServerInfo()
+	}
 	return &message.NetConnectionConnectResult{
-		Properties: ServerConnectResultProperties,
+		Properties: sInfo.GetServerConnectResultProperties(),
 		Information: message.NetConnectionConnectResultInformation{
 			Level:       "error",
 			Code:        message.NetConnectionConnectCodeFailed,
 			Description: "Connection failed.",
-			Data:        ServerConnectResultData,
+			Data:        sInfo.GetServerConnectResultData(),
 		},
 	}
 }
