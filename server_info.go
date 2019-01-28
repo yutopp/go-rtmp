@@ -31,16 +31,32 @@ type ServerInfo interface {
 	GetServerConnectResultData() map[string]interface{}
 }
 
-type defaultServerInfo struct{}
-
-func (defaultServerInfo) GetServerConnectResultProperties() message.NetConnectionConnectResultProperties {
-	return serverConnectResultProperties
+type DefaultServerInfo struct {
+	ServerConnectResultProperties message.NetConnectionConnectResultProperties
+	ServerConnectResultData       map[string]interface{}
 }
 
-func (defaultServerInfo) GetServerConnectResultData() map[string]interface{} {
-	return serverConnectResultData
+func NewDefaultServerInfo() *DefaultServerInfo {
+	return &DefaultServerInfo{
+		// Sent to clients as result when Connect message is received
+		ServerConnectResultProperties: message.NetConnectionConnectResultProperties{
+			FMSVer:       "GO-RTMP/0,0,0,0", // TODO: fix
+			Capabilities: 31,                // TODO: fix
+			Mode:         1,                 // TODO: fix
+		},
+		// Sent to clients as result when Connect message is received
+		ServerConnectResultData: map[string]interface{}{
+			"type":    "go-rtmp",
+			"version": "master", // TODO: fix
+		},
+	}
+}
+func (s *DefaultServerInfo) GetServerConnectResultProperties() message.NetConnectionConnectResultProperties {
+	return s.ServerConnectResultProperties
 }
 
-func getDefaultServerInfo() ServerInfo {
-	return defaultServerInfo{}
+func (s *DefaultServerInfo) GetServerConnectResultData() map[string]interface{} {
+	return s.ServerConnectResultData
 }
+
+var defaultServerInfo = NewDefaultServerInfo()

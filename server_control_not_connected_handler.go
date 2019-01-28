@@ -115,7 +115,7 @@ func (h *serverControlNotConnectedHandler) onCommand(
 func (h *serverControlNotConnectedHandler) newConnectSuccessResult() *message.NetConnectionConnectResult {
 	sInfo := h.sh.stream.conn.config.SInfo
 	if sInfo == nil {
-		sInfo = getDefaultServerInfo()
+		sInfo = defaultServerInfo
 	}
 	return &message.NetConnectionConnectResult{
 		Properties: sInfo.GetServerConnectResultProperties(),
@@ -131,7 +131,7 @@ func (h *serverControlNotConnectedHandler) newConnectSuccessResult() *message.Ne
 func (h *serverControlNotConnectedHandler) newConnectErrorResult() *message.NetConnectionConnectResult {
 	sInfo := h.sh.stream.conn.config.SInfo
 	if sInfo == nil {
-		sInfo = getDefaultServerInfo()
+		sInfo = defaultServerInfo
 	}
 	return &message.NetConnectionConnectResult{
 		Properties: sInfo.GetServerConnectResultProperties(),
