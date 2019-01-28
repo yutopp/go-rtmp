@@ -113,33 +113,33 @@ func (h *serverControlNotConnectedHandler) onCommand(
 }
 
 func (h *serverControlNotConnectedHandler) newConnectSuccessResult() *message.NetConnectionConnectResult {
-	sInfo := h.sh.stream.conn.config.SInfo
-	if sInfo == nil {
-		sInfo = defaultServerInfo
+	rPreset := h.sh.stream.conn.config.RPreset
+	if rPreset == nil {
+		rPreset = defaultResponsePreset
 	}
 	return &message.NetConnectionConnectResult{
-		Properties: sInfo.GetServerConnectResultProperties(),
+		Properties: rPreset.GetServerConnectResultProperties(),
 		Information: message.NetConnectionConnectResultInformation{
 			Level:       "status",
 			Code:        message.NetConnectionConnectCodeSuccess,
 			Description: "Connection succeeded.",
-			Data:        sInfo.GetServerConnectResultData(),
+			Data:        rPreset.GetServerConnectResultData(),
 		},
 	}
 }
 
 func (h *serverControlNotConnectedHandler) newConnectErrorResult() *message.NetConnectionConnectResult {
-	sInfo := h.sh.stream.conn.config.SInfo
-	if sInfo == nil {
-		sInfo = defaultServerInfo
+	rPreset := h.sh.stream.conn.config.RPreset
+	if rPreset == nil {
+		rPreset = defaultResponsePreset
 	}
 	return &message.NetConnectionConnectResult{
-		Properties: sInfo.GetServerConnectResultProperties(),
+		Properties: rPreset.GetServerConnectResultProperties(),
 		Information: message.NetConnectionConnectResultInformation{
 			Level:       "error",
 			Code:        message.NetConnectionConnectCodeFailed,
 			Description: "Connection failed.",
-			Data:        sInfo.GetServerConnectResultData(),
+			Data:        rPreset.GetServerConnectResultData(),
 		},
 	}
 }
