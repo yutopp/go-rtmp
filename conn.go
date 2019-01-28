@@ -48,7 +48,8 @@ type ConnConfig struct {
 
 	ControlState StreamControlStateConfig
 
-	Logger logrus.FieldLogger
+	Logger  logrus.FieldLogger
+	RPreset ResponsePreset
 }
 
 func (cb *ConnConfig) normalize() *ConnConfig {
