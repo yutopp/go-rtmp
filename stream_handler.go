@@ -176,12 +176,12 @@ func (h *streamHandler) handleCommand(
 			return errors.Wrap(err, "Got response to the unexpected transaction")
 		}
 
-		// Set result (NOTE: shoule use a mutex for t?)
+		// Set result (NOTE: should use a mutex for it?)
 		t.Reply(cmdMsg.CommandName, cmdMsg.Encoding, cmdMsg.Body)
 
 		// Remove transacaction because this transaction is resolved
 		if err := h.stream.transactions.Delete(cmdMsg.TransactionID); err != nil {
-			return errors.Wrap(err, "Unexpected behaviour: transaction is not found")
+			return errors.Wrap(err, "Unexpected behavior: transaction is not found")
 		}
 
 		return nil

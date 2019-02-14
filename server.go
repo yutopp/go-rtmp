@@ -34,7 +34,7 @@ func NewServer(config *ServerConfig) *Server {
 
 func (srv *Server) Serve(l net.Listener) error {
 	if err := srv.registerListener(l); err != nil {
-		return errors.Wrap(err, "Already serverd")
+		return errors.Wrap(err, "Already served")
 	}
 
 	defer l.Close()
