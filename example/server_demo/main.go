@@ -1,10 +1,10 @@
 package main
 
 import (
-	log "github.com/sirupsen/logrus"
 	"io"
 	"net"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/yutopp/go-rtmp"
 )
 
@@ -14,7 +14,7 @@ func main() {
 		log.Panicf("Failed: %+v", err)
 	}
 
-	listner, err := net.ListenTCP("tcp", tcpAddr)
+	listener, err := net.ListenTCP("tcp", tcpAddr)
 	if err != nil {
 		log.Panicf("Failed: %+v", err)
 	}
@@ -37,7 +37,7 @@ func main() {
 			}
 		},
 	})
-	if err := srv.Serve(listner); err != nil {
+	if err := srv.Serve(listener); err != nil {
 		log.Panicf("Failed: %+v", err)
 	}
 }
