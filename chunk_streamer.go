@@ -336,7 +336,7 @@ func (cs *ChunkStreamer) waitWriters() {
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
 
-	// Wait until that writers are finished for 3 seconds. (NOTE: 3s is adhoc value...)
+	// Wait until that writers are finished for 3 seconds. (NOTE: 3s is addhoc value...)
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
