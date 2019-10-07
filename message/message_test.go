@@ -58,7 +58,9 @@ func assertEqualPayload(t *testing.T, expected, actual io.Reader) {
 	assert.Nil(t, err)
 	switch p := expected.(type) {
 	case *bytes.Reader:
-		defer p.Seek(0, io.SeekStart) // Restore test case states
+		defer func() {
+			_, _ = p.Seek(0, io.SeekStart) // Restore test case states
+		}()
 	default:
 		t.FailNow()
 	}

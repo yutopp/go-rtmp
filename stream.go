@@ -81,7 +81,10 @@ func (s *Stream) Connect(
 	}
 
 	// TODO: support timeout
+	timeoutCtx := context.TODO()
 	select {
+	case <-timeoutCtx.Done():
+		return nil, timeoutCtx.Err()
 	case <-t.doneCh:
 		amfDec := message.NewAMFDecoder(t.body, t.encoding)
 
@@ -151,7 +154,10 @@ func (s *Stream) CreateStream(
 
 	// TODO: support timeout
 	// TODO: check result
+	timeoutCtx := context.TODO()
 	select {
+	case <-timeoutCtx.Done():
+		return nil, timeoutCtx.Err()
 	case <-t.doneCh:
 		amfDec := message.NewAMFDecoder(t.body, t.encoding)
 

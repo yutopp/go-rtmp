@@ -50,12 +50,10 @@ func TestHandlerCallback(t *testing.T) {
 
 	sconn := newServerConn(conn)
 	go func() {
-		select {
-		case <-closer:
-			sconn.Close()
-		}
+		<-closer
+		sconn.Close()
 	}()
-	sconn.Serve()
+	_ = sconn.Serve()
 }
 
 var _ Handler = (*testHandler)(nil)
