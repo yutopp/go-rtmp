@@ -50,7 +50,7 @@ func BenchmarkDecode5KBVideoMessage(b *testing.B) {
 				r.Reset(buf)
 
 				var msg Message
-				dec.Decode(TypeIDVideoMessage, &msg)
+				_ = dec.Decode(TypeIDVideoMessage, &msg)
 			}
 		})
 	}

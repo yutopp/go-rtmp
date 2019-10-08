@@ -15,20 +15,20 @@ type TypeID byte
 
 const (
 	TypeIDSetChunkSize            TypeID = 1
-	TypeIDAbortMessage                   = 2
-	TypeIDAck                            = 3
-	TypeIDUserCtrl                       = 4
-	TypeIDWinAckSize                     = 5
-	TypeIDSetPeerBandwidth               = 6
-	TypeIDAudioMessage                   = 8
-	TypeIDVideoMessage                   = 9
-	TypeIDDataMessageAMF3                = 15
-	TypeIDSharedObjectMessageAMF3        = 16
-	TypeIDCommandMessageAMF3             = 17
-	TypeIDDataMessageAMF0                = 18
-	TypeIDSharedObjectMessageAMF0        = 19
-	TypeIDCommandMessageAMF0             = 20
-	TypeIDAggregateMessage               = 22
+	TypeIDAbortMessage            TypeID = 2
+	TypeIDAck                     TypeID = 3
+	TypeIDUserCtrl                TypeID = 4
+	TypeIDWinAckSize              TypeID = 5
+	TypeIDSetPeerBandwidth        TypeID = 6
+	TypeIDAudioMessage            TypeID = 8
+	TypeIDVideoMessage            TypeID = 9
+	TypeIDDataMessageAMF3         TypeID = 15
+	TypeIDSharedObjectMessageAMF3 TypeID = 16
+	TypeIDCommandMessageAMF3      TypeID = 17
+	TypeIDDataMessageAMF0         TypeID = 18
+	TypeIDSharedObjectMessageAMF0 TypeID = 19
+	TypeIDCommandMessageAMF0      TypeID = 20
+	TypeIDAggregateMessage        TypeID = 22
 )
 
 // Message
@@ -85,9 +85,9 @@ func (m *WinAckSize) TypeID() TypeID {
 type LimitType uint8
 
 const (
-	LimitTypeHard    LimitType = 0
-	LimitTypeSoft              = 1
-	LimitTypeDynamic           = 2
+	LimitTypeHard LimitType = iota
+	LimitTypeSoft
+	LimitTypeDynamic
 )
 
 type SetPeerBandwidth struct {

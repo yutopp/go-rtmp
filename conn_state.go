@@ -23,8 +23,6 @@ type StreamControlState struct {
 	bandwidthWindowSize int32
 	bandwidthLimitType  message.LimitType
 
-	lastAck uint32
-
 	config *StreamControlStateConfig
 }
 

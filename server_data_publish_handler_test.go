@@ -26,6 +26,6 @@ func BenchmarkHandlePublisherVideoMessage(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		s.handle(chunkStreamID, timestamp, msg)
+		_ = s.handle(chunkStreamID, timestamp, msg)
 	}
 }
