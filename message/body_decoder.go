@@ -222,7 +222,15 @@ func DecodeBodyPlay(_ io.Reader, d AMFDecoder, v *AMFConvertible) error {
 	}
 	var start int64
 	if err := d.Decode(&start); err != nil {
-		return errors.Wrap(err, "Failed to decode 'play' args[2]")
+		//
+		// io.EOF occurs when the start position is not specified.
+		//  'NetStream.play(streamName,null)'
+		// set start to 0 to avoid it.
+		//
+		if err != io.EOF {
+			return errors.Wrap(err, "Failed to decode 'play' args[2]")
+		}
+		start = 0
 	}
 
 	var cmd NetStreamPlay

@@ -9,6 +9,7 @@ package rtmp
 
 import (
 	"bufio"
+	"context"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -129,6 +130,10 @@ func (c *Conn) Close() error {
 	}
 
 	return result
+}
+
+func (c *Conn) Write(ctx context.Context, chunkStreamID int, timestamp uint32, cmsg *ChunkMessage) error {
+	return c.streamer.Write(ctx, chunkStreamID, timestamp, cmsg)
 }
 
 func (c *Conn) handleMessageLoop() (err error) {
