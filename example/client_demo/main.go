@@ -3,8 +3,8 @@ package main
 import (
 	log "github.com/sirupsen/logrus"
 
-	"github.com/yutopp/go-rtmp"
-	rtmpmsg "github.com/yutopp/go-rtmp/message"
+	"github.com/edgeware/go-rtmp"
+	rtmpmsg "github.com/edgeware/go-rtmp/message"
 )
 
 func main() {

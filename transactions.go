@@ -9,11 +9,12 @@ package rtmp
 
 import (
 	"bytes"
-	"github.com/pkg/errors"
 	"io"
 	"sync"
 
-	"github.com/yutopp/go-rtmp/message"
+	"github.com/pkg/errors"
+
+	"github.com/edgeware/go-rtmp/message"
 )
 
 type transaction struct {

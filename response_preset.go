@@ -8,7 +8,7 @@
 package rtmp
 
 import (
-	"github.com/yutopp/go-rtmp/message"
+	"github.com/edgeware/go-rtmp/message"
 )
 
 // ResponsePreset is an interface to provider server info.

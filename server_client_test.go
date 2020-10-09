@@ -9,14 +9,15 @@ package rtmp
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/assert"
-	"github.com/yutopp/go-amf0"
 	"io"
 	"net"
 	"testing"
 
-	"github.com/yutopp/go-rtmp/message"
+	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
+	"github.com/yutopp/go-amf0"
+
+	"github.com/edgeware/go-rtmp/message"
 )
 
 func TestServerCanAcceptConnect(t *testing.T) {

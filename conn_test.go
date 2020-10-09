@@ -9,10 +9,11 @@ package rtmp
 
 import (
 	"bytes"
-	"github.com/stretchr/testify/assert"
 	"testing"
 
-	"github.com/yutopp/go-rtmp/message"
+	"github.com/stretchr/testify/assert"
+
+	"github.com/edgeware/go-rtmp/message"
 )
 
 func TestConnConfig(t *testing.T) {

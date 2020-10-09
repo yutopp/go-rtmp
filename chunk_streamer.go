@@ -9,14 +9,15 @@ package rtmp
 
 import (
 	"context"
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"io"
 	"math"
 	"sync"
 	"time"
 
-	"github.com/yutopp/go-rtmp/message"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+
+	"github.com/edgeware/go-rtmp/message"
 )
 
 const ctrlMsgChunkStreamID = 2

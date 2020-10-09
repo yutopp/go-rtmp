@@ -10,14 +10,15 @@ package rtmp
 import (
 	"bufio"
 	"context"
-	"github.com/hashicorp/go-multierror"
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
 	"sync"
 
-	"github.com/yutopp/go-rtmp/message"
+	"github.com/hashicorp/go-multierror"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+
+	"github.com/edgeware/go-rtmp/message"
 )
 
 type Conn struct {

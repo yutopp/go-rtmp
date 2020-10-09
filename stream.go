@@ -10,11 +10,12 @@ package rtmp
 import (
 	"bytes"
 	"context"
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"time"
 
-	"github.com/yutopp/go-rtmp/message"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+
+	"github.com/edgeware/go-rtmp/message"
 )
 
 // Stream represents a logical message stream

@@ -8,10 +8,11 @@
 package rtmp
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
 
-	"github.com/yutopp/go-rtmp/message"
+	"github.com/stretchr/testify/assert"
+
+	"github.com/edgeware/go-rtmp/message"
 )
 
 func TestHandlerCallback(t *testing.T) {
