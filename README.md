@@ -1,8 +1,6 @@
 # go-rtmp
 
 ![Test](https://github.com/edgeware/go-rtmp/workflows/Test/badge.svg)
-[![CircleCI](https://circleci.com/gh/edgeware/go-rtmp.svg?style=svg)](https://circleci.com/gh/edgeware/go-rtmp)
-[![Coverage Status](https://coveralls.io/repos/github/edgeware/go-rtmp/badge.svg)](https://coveralls.io/github/edgeware/go-rtmp)
 [![GoDoc](https://godoc.org/github.com/edgeware/go-rtmp?status.svg)](http://godoc.org/github.com/edgeware/go-rtmp)
 [![Go Report Card](https://goreportcard.com/badge/github.com/edgeware/go-rtmp)](https://goreportcard.com/report/github.com/edgeware/go-rtmp)
 [![license](https://img.shields.io/github/license/edgeware/go-rtmp.svg)](https://github.com/edgeware/go-rtmp/blob/master/LICENSE_1_0.txt)
