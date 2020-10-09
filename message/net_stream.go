@@ -152,6 +152,24 @@ func (t *NetStreamFCUnpublish) ToArgs(ty EncodingType) ([]interface{}, error) {
 	}, nil
 }
 
+type NetStreamReleaseStream struct {
+	StreamName string
+}
+
+func (t *NetStreamReleaseStream) FromArgs(args ...interface{}) error {
+	// args[0] is unknown, ignore
+	t.StreamName = args[1].(string)
+
+	return nil
+}
+
+func (t *NetStreamReleaseStream) ToArgs(ty EncodingType) ([]interface{}, error) {
+	return []interface{}{
+		nil, // no command object
+		t.StreamName,
+	}, nil
+}
+
 // NetStreamSetDataFrame - send data. AmfData is what will be encoded
 type NetStreamSetDataFrame struct {
 	Payload []byte
