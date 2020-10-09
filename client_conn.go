@@ -81,7 +81,7 @@ func (cc *ClientConn) Connect(body *message.NetConnectionConnect) error {
 	return nil
 }
 
-func (cc *ClientConn) CreateStream(body *message.NetConnectionConnect) (*Stream, error) {
+func (cc *ClientConn) CreateStream(body *message.NetConnectionCreateStream) (*Stream, error) {
 	if err := cc.controllable(); err != nil {
 		return nil, err
 	}

@@ -130,7 +130,7 @@ func (s *Stream) ReplyConnect(
 }
 
 func (s *Stream) CreateStream(
-	body *message.NetConnectionConnect,
+	body *message.NetConnectionCreateStream,
 ) (*message.NetConnectionCreateStreamResult, error) {
 	transactionID := int64(2) // TODO: fix
 	t, err := s.transactions.Create(transactionID)
@@ -139,7 +139,7 @@ func (s *Stream) CreateStream(
 	}
 
 	if body == nil {
-		body = &message.NetConnectionConnect{}
+		body = &message.NetConnectionCreateStream{}
 	}
 
 	chunkStreamID := 3 // TODO: fix
