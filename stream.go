@@ -46,15 +46,15 @@ func newStream(streamID uint32, conn *Conn) *Stream {
 }
 
 func (s *Stream) WriteWinAckSize(chunkStreamID int, timestamp uint32, msg *message.WinAckSize) error {
-	return s.write(chunkStreamID, timestamp, msg)
+	return s.Write(chunkStreamID, timestamp, msg)
 }
 
 func (s *Stream) WriteSetPeerBandwidth(chunkStreamID int, timestamp uint32, msg *message.SetPeerBandwidth) error {
-	return s.write(chunkStreamID, timestamp, msg)
+	return s.Write(chunkStreamID, timestamp, msg)
 }
 
 func (s *Stream) WriteUserCtrl(chunkStreamID int, timestamp uint32, msg *message.UserCtrl) error {
-	return s.write(chunkStreamID, timestamp, msg)
+	return s.Write(chunkStreamID, timestamp, msg)
 }
 
 func (s *Stream) Connect(
@@ -249,7 +249,7 @@ func (s *Stream) writeCommandMessage(
 		return err
 	}
 
-	return s.write(chunkStreamID, timestamp, &message.CommandMessage{
+	return s.Write(chunkStreamID, timestamp, &message.CommandMessage{
 		CommandName:   commandName,
 		TransactionID: transactionID,
 		Encoding:      s.encTy,
@@ -269,14 +269,14 @@ func (s *Stream) WriteDataMessage(
 		return err
 	}
 
-	return s.write(chunkStreamID, timestamp, &message.DataMessage{
+	return s.Write(chunkStreamID, timestamp, &message.DataMessage{
 		Name:     name,
 		Encoding: message.EncodingTypeAMF0,
 		Body:     buf,
 	})
 }
 
-func (s *Stream) write(chunkStreamID int, timestamp uint32, msg message.Message) error {
+func (s *Stream) Write(chunkStreamID int, timestamp uint32, msg message.Message) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second) // TODO: Fix 5s
 	defer cancel()
 

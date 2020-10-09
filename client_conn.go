@@ -39,7 +39,7 @@ func newClientConnWithSetup(c net.Conn, config *ConnConfig) (*ClientConn, error)
 	}
 	ctrlStream.handler.ChangeState(streamStateClientNotConnected)
 
-	conn.streamer.controlStreamWriter = ctrlStream.write
+	conn.streamer.controlStreamWriter = ctrlStream.Write
 
 	cc := &ClientConn{
 		conn: conn,

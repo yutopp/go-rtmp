@@ -37,7 +37,7 @@ func (sc *serverConn) Serve() error {
 	}
 	ctrlStream.handler.ChangeState(streamStateServerNotConnected)
 
-	sc.conn.streamer.controlStreamWriter = ctrlStream.write
+	sc.conn.streamer.controlStreamWriter = ctrlStream.Write
 
 	if sc.conn.handler != nil {
 		sc.conn.handler.OnServe(sc.conn)
