@@ -257,6 +257,25 @@ func (s *Stream) writeCommandMessage(
 	})
 }
 
+func (s *Stream) WriteDataMessage(
+	chunkStreamID int,
+	timestamp uint32,
+	name string,
+	body message.AMFConvertible,
+) error {
+	buf := new(bytes.Buffer)
+	amfEnc := message.NewAMFEncoder(buf, message.EncodingTypeAMF0)
+	if err := message.EncodeBodyAnyValues(amfEnc, body); err != nil {
+		return err
+	}
+
+	return s.write(chunkStreamID, timestamp, &message.DataMessage{
+		Name:     name,
+		Encoding: message.EncodingTypeAMF0,
+		Body:     buf,
+	})
+}
+
 func (s *Stream) write(chunkStreamID int, timestamp uint32, msg message.Message) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second) // TODO: Fix 5s
 	defer cancel()
