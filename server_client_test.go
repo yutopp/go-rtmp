@@ -20,6 +20,10 @@ import (
 	"github.com/yutopp/go-rtmp/message"
 )
 
+const (
+	chunkSize = 128
+)
+
 func TestServerCanAcceptConnect(t *testing.T) {
 	config := &ConnConfig{
 		Handler: &ServerCanAcceptConnectHandler{},
@@ -84,12 +88,12 @@ func TestServerCanAcceptCreateStream(t *testing.T) {
 		err := c.Connect(nil)
 		assert.Nil(t, err)
 
-		s0, err := c.CreateStream(nil)
+		s0, err := c.CreateStream(nil, 128)
 		assert.Nil(t, err)
 		defer s0.Close()
 
 		// Rejected because a number of message streams is exceeded the limits
-		s1, err := c.CreateStream(nil)
+		s1, err := c.CreateStream(nil, 128)
 		assert.Equal(t, &CreateStreamRejectedError{
 			TransactionID: 2,
 			Result: &message.NetConnectionCreateStreamResult{
