@@ -97,7 +97,7 @@ func (h *Handler) OnSetDataFrame(timestamp uint32, data *rtmpmsg.NetStreamSetDat
 
 	log.Printf("SetDataFrame: Script = %#v", script)
 
-	h.pub.Publish(&flvtag.FlvTag{
+	_ = h.pub.Publish(&flvtag.FlvTag{
 		TagType:   flvtag.TagTypeScriptData,
 		Timestamp: timestamp,
 		Data:      &script,
@@ -118,7 +118,7 @@ func (h *Handler) OnAudio(timestamp uint32, payload io.Reader) error {
 	}
 	audio.Data = flvBody
 
-	h.pub.Publish(&flvtag.FlvTag{
+	_ = h.pub.Publish(&flvtag.FlvTag{
 		TagType:   flvtag.TagTypeAudio,
 		Timestamp: timestamp,
 		Data:      &audio,
@@ -140,7 +140,7 @@ func (h *Handler) OnVideo(timestamp uint32, payload io.Reader) error {
 	}
 	video.Data = flvBody
 
-	h.pub.Publish(&flvtag.FlvTag{
+	_ = h.pub.Publish(&flvtag.FlvTag{
 		TagType:   flvtag.TagTypeVideo,
 		Timestamp: timestamp,
 		Data:      &video,
