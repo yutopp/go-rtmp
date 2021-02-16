@@ -9,8 +9,9 @@ package message
 
 import (
 	"bytes"
-	"github.com/pkg/errors"
 	"io"
+
+	"github.com/pkg/errors"
 )
 
 type BodyDecoderFunc func(r io.Reader, e AMFDecoder, v *AMFConvertible) error

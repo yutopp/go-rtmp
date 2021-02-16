@@ -9,6 +9,7 @@ package rtmp
 
 import (
 	"fmt"
+
 	"github.com/pkg/errors"
 
 	"github.com/yutopp/go-rtmp/message"

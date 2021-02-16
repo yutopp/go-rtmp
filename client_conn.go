@@ -8,9 +8,10 @@
 package rtmp
 
 import (
-	"github.com/pkg/errors"
 	"net"
 	"sync"
+
+	"github.com/pkg/errors"
 
 	"github.com/yutopp/go-rtmp/handshake"
 	"github.com/yutopp/go-rtmp/message"

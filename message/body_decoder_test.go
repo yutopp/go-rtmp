@@ -9,9 +9,10 @@ package message
 
 import (
 	"bytes"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/yutopp/go-amf0"
-	"testing"
 )
 
 func TestDecodeDataMessageAtsetDataFrame(t *testing.T) {

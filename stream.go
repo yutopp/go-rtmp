@@ -10,9 +10,10 @@ package rtmp
 import (
 	"bytes"
 	"context"
+	"time"
+
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"time"
 
 	"github.com/yutopp/go-rtmp/message"
 )

@@ -9,9 +9,10 @@ package rtmp
 
 import (
 	"bytes"
-	"github.com/pkg/errors"
 	"io"
 	"sync"
+
+	"github.com/pkg/errors"
 
 	"github.com/yutopp/go-rtmp/message"
 )

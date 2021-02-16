@@ -10,9 +10,10 @@ package handshake
 import (
 	"bytes"
 	"crypto/rand"
-	"github.com/pkg/errors"
 	"io"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 type S0C0 byte // RTMP Version

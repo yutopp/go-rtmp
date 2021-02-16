@@ -8,8 +8,9 @@
 package message
 
 import (
-	"github.com/yutopp/go-amf0"
 	"io"
+
+	"github.com/yutopp/go-amf0"
 )
 
 type EncodingType uint8

@@ -8,10 +8,11 @@
 package rtmp
 
 import (
-	"github.com/pkg/errors"
 	"io"
 	"net"
 	"sync"
+
+	"github.com/pkg/errors"
 )
 
 type Server struct {

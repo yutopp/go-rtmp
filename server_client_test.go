@@ -9,12 +9,13 @@ package rtmp
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/assert"
-	"github.com/yutopp/go-amf0"
 	"io"
 	"net"
 	"testing"
+
+	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
+	"github.com/yutopp/go-amf0"
 
 	"github.com/yutopp/go-rtmp/message"
 )

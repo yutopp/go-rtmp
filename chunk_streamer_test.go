@@ -12,12 +12,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/fortytw2/leaktest"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/fortytw2/leaktest"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/yutopp/go-rtmp/message"
 )
@@ -151,54 +152,54 @@ func TestStreamerChunkExample1(t *testing.T) {
 
 	tcs := []testCase{
 		// Example #1
-		testCase{
+		{
 			name:            "Example #1",
 			chunkStreamID:   3,
 			typeID:          8,
 			messageStreamID: 12345,
 			writeCases: []write{
-				write{timestamp: 1000, length: 32},
-				write{timestamp: 1020, length: 32},
-				write{timestamp: 1040, length: 32},
-				write{timestamp: 1060, length: 32},
+				{timestamp: 1000, length: 32},
+				{timestamp: 1020, length: 32},
+				{timestamp: 1040, length: 32},
+				{timestamp: 1060, length: 32},
 			},
 			readCases: []read{
-				read{timestamp: 1000, fmt: 0, isComplete: true},
-				read{timestamp: 1020, fmt: 2, isComplete: true},
-				read{timestamp: 1040, fmt: 3, isComplete: true},
-				read{timestamp: 1060, fmt: 3, isComplete: true},
+				{timestamp: 1000, fmt: 0, isComplete: true},
+				{timestamp: 1020, fmt: 2, isComplete: true},
+				{timestamp: 1040, fmt: 3, isComplete: true},
+				{timestamp: 1060, fmt: 3, isComplete: true},
 			},
 		},
 		// Example #2
-		testCase{
+		{
 			name:            "Example #2",
 			chunkStreamID:   4,
 			typeID:          9,
 			messageStreamID: 12346,
 			writeCases: []write{
-				write{timestamp: 1000, length: 307},
+				{timestamp: 1000, length: 307},
 			},
 			readCases: []read{
-				read{timestamp: 1000, fmt: 0},
-				read{timestamp: 1000, fmt: 3},
-				read{timestamp: 1000, fmt: 3, isComplete: true},
+				{timestamp: 1000, fmt: 0},
+				{timestamp: 1000, fmt: 3},
+				{timestamp: 1000, fmt: 3, isComplete: true},
 			},
 		},
 		// Original #1 fmt0 -> fmt3, fmt2 -> fmt3
-		testCase{
+		{
 			name:            "Original #1",
 			chunkStreamID:   5,
 			typeID:          10,
 			messageStreamID: 22346,
 			writeCases: []write{
-				write{timestamp: 1000, length: 200},
-				write{timestamp: 2000, length: 200},
+				{timestamp: 1000, length: 200},
+				{timestamp: 2000, length: 200},
 			},
 			readCases: []read{
-				read{timestamp: 1000, fmt: 0},
-				read{timestamp: 1000, fmt: 3, isComplete: true},
-				read{timestamp: 1000, fmt: 2}, // timestamp delta is not updated in this time
-				read{timestamp: 2000, fmt: 3, isComplete: true},
+				{timestamp: 1000, fmt: 0},
+				{timestamp: 1000, fmt: 3, isComplete: true},
+				{timestamp: 1000, fmt: 2}, // timestamp delta is not updated in this time
+				{timestamp: 2000, fmt: 3, isComplete: true},
 			},
 		},
 	}

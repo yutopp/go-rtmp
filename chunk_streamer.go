@@ -9,12 +9,13 @@ package rtmp
 
 import (
 	"context"
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"io"
 	"math"
 	"sync"
 	"time"
+
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 
 	"github.com/yutopp/go-rtmp/message"
 )
