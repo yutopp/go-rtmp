@@ -72,7 +72,7 @@ func (p *Pub) Publish(flv *flvtag.FlvTag) error {
 	switch flv.Data.(type) {
 	case *flvtag.AudioData, *flvtag.ScriptData:
 		for _, sub := range p.pb.subs {
-			_ = sub.onEvent(flv)
+			_ = sub.onEvent(cloneView(flv))
 		}
 
 	case *flvtag.VideoData:
@@ -88,16 +88,16 @@ func (p *Pub) Publish(flv *flvtag.FlvTag) error {
 		for _, sub := range p.pb.subs {
 			if !sub.initialized {
 				if p.avcSeqHeader != nil {
-					_ = sub.onEvent(cloneVideoView(p.avcSeqHeader))
+					_ = sub.onEvent(cloneView(p.avcSeqHeader))
 				}
 				if p.lastKeyFrame != nil {
-					_ = sub.onEvent(cloneVideoView(p.lastKeyFrame))
+					_ = sub.onEvent(cloneView(p.lastKeyFrame))
 				}
 				sub.initialized = true
 				continue
 			}
 
-			_ = sub.onEvent(cloneVideoView(flv))
+			_ = sub.onEvent(cloneView(flv))
 		}
 
 	default:
@@ -142,15 +142,30 @@ func (s *Sub) Close() error {
 	return nil
 }
 
-func cloneVideoView(flv *flvtag.FlvTag) *flvtag.FlvTag {
+func cloneView(flv *flvtag.FlvTag) *flvtag.FlvTag {
 	// Need to clone the view because Binary data will be consumed
 	v := *flv
 
-	dCloned := *v.Data.(*flvtag.VideoData)
-	v.Data = &dCloned
+	switch flv.Data.(type) {
+	case *flvtag.AudioData:
+		dCloned := *v.Data.(*flvtag.AudioData)
+		v.Data = &dCloned
 
-	d := v.Data.(*flvtag.VideoData)
-	d.Data = bytes.NewBuffer(d.Data.(*bytes.Buffer).Bytes())
+		dCloned.Data = bytes.NewBuffer(dCloned.Data.(*bytes.Buffer).Bytes())
+
+	case *flvtag.VideoData:
+		dCloned := *v.Data.(*flvtag.VideoData)
+		v.Data = &dCloned
+
+		dCloned.Data = bytes.NewBuffer(dCloned.Data.(*bytes.Buffer).Bytes())
+
+	case *flvtag.ScriptData:
+		dCloned := *v.Data.(*flvtag.ScriptData)
+		v.Data = &dCloned
+
+	default:
+		panic("unreachable")
+	}
 
 	return &v
 }
