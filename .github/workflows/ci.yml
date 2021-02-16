@@ -24,6 +24,6 @@ jobs:
         with:
           files: ./coverage.txt
           flags: unittests
-          name: codecov-umbrella
+          name: codecov-umbrella-${{ matrix.go }}
           fail_ci_if_error: true
           verbose: true
