@@ -37,11 +37,11 @@ func (h *DefaultHandler) OnDeleteStream(timestamp uint32, cmd *message.NetStream
 	return nil
 }
 
-func (h *DefaultHandler) OnPublish(timestamp uint32, cmd *message.NetStreamPublish) error {
+func (h *DefaultHandler) OnPublish(_ *StreamContext, timestamp uint32, cmd *message.NetStreamPublish) error {
 	return nil
 }
 
-func (h *DefaultHandler) OnPlay(timestamp uint32, cmd *message.NetStreamPlay) error {
+func (h *DefaultHandler) OnPlay(_ *StreamContext, timestamp uint32, cmd *message.NetStreamPlay) error {
 	return nil
 }
 
