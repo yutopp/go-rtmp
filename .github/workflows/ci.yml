@@ -16,6 +16,10 @@ jobs:
         with:
           go-version: ${{ matrix.go }}
 
+      - run: make download-ci-tools
+
+      - run: make lint-ci
+
       - run: make test
 
       - run: make vet
