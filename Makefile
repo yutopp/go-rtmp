@@ -40,5 +40,6 @@ bench:
 
 .PHONY: example
 example:
-	go build -i -v -o dist/server_demo ./example/server_demo/...
-	go build -i -v -o dist/client_demo ./example/client_demo/...
+	make -C example/server_demo
+	make -C example/server_relay_demo
+	make -C example/client_demo
