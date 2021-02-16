@@ -23,5 +23,5 @@ github.com/yutopp/go-amf0 v0.0.0-20180803120851-48851794bb1f/go.mod h1:miopb3mUO
 github.com/yutopp/go-flv v0.2.0 h1:f/8z2SKymXJH78666m7Irpq+I1PsrGptBIR3RXGEw/A=
 github.com/yutopp/go-flv v0.2.0/go.mod h1:xe1MPrWcfQfYeBT7E5WAF0zvKUyf1hmSpesDjBoUV4E=
 golang.org/x/sys v0.0.0-20191026070338-33540a1f6037/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
-golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c h1:VwygUrnw9jn88c4u8GD3rZQbqrP/tgas88tPUbBxQrk=
-golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20210216163648-f7da38b97c65 h1:pTMjDVnP5eVRRlWO76rEWJ8JoC6Lf1CmyjPZXRiy2Sw=
+golang.org/x/sys v0.0.0-20210216163648-f7da38b97c65/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
