@@ -8,8 +8,9 @@
 package rtmp
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestClientValidAddr(t *testing.T) {

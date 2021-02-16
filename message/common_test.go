@@ -19,7 +19,7 @@ type testCase struct {
 }
 
 var testCases = []testCase{
-	testCase{
+	{
 		Name:   "SetChunkSize",
 		TypeID: TypeIDSetChunkSize,
 		Value: &SetChunkSize{
@@ -30,7 +30,7 @@ var testCases = []testCase{
 			0x00, 0x00, 0x04, 0x00,
 		},
 	},
-	testCase{
+	{
 		Name:   "AbortMessage",
 		TypeID: TypeIDAbortMessage,
 		Value: &AbortMessage{
@@ -41,7 +41,7 @@ var testCases = []testCase{
 			0x00, 0x00, 0x04, 0x00,
 		},
 	},
-	testCase{
+	{
 		Name:   "Ack",
 		TypeID: TypeIDAck,
 		Value: &Ack{
@@ -53,7 +53,7 @@ var testCases = []testCase{
 		},
 	},
 	// TODO: UserCtrl
-	testCase{
+	{
 		Name:   "WinAckSize",
 		TypeID: TypeIDWinAckSize,
 		Value: &WinAckSize{
@@ -64,7 +64,7 @@ var testCases = []testCase{
 			0x00, 0x00, 0x04, 0x00,
 		},
 	},
-	testCase{
+	{
 		Name:   "SetPeerBandwidth",
 		TypeID: TypeIDSetPeerBandwidth,
 		Value: &SetPeerBandwidth{
@@ -78,7 +78,7 @@ var testCases = []testCase{
 			0x01,
 		},
 	},
-	testCase{
+	{
 		Name:   "AudioMessage",
 		TypeID: TypeIDAudioMessage,
 		Value: &AudioMessage{
@@ -86,7 +86,7 @@ var testCases = []testCase{
 		},
 		Binary: []byte("audio data"),
 	},
-	testCase{
+	{
 		Name:   "VideoMessage",
 		TypeID: TypeIDVideoMessage,
 		Value: &VideoMessage{
@@ -95,7 +95,7 @@ var testCases = []testCase{
 		Binary: []byte("video data"),
 	},
 	// TODO: DataMessageAMF3
-	testCase{
+	{
 		Name:   "DataMessageAMF0",
 		TypeID: TypeIDDataMessageAMF0,
 		Value: &DataMessage{
@@ -117,7 +117,7 @@ var testCases = []testCase{
 	// TODO: TypeIDSharedObjectMessageAMF3
 	// TODO: TypeIDCommandMessageAMF3
 	// TODO: TypeIDSharedObjectMessageAMF0
-	testCase{
+	{
 		Name:   "CommandMessageAMF0",
 		TypeID: TypeIDCommandMessageAMF0,
 		Value: &CommandMessage{

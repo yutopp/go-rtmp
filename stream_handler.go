@@ -8,9 +8,10 @@
 package rtmp
 
 import (
+	"sync"
+
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"sync"
 
 	"github.com/yutopp/go-rtmp/internal"
 	"github.com/yutopp/go-rtmp/message"

@@ -16,6 +16,12 @@ jobs:
         with:
           go-version: ${{ matrix.go }}
 
+      - run: make download-ci-tools
+
+      - env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: make lint-ci
+
       - run: make test
 
       - run: make vet

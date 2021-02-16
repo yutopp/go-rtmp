@@ -8,8 +8,9 @@
 package rtmp
 
 import (
-	"github.com/pkg/errors"
 	"net"
+
+	"github.com/pkg/errors"
 )
 
 func Dial(protocol, addr string, config *ConnConfig) (*ClientConn, error) {

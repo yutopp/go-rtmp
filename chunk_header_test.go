@@ -9,8 +9,9 @@ package rtmp
 
 import (
 	"bytes"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestChunkBasicHeader(t *testing.T) {
@@ -20,7 +21,7 @@ func TestChunkBasicHeader(t *testing.T) {
 		binary []byte
 	}
 	testCases := []testCase{
-		testCase{
+		{
 			name: "cs normal 1",
 			value: &chunkBasicHeader{
 				fmt:           1,
@@ -32,7 +33,7 @@ func TestChunkBasicHeader(t *testing.T) {
 				0x42,
 			},
 		},
-		testCase{
+		{
 			name: "cs normal 2",
 			value: &chunkBasicHeader{
 				fmt:           2,
@@ -45,7 +46,7 @@ func TestChunkBasicHeader(t *testing.T) {
 			},
 		},
 
-		testCase{
+		{
 			name: "cs medium 1",
 			value: &chunkBasicHeader{
 				fmt:           0,
@@ -60,7 +61,7 @@ func TestChunkBasicHeader(t *testing.T) {
 				0x00,
 			},
 		},
-		testCase{
+		{
 			name: "cs medium 2",
 			value: &chunkBasicHeader{
 				fmt:           1,
@@ -75,7 +76,7 @@ func TestChunkBasicHeader(t *testing.T) {
 			},
 		},
 
-		testCase{
+		{
 			name: "cs large 1",
 			value: &chunkBasicHeader{
 				fmt:           3,
@@ -90,7 +91,7 @@ func TestChunkBasicHeader(t *testing.T) {
 				0x00, 0x01,
 			},
 		},
-		testCase{
+		{
 			name: "cs large 2",
 			value: &chunkBasicHeader{
 				fmt:           0,
@@ -190,7 +191,7 @@ func TestChunkMessageHeader(t *testing.T) {
 		binary []byte
 	}
 	testCases := []testCase{
-		testCase{
+		{
 			name: "basic fmt 0",
 			fmt:  0,
 			value: &chunkMessageHeader{
@@ -210,7 +211,7 @@ func TestChunkMessageHeader(t *testing.T) {
 				0x0a, 0x00, 0x00, 0x00,
 			},
 		},
-		testCase{
+		{
 			name: "basic fmt 1",
 			fmt:  1,
 			value: &chunkMessageHeader{
@@ -227,7 +228,7 @@ func TestChunkMessageHeader(t *testing.T) {
 				0x0a,
 			},
 		},
-		testCase{
+		{
 			name: "basic fmt 2",
 			fmt:  2,
 			value: &chunkMessageHeader{
@@ -239,7 +240,7 @@ func TestChunkMessageHeader(t *testing.T) {
 			},
 		},
 
-		testCase{
+		{
 			name: "extended boundary fmt 0",
 			fmt:  0,
 			value: &chunkMessageHeader{
@@ -261,7 +262,7 @@ func TestChunkMessageHeader(t *testing.T) {
 				0x00, 0xff, 0xff, 0xff,
 			},
 		},
-		testCase{
+		{
 			name: "extended boundary fmt 1",
 			fmt:  1,
 			value: &chunkMessageHeader{
@@ -280,7 +281,7 @@ func TestChunkMessageHeader(t *testing.T) {
 				0x00, 0xff, 0xff, 0xff,
 			},
 		},
-		testCase{
+		{
 			name: "extended boundary fmt 2",
 			fmt:  2,
 			value: &chunkMessageHeader{
@@ -294,7 +295,7 @@ func TestChunkMessageHeader(t *testing.T) {
 			},
 		},
 
-		testCase{
+		{
 			name: "extended fmt 0",
 			fmt:  0,
 			value: &chunkMessageHeader{
@@ -316,7 +317,7 @@ func TestChunkMessageHeader(t *testing.T) {
 				0x01, 0x00, 0x00, 0x00,
 			},
 		},
-		testCase{
+		{
 			name: "extended fmt 1",
 			fmt:  1,
 			value: &chunkMessageHeader{
@@ -335,7 +336,7 @@ func TestChunkMessageHeader(t *testing.T) {
 				0x01, 0x00, 0x00, 0x00,
 			},
 		},
-		testCase{
+		{
 			name: "extended fmt 2",
 			fmt:  2,
 			value: &chunkMessageHeader{
@@ -349,7 +350,7 @@ func TestChunkMessageHeader(t *testing.T) {
 			},
 		},
 
-		testCase{
+		{
 			name:   "fmt 3",
 			fmt:    3,
 			value:  &chunkMessageHeader{},

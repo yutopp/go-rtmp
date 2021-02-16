@@ -8,10 +8,11 @@
 package rtmp
 
 import (
-	"github.com/stretchr/testify/assert"
 	"net"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestServerCanClose(t *testing.T) {

@@ -9,10 +9,11 @@ package message
 
 import (
 	"bytes"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"io/ioutil"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func assertEqualMessage(t *testing.T, expected, actual Message) {

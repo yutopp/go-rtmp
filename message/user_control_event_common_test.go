@@ -14,7 +14,7 @@ type uceTestCase struct {
 }
 
 var uceTestCases = []uceTestCase{
-	uceTestCase{
+	{
 		Name: "StreamBegin",
 		Value: &UserCtrlEventStreamBegin{
 			StreamID: 1234,
@@ -26,7 +26,7 @@ var uceTestCases = []uceTestCase{
 			0x00, 0x00, 0x04, 0xd2,
 		},
 	},
-	uceTestCase{
+	{
 		Name: "StreamEOF",
 		Value: &UserCtrlEventStreamEOF{
 			StreamID: 1234,
@@ -38,7 +38,7 @@ var uceTestCases = []uceTestCase{
 			0x00, 0x00, 0x04, 0xd2,
 		},
 	},
-	uceTestCase{
+	{
 		Name: "StreamDry",
 		Value: &UserCtrlEventStreamDry{
 			StreamID: 1234,
@@ -50,7 +50,7 @@ var uceTestCases = []uceTestCase{
 			0x00, 0x00, 0x04, 0xd2,
 		},
 	},
-	uceTestCase{
+	{
 		Name: "SetBufferLength",
 		Value: &UserCtrlEventSetBufferLength{
 			StreamID: 1234,
@@ -65,7 +65,7 @@ var uceTestCases = []uceTestCase{
 			0x00, 0x00, 0x16, 0x2e,
 		},
 	},
-	uceTestCase{
+	{
 		Name: "StreamIsRecorded",
 		Value: &UserCtrlEventStreamIsRecorded{
 			StreamID: 1234,
@@ -77,7 +77,7 @@ var uceTestCases = []uceTestCase{
 			0x00, 0x00, 0x04, 0xd2,
 		},
 	},
-	uceTestCase{
+	{
 		Name: "PingRequest",
 		Value: &UserCtrlEventPingRequest{
 			Timestamp: 1234,
@@ -89,7 +89,7 @@ var uceTestCases = []uceTestCase{
 			0x00, 0x00, 0x04, 0xd2,
 		},
 	},
-	uceTestCase{
+	{
 		Name: "PingResponse",
 		Value: &UserCtrlEventPingResponse{
 			Timestamp: 1234,

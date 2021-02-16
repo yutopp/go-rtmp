@@ -10,8 +10,9 @@ package message
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/pkg/errors"
 	"io"
+
+	"github.com/pkg/errors"
 
 	"github.com/yutopp/go-amf0"
 )

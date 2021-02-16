@@ -9,8 +9,9 @@ package message
 
 import (
 	"encoding/binary"
-	"github.com/pkg/errors"
 	"io"
+
+	"github.com/pkg/errors"
 )
 
 type UserControlEventEncoder struct {
