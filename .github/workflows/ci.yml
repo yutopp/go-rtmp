@@ -1,0 +1,29 @@
+name: ci
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        go: [ '1.14', '1.13' ]
+    name: ${{ matrix.go }}
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup go
+        uses: actions/setup-go@v1
+        with:
+          go-version: ${{ matrix.go }}
+
+      - run: make test
+
+      - run: make vet
+
+      - uses: codecov/codecov-action@v1
+        with:
+          files: ./coverage.txt
+          flags: unittests
+          name: codecov-umbrella-${{ matrix.go }}
+          fail_ci_if_error: true
+          verbose: true
