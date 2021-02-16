@@ -54,7 +54,10 @@ func (h *serverDataInactiveHandler) onCommand(
 	case *message.NetStreamPublish:
 		l.Infof("Publisher is comming: %#v", cmd)
 
-		if err := h.sh.stream.userHandler().OnPublish(timestamp, cmd); err != nil {
+		streamCtx := &StreamContext{
+			StreamID: h.sh.stream.streamID,
+		}
+		if err := h.sh.stream.userHandler().OnPublish(streamCtx, timestamp, cmd); err != nil {
 			// TODO: Support message.NetStreamOnStatusCodePublishBadName
 			result := h.newOnStatus(message.NetStreamOnStatusCodePublishFailed, "Publish failed.")
 
@@ -79,7 +82,10 @@ func (h *serverDataInactiveHandler) onCommand(
 	case *message.NetStreamPlay:
 		l.Infof("Player is comming: %#v", cmd)
 
-		if err := h.sh.stream.userHandler().OnPlay(timestamp, cmd); err != nil {
+		streamCtx := &StreamContext{
+			StreamID: h.sh.stream.streamID,
+		}
+		if err := h.sh.stream.userHandler().OnPlay(streamCtx, timestamp, cmd); err != nil {
 			result := h.newOnStatus(message.NetStreamOnStatusCodePlayFailed, "Play failed.")
 
 			l.Infof("Reject a Play request: Response = %#v, Err = %+v", result, err)
