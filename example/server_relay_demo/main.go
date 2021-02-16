@@ -1,10 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"net"
-	"sync"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/yutopp/go-rtmp"
@@ -46,43 +44,4 @@ func main() {
 	if err := srv.Serve(listener); err != nil {
 		log.Panicf("Failed: %+v", err)
 	}
-}
-
-type RelayService struct {
-	streams map[string]*Pubsub
-	m       sync.Mutex
-}
-
-func NewRelayService() *RelayService {
-	return &RelayService{
-		streams: make(map[string]*Pubsub),
-	}
-}
-
-func (s *RelayService) GetPubsub(key string) (*Pubsub, error) {
-	s.m.Lock()
-	defer s.m.Unlock()
-
-	if _, ok := s.streams[key]; !ok {
-		return nil, fmt.Errorf("Already published: %s", key)
-	}
-
-	pubsub := &Pubsub{}
-
-	s.streams[key] = pubsub
-
-	return pubsub, nil
-}
-
-type Pubsub struct {
-}
-
-func (pb *Pubsub) Pub() *Pub {
-	return nil
-}
-
-type Pub struct {
-}
-
-type Sub struct {
 }
