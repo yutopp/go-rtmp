@@ -16,6 +16,14 @@ RTMP 1.0 server/client library written in Go.
 go get github.com/yutopp/go-rtmp
 ```
 
+See also [server_demo](https://github.com/yutopp/go-rtmp/tree/master/example/server_demo) and [client_demo](https://github.com/yutopp/go-rtmp/blob/master/example/client_demo/main.go).
+
+## Documentation
+
+- [GoDoc](https://pkg.go.dev/github.com/yutopp/go-rtmp)
+- [REAL-TIME MESSAGING PROTOCOL (RTMP) SPECIFICATION](https://www.adobe.com/devnet/rtmp.html)
+
+
 ## NOTES
 
 ### How to limit bitrates or set timeouts
@@ -25,7 +33,3 @@ go get github.com/yutopp/go-rtmp
 ## License
 
 [Boost Software License - Version 1.0](./LICENSE_1_0.txt)
-
-## References
-
-- [spec](https://wwwimages2.adobe.com/www.adobe.com/content/dam/acom/en/devnet/rtmp/pdf/rtmp_specification_1.0.pdf)
