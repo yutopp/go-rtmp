@@ -16,6 +16,8 @@ RTMP 1.0 server/client library written in Go.
 go get github.com/yutopp/go-rtmp
 ```
 
+See also [server_demo](https://github.com/yutopp/go-rtmp/tree/master/example/server_demo) and [client_demo](https://github.com/yutopp/go-rtmp/blob/master/example/client_demo/main.go).
+
 ## Documentation
 
 - [GoDoc](https://pkg.go.dev/github.com/yutopp/go-rtmp)
