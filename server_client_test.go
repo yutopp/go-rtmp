@@ -88,12 +88,12 @@ func TestServerCanAcceptCreateStream(t *testing.T) {
 		err := c.Connect(nil)
 		assert.Nil(t, err)
 
-		s0, err := c.CreateStream(nil, 128)
+		s0, err := c.CreateStream(nil, chunkSize)
 		assert.Nil(t, err)
 		defer s0.Close()
 
 		// Rejected because a number of message streams is exceeded the limits
-		s1, err := c.CreateStream(nil, 128)
+		s1, err := c.CreateStream(nil, chunkSize)
 		assert.Equal(t, &CreateStreamRejectedError{
 			TransactionID: 2,
 			Result: &message.NetConnectionCreateStreamResult{

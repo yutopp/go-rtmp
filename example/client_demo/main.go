@@ -26,7 +26,7 @@ func main() {
 	}
 	log.Infof("connected")
 
-	stream, err := client.CreateStream(nil, 128)
+	stream, err := client.CreateStream(nil, chunkSize)
 	if err != nil {
 		log.Fatalf("Failed to create stream: Err=%+v", err)
 	}
