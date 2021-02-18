@@ -152,19 +152,40 @@ func (t *NetStreamFCUnpublish) ToArgs(ty EncodingType) ([]interface{}, error) {
 	}, nil
 }
 
-//
-type NetStreamSetDataFrame struct {
-	Payload []byte
+type NetStreamReleaseStream struct {
+	StreamName string
 }
 
-func (t *NetStreamSetDataFrame) FromArgs(args ...interface{}) error {
-	t.Payload = args[0].([]byte)
+func (t *NetStreamReleaseStream) FromArgs(args ...interface{}) error {
+	// args[0] is unknown, ignore
+	t.StreamName = args[1].(string)
 
 	return nil
 }
 
+func (t *NetStreamReleaseStream) ToArgs(ty EncodingType) ([]interface{}, error) {
+	return []interface{}{
+		nil, // no command object
+		t.StreamName,
+	}, nil
+}
+
+// NetStreamSetDataFrame - send data. AmfData is what will be encoded
+type NetStreamSetDataFrame struct {
+	Payload []byte
+	AmfData interface{}
+}
+
+func (t *NetStreamSetDataFrame) FromArgs(args ...interface{}) error {
+	t.Payload = args[0].([]byte)
+	return nil
+}
+
 func (t *NetStreamSetDataFrame) ToArgs(ty EncodingType) ([]interface{}, error) {
-	panic("Not implemented")
+	return []interface{}{
+		"onMetaData",
+		t.AmfData,
+	}, nil
 }
 
 //

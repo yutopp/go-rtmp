@@ -46,15 +46,15 @@ func newStream(streamID uint32, conn *Conn) *Stream {
 }
 
 func (s *Stream) WriteWinAckSize(chunkStreamID int, timestamp uint32, msg *message.WinAckSize) error {
-	return s.write(chunkStreamID, timestamp, msg)
+	return s.Write(chunkStreamID, timestamp, msg)
 }
 
 func (s *Stream) WriteSetPeerBandwidth(chunkStreamID int, timestamp uint32, msg *message.SetPeerBandwidth) error {
-	return s.write(chunkStreamID, timestamp, msg)
+	return s.Write(chunkStreamID, timestamp, msg)
 }
 
 func (s *Stream) WriteUserCtrl(chunkStreamID int, timestamp uint32, msg *message.UserCtrl) error {
-	return s.write(chunkStreamID, timestamp, msg)
+	return s.Write(chunkStreamID, timestamp, msg)
 }
 
 func (s *Stream) Connect(
@@ -129,9 +129,17 @@ func (s *Stream) ReplyConnect(
 	)
 }
 
-func (s *Stream) CreateStream(
-	body *message.NetConnectionConnect,
-) (*message.NetConnectionCreateStreamResult, error) {
+func (s *Stream) CreateStream(body *message.NetConnectionCreateStream, chunkSize uint32) (*message.NetConnectionCreateStreamResult, error) {
+	oldChunkSize := s.conn.streamer.selfState.chunkSize
+	if chunkSize > 0 && chunkSize != oldChunkSize {
+		logrus.Infof("Changing chunkSize %d->%d", oldChunkSize, chunkSize)
+		s.conn.streamer.selfState.chunkSize = chunkSize
+		err := s.WriteSetChunkSize(chunkSize)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	transactionID := int64(2) // TODO: fix
 	t, err := s.transactions.Create(transactionID)
 	if err != nil {
@@ -139,7 +147,7 @@ func (s *Stream) CreateStream(
 	}
 
 	if body == nil {
-		body = &message.NetConnectionConnect{}
+		body = &message.NetConnectionCreateStream{}
 	}
 
 	chunkStreamID := 3 // TODO: fix
@@ -249,7 +257,7 @@ func (s *Stream) writeCommandMessage(
 		return err
 	}
 
-	return s.write(chunkStreamID, timestamp, &message.CommandMessage{
+	return s.Write(chunkStreamID, timestamp, &message.CommandMessage{
 		CommandName:   commandName,
 		TransactionID: transactionID,
 		Encoding:      s.encTy,
@@ -257,7 +265,39 @@ func (s *Stream) writeCommandMessage(
 	})
 }
 
-func (s *Stream) write(chunkStreamID int, timestamp uint32, msg message.Message) error {
+func (s *Stream) WriteDataMessage(
+	chunkStreamID int,
+	timestamp uint32,
+	name string,
+	body message.AMFConvertible,
+) error {
+	buf := new(bytes.Buffer)
+	amfEnc := message.NewAMFEncoder(buf, message.EncodingTypeAMF0)
+	if err := message.EncodeBodyAnyValues(amfEnc, body); err != nil {
+		return err
+	}
+
+	return s.Write(chunkStreamID, timestamp, &message.DataMessage{
+		Name:     name,
+		Encoding: message.EncodingTypeAMF0,
+		Body:     buf,
+	})
+}
+
+func (s *Stream) WriteSetChunkSize(chunkSize uint32) error {
+	if chunkSize < 1 {
+		return errors.New("chunksize < 1")
+	}
+	if chunkSize > 0x7fffffff {
+		return errors.New("chunksize > 0x7fffffff")
+	}
+	msg := &message.SetChunkSize{ChunkSize: chunkSize}
+	chunkStreamID := 2       // Correct according to 6.2
+	var timeStamp uint32 = 0 // TODO. Send updated time
+	return s.Write(chunkStreamID, timeStamp, msg)
+}
+
+func (s *Stream) Write(chunkStreamID int, timestamp uint32, msg message.Message) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second) // TODO: Fix 5s
 	defer cancel()
 

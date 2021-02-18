@@ -39,7 +39,7 @@ func newClientConnWithSetup(c net.Conn, config *ConnConfig) (*ClientConn, error)
 	}
 	ctrlStream.handler.ChangeState(streamStateClientNotConnected)
 
-	conn.streamer.controlStreamWriter = ctrlStream.write
+	conn.streamer.controlStreamWriter = ctrlStream.Write
 
 	cc := &ClientConn{
 		conn: conn,
@@ -81,7 +81,7 @@ func (cc *ClientConn) Connect(body *message.NetConnectionConnect) error {
 	return nil
 }
 
-func (cc *ClientConn) CreateStream(body *message.NetConnectionConnect) (*Stream, error) {
+func (cc *ClientConn) CreateStream(body *message.NetConnectionCreateStream, chunkSize uint32) (*Stream, error) {
 	if err := cc.controllable(); err != nil {
 		return nil, err
 	}
@@ -91,7 +91,7 @@ func (cc *ClientConn) CreateStream(body *message.NetConnectionConnect) (*Stream,
 		return nil, err
 	}
 
-	result, err := stream.CreateStream(body)
+	result, err := stream.CreateStream(body, chunkSize)
 	if err != nil {
 		return nil, err // TODO: wrap an error
 	}

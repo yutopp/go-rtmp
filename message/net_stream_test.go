@@ -35,6 +35,22 @@ var netStreamTestCases = []netStreamTestCase{
 			PublishingType: "bbb",
 		},
 	},
+	netStreamTestCase{
+		Name: "NetStreamReleaseStream OK",
+		Box:  &NetStreamReleaseStream{},
+		Args: []interface{}{nil, "theStream"}, // First argument is unknown
+		ExpectedMsg: &NetStreamReleaseStream{
+			StreamName: "theStream",
+		},
+	},
+	netStreamTestCase{
+		Name: "NetStreamFCPublish OK",
+		Box:  &NetStreamFCPublish{},
+		Args: []interface{}{nil, "theStream"}, // First argument is unknown
+		ExpectedMsg: &NetStreamFCPublish{
+			StreamName: "theStream",
+		},
+	},
 }
 
 func TestConvertNetStreamMessages(t *testing.T) {

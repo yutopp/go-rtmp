@@ -7,6 +7,10 @@ import (
 	rtmpmsg "github.com/yutopp/go-rtmp/message"
 )
 
+const (
+	chunkSize = 128
+)
+
 func main() {
 	client, err := rtmp.Dial("rtmp", "localhost:1935", &rtmp.ConnConfig{
 		Logger: log.StandardLogger(),
@@ -22,7 +26,7 @@ func main() {
 	}
 	log.Infof("connected")
 
-	stream, err := client.CreateStream(nil)
+	stream, err := client.CreateStream(nil, chunkSize)
 	if err != nil {
 		log.Fatalf("Failed to create stream: Err=%+v", err)
 	}

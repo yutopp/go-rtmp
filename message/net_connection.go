@@ -105,7 +105,9 @@ func (t *NetConnectionCreateStream) FromArgs(args ...interface{}) error {
 }
 
 func (t *NetConnectionCreateStream) ToArgs(ty EncodingType) ([]interface{}, error) {
-	panic("Not implemented")
+	return []interface{}{
+		nil, // Just null
+	}, nil
 }
 
 // TODO: fix for error messages
