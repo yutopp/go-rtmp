@@ -79,3 +79,6 @@ func (h *DefaultHandler) OnUnknownDataMessage(timestamp uint32, data *message.Da
 
 func (h *DefaultHandler) OnClose() {
 }
+
+func (H *DefaultHandler) OnError(args ...interface{}) {
+}
