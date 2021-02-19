@@ -50,7 +50,9 @@ func HandshakeWithClient(r io.Reader, w io.Writer, config *Config) error {
 		return err
 	}
 
-	// TODO: check c0 RTMP version
+	if c0 != S0C0(RTMPVersion) {
+		return errors.New("RTMP Version is invalid")
+	}
 
 	// Send S0
 	s0 := S0C0(RTMPVersion)
@@ -134,7 +136,9 @@ func HandshakeWithServer(r io.Reader, w io.Writer, config *Config) error {
 		return errors.Wrap(err, "Failed to decode s0")
 	}
 
-	// TODO: check s0 RTMP version
+	if s0 != S0C0(RTMPVersion) {
+		return errors.New("RTMP Version is invalid")
+	}
 
 	// Recv S1
 	var s1 S1C1
