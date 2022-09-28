@@ -15,10 +15,11 @@ import (
 type ChunkStreamWriter struct {
 	ChunkStreamReader
 
-	doneCh  chan struct{}
-	closeCh chan struct{}
-	lastErr error
-	aqM     sync.Mutex
+	doneCh   chan struct{}
+	closeCh  chan struct{}
+	lastErr  error
+	aqM      sync.Mutex
+	newChunk bool
 }
 
 func (w *ChunkStreamWriter) Write(b []byte) (int, error) {
