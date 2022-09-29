@@ -130,7 +130,6 @@ func (cs *ChunkStreamer) Write(
 	writer.messageLength = uint32(writer.buf.Len())
 	writer.messageTypeID = byte(cmsg.Message.TypeID())
 	writer.messageStreamID = cmsg.StreamID
-	writer.newChunk = true
 
 	return cs.Sched(writer)
 }
@@ -169,6 +168,7 @@ func (cs *ChunkStreamer) NewChunkWriter(ctx context.Context, chunkStreamID int) 
 }
 
 func (cs *ChunkStreamer) Sched(writer *ChunkStreamWriter) error {
+	writer.newChunk = true
 	return cs.writerSched.Sched(writer)
 }
 
