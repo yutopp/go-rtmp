@@ -17,10 +17,11 @@ import (
 var _ stateHandler = (*serverDataInactiveHandler)(nil)
 
 // serverDataInactiveHandler Handle data messages from a non operated client at server side.
-//   transitions:
-//     | "publish" -> serverDataPublishHandler
-//     | "play"	   -> serverDataPlayHandler
-//     | _         -> self
+//
+//	transitions:
+//	  | "publish" -> serverDataPublishHandler
+//	  | "play"	   -> serverDataPlayHandler
+//	  | _         -> self
 type serverDataInactiveHandler struct {
 	sh *streamHandler
 }

@@ -7,7 +7,6 @@
 
 package message
 
-//
 type NetStreamPublish struct {
 	CommandObject  interface{}
 	PublishingName string
@@ -30,7 +29,6 @@ func (t *NetStreamPublish) ToArgs(ty EncodingType) ([]interface{}, error) {
 	}, nil
 }
 
-//
 type NetStreamPlay struct {
 	CommandObject interface{}
 	StreamName    string
@@ -49,7 +47,6 @@ func (t *NetStreamPlay) ToArgs(ty EncodingType) ([]interface{}, error) {
 	panic("Not implemented")
 }
 
-//
 type NetStreamOnStatusLevel string
 
 const (
@@ -98,7 +95,6 @@ func (t *NetStreamOnStatus) ToArgs(ty EncodingType) ([]interface{}, error) {
 	}, nil
 }
 
-//
 type NetStreamDeleteStream struct {
 	StreamID uint32
 }
@@ -114,7 +110,6 @@ func (t *NetStreamDeleteStream) ToArgs(ty EncodingType) ([]interface{}, error) {
 	panic("Not implemented")
 }
 
-//
 type NetStreamFCPublish struct {
 	StreamName string
 }
@@ -133,7 +128,6 @@ func (t *NetStreamFCPublish) ToArgs(ty EncodingType) ([]interface{}, error) {
 	}, nil
 }
 
-//
 type NetStreamFCUnpublish struct {
 	StreamName string
 }
@@ -188,7 +182,6 @@ func (t *NetStreamSetDataFrame) ToArgs(ty EncodingType) ([]interface{}, error) {
 	}, nil
 }
 
-//
 type NetStreamGetStreamLength struct {
 	StreamName string
 }
@@ -207,7 +200,6 @@ func (t *NetStreamGetStreamLength) ToArgs(ty EncodingType) ([]interface{}, error
 	}, nil
 }
 
-//
 type NetStreamPing struct {
 }
 
@@ -223,7 +215,6 @@ func (t *NetStreamPing) ToArgs(ty EncodingType) ([]interface{}, error) {
 	}, nil
 }
 
-//
 type NetStreamCloseStream struct {
 }
 

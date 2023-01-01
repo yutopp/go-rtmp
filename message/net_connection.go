@@ -13,7 +13,6 @@ import (
 	"github.com/yutopp/go-amf0"
 )
 
-//
 type NetConnectionConnectCode string
 
 const (
@@ -22,7 +21,6 @@ const (
 	NetConnectionConnectCodeClosed  NetConnectionConnectCode = "NetConnection.Connect.Closed"
 )
 
-//
 type NetConnectionConnect struct {
 	Command NetConnectionConnectCommand
 }
@@ -55,7 +53,6 @@ func (t *NetConnectionConnect) ToArgs(ty EncodingType) ([]interface{}, error) {
 	}, nil
 }
 
-//
 type NetConnectionConnectResult struct {
 	Properties  NetConnectionConnectResultProperties
 	Information NetConnectionConnectResultInformation
@@ -95,7 +92,6 @@ func (t *NetConnectionConnectResult) ToArgs(ty EncodingType) ([]interface{}, err
 	}, nil
 }
 
-//
 type NetConnectionCreateStream struct {
 }
 
@@ -129,7 +125,6 @@ func (t *NetConnectionCreateStreamResult) ToArgs(ty EncodingType) ([]interface{}
 	}, nil
 }
 
-//
 type NetConnectionReleaseStream struct {
 	StreamName string
 }

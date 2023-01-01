@@ -15,8 +15,9 @@ import (
 var _ stateHandler = (*serverDataPlayHandler)(nil)
 
 // serverDataPlayHandler Handle data messages from a player at server side (NOT IMPLEMENTED).
-//   transitions:
-//     | _ -> self
+//
+//	transitions:
+//	  | _ -> self
 type serverDataPlayHandler struct {
 	sh *streamHandler
 }

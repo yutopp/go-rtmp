@@ -35,7 +35,7 @@ var netStreamTestCases = []netStreamTestCase{
 			PublishingType: "bbb",
 		},
 	},
-	netStreamTestCase{
+	{
 		Name: "NetStreamReleaseStream OK",
 		Box:  &NetStreamReleaseStream{},
 		Args: []interface{}{nil, "theStream"}, // First argument is unknown
@@ -43,7 +43,7 @@ var netStreamTestCases = []netStreamTestCase{
 			StreamName: "theStream",
 		},
 	},
-	netStreamTestCase{
+	{
 		Name: "NetStreamFCPublish OK",
 		Box:  &NetStreamFCPublish{},
 		Args: []interface{}{nil, "theStream"}, // First argument is unknown

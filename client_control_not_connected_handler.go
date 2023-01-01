@@ -15,10 +15,10 @@ import (
 var _ stateHandler = (*clientControlNotConnectedHandler)(nil)
 
 // clientControlNotConnectedHandler Handle control messages from a server in flow of connecting.
-//   transitions:
-//     | "_result" -> controlStreamStateConnected
-//     | _         -> self
 //
+//	transitions:
+//	  | "_result" -> controlStreamStateConnected
+//	  | _         -> self
 type clientControlNotConnectedHandler struct {
 	sh *streamHandler
 }

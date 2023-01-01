@@ -17,10 +17,10 @@ import (
 var _ stateHandler = (*serverControlConnectedHandler)(nil)
 
 // serverControlConnectedHandler Handle control messages from a client at server side.
-//   transitions:
-//     | "createStream" -> spawn! serverDataInactiveHandler
-//     | _              -> self
 //
+//	transitions:
+//	  | "createStream" -> spawn! serverDataInactiveHandler
+//	  | _              -> self
 type serverControlConnectedHandler struct {
 	sh *streamHandler
 }

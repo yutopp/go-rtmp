@@ -15,8 +15,9 @@ import (
 var _ stateHandler = (*serverDataPublishHandler)(nil)
 
 // serverDataPublishHandler Handle data messages from a publisher at server side.
-//   transitions:
-//     | _ -> self
+//
+//	transitions:
+//	  | _ -> self
 type serverDataPublishHandler struct {
 	sh *streamHandler
 }
