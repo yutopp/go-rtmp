@@ -168,6 +168,7 @@ func (cs *ChunkStreamer) NewChunkWriter(ctx context.Context, chunkStreamID int) 
 }
 
 func (cs *ChunkStreamer) Sched(writer *ChunkStreamWriter) error {
+	writer.newChunk = true
 	return cs.writerSched.Sched(writer)
 }
 
@@ -305,13 +306,14 @@ func (cs *ChunkStreamer) writeChunk(writer *ChunkStreamWriter) (bool, error) {
 
 func (cs *ChunkStreamer) updateWriterHeader(writer *ChunkStreamWriter) {
 	fmt := byte(2) // default: only timestamp delta
-	if writer.messageHeader.messageLength != writer.messageLength || writer.messageTypeID != writer.messageHeader.messageTypeID {
+	if writer.messageHeader.messageLength != writer.messageLength ||
+		writer.messageTypeID != writer.messageHeader.messageTypeID {
 		// header or type id is updated, change fmt to 1 to notify difference and update state
 		writer.messageHeader.messageLength = writer.messageLength
 		writer.messageHeader.messageTypeID = writer.messageTypeID
 		fmt = 1
 	}
-	if writer.timestamp != writer.messageHeader.timestamp {
+	if writer.timestamp != writer.messageHeader.timestamp || writer.newChunk {
 		if writer.timestamp >= writer.messageHeader.timestamp {
 			writer.timestampDelta = writer.timestamp - writer.messageHeader.timestamp
 		} else {
@@ -320,6 +322,7 @@ func (cs *ChunkStreamer) updateWriterHeader(writer *ChunkStreamWriter) {
 			writer.timestampDelta = 0
 		}
 	}
+	writer.newChunk = false
 	if writer.timestampDelta == writer.messageHeader.timestampDelta && fmt == 2 {
 		fmt = 3
 	}
@@ -409,8 +412,9 @@ func (cs *ChunkStreamer) prepareChunkWriter(chunkStreamID int) (*ChunkStreamWrit
 					timestamp: math.MaxUint32, // initial state will be updated by writer.timestamp
 				},
 			},
-			doneCh:  make(chan struct{}),
-			closeCh: make(chan struct{}),
+			doneCh:   make(chan struct{}),
+			closeCh:  make(chan struct{}),
+			newChunk: true,
 		}
 		close(writer.doneCh)
 		cs.writers[chunkStreamID] = writer
