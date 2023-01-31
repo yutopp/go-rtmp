@@ -99,9 +99,9 @@ func HandshakeWithClient(r io.Reader, w io.Writer, config *Config) error {
 	}
 
 	// Check random echo
-	if !bytes.Equal(c2.Random[:], s1.Random[:]) {
-		return errors.New("Random echo is not matched")
-	}
+	// if !bytes.Equal(c2.Random[:], s1.Random[:]) {
+	// 	return errors.New("Random echo is not matched")
+	// }
 
 	return nil
 }
