@@ -10,7 +10,7 @@ package rtmp
 import (
 	"github.com/pkg/errors"
 
-	"github.com/yutopp/go-rtmp/handshake"
+	"github.com/livekit/go-rtmp/handshake"
 )
 
 // serverConn A wrapper of a connection. It prorives server-side specific features.

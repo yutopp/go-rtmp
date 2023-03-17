@@ -8,7 +8,7 @@
 package rtmp
 
 import (
-	"github.com/yutopp/go-rtmp/message"
+	"github.com/livekit/go-rtmp/message"
 )
 
 type stateHandler interface {

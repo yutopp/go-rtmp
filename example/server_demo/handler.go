@@ -11,8 +11,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/yutopp/go-flv"
 	flvtag "github.com/yutopp/go-flv/tag"
-	"github.com/yutopp/go-rtmp"
-	rtmpmsg "github.com/yutopp/go-rtmp/message"
+	"github.com/livekit/go-rtmp"
+	rtmpmsg "github.com/livekit/go-rtmp/message"
 )
 
 var _ rtmp.Handler = (*Handler)(nil)

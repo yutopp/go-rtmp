@@ -20,7 +20,7 @@ import (
 	"github.com/fortytw2/leaktest"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/yutopp/go-rtmp/message"
+	"github.com/livekit/go-rtmp/message"
 )
 
 func TestStreamerSingleChunk(t *testing.T) {

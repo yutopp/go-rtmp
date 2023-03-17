@@ -1,4 +1,4 @@
-module github.com/yutopp/go-rtmp
+module github.com/livekit/go-rtmp
 
 go 1.13
 
