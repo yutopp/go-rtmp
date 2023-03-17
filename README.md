@@ -1,22 +1,16 @@
 # go-rtmp
 
-[![ci](https://github.com/yutopp/go-rtmp/workflows/ci/badge.svg)](https://github.com/yutopp/go-rtmp/actions?query=workflow%3Aci)
-[![codecov](https://codecov.io/gh/yutopp/go-rtmp/branch/master/graph/badge.svg?token=KXgQ1x8BQP)](https://codecov.io/gh/yutopp/go-rtmp)
-[![GoDoc](https://godoc.org/github.com/yutopp/go-rtmp?status.svg)](http://godoc.org/github.com/yutopp/go-rtmp)
-[![Go Report Card](https://goreportcard.com/badge/github.com/yutopp/go-rtmp)](https://goreportcard.com/report/github.com/yutopp/go-rtmp)
-[![license](https://img.shields.io/github/license/yutopp/go-rtmp.svg)](https://github.com/yutopp/go-rtmp/blob/master/LICENSE_1_0.txt)
+[![license](https://img.shields.io/github/license/livekit/go-rtmp.svg)](https://github.com/livekit/go-rtmp/blob/master/LICENSE_1_0.txt)
 
-RTMP 1.0 server/client library written in Go.
-
-*Work in progress*
+RTMP 1.0 server/client library written in Go, forked from [github.com/yutopp/go-rtmp](https://github.com/yutopp/go-rtmp) to change some of the error handling behavior.
 
 ## Installation
 
 ```
-go get github.com/yutopp/go-rtmp
+go get github.com/livekit/go-rtmp
 ```
 
-See also [server_demo](https://github.com/yutopp/go-rtmp/tree/master/example/server_demo) and [client_demo](https://github.com/yutopp/go-rtmp/blob/master/example/client_demo/main.go).
+See also [server_demo](https://github.com/livekit/go-rtmp/tree/master/example/server_demo) and [client_demo](https://github.com/livekit/go-rtmp/blob/master/example/client_demo/main.go).
 
 ## Documentation
 
