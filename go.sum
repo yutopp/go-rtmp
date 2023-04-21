@@ -24,10 +24,10 @@ github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/
 github.com/stretchr/testify v1.8.0/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO+kdMU+MU=
 github.com/stretchr/testify v1.8.1 h1:w7B6lhMri9wdJUVmEZPGGhZzrYTPvgJArz7wNPgYKsk=
 github.com/stretchr/testify v1.8.1/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
-github.com/yutopp/go-amf0 v0.0.0-20180803120851-48851794bb1f h1:VIlyzrDymNB/eD+uJ2vdhgxsY1OGKpVSvVPV3oy97cI=
-github.com/yutopp/go-amf0 v0.0.0-20180803120851-48851794bb1f/go.mod h1:miopb3mUO8ynCPmYD04SZ0JCMFsBt0eOdAuQ6HHHQ6Q=
-github.com/yutopp/go-flv v0.2.0 h1:f/8z2SKymXJH78666m7Irpq+I1PsrGptBIR3RXGEw/A=
-github.com/yutopp/go-flv v0.2.0/go.mod h1:xe1MPrWcfQfYeBT7E5WAF0zvKUyf1hmSpesDjBoUV4E=
+github.com/yutopp/go-amf0 v0.1.0 h1:a3UeBZG7nRF0zfvmPn2iAfNo1RGzUpHz1VyJD2oGrik=
+github.com/yutopp/go-amf0 v0.1.0/go.mod h1:QzDOBr9RV6sQh6E5GFEJROZbU0iQKijORBmprkb3FIk=
+github.com/yutopp/go-flv v0.3.0 h1:zkjsXqxfkwnrtPNvicxCKkaJnvwzf7kOfL/OUERP6LQ=
+github.com/yutopp/go-flv v0.3.0/go.mod h1:pAlHPSVRMv5aCUKmGOS/dZn/ooTgnc09qOPmiUNMubs=
 golang.org/x/sys v0.0.0-20191026070338-33540a1f6037/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.3.0 h1:w8ZOecv6NaNa/zC8944JTU3vz4u6Lagfk4RPQxv92NQ=
 golang.org/x/sys v0.3.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
