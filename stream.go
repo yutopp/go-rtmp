@@ -45,6 +45,10 @@ func newStream(streamID uint32, conn *Conn) *Stream {
 	return s
 }
 
+func (s *Stream) StreamID() uint32 {
+	return s.streamID
+}
+
 func (s *Stream) WriteWinAckSize(chunkStreamID int, timestamp uint32, msg *message.WinAckSize) error {
 	return s.Write(chunkStreamID, timestamp, msg)
 }
@@ -187,6 +191,18 @@ func (s *Stream) CreateStream(body *message.NetConnectionCreateStream, chunkSize
 	}
 
 	//return nil, errors.New("Failed to get result")
+}
+
+func (s *Stream) DeleteStream(body *message.NetStreamDeleteStream) error {
+	chunkStreamID := 3 // TODO: fix
+
+	return s.writeCommandMessage(
+		chunkStreamID,
+		0,
+		"deleteStream",
+		0,
+		body,
+	)
 }
 
 func (s *Stream) ReplyCreateStream(

@@ -106,6 +106,30 @@ func (cc *ClientConn) CreateStream(body *message.NetConnectionCreateStream, chun
 	return newStream, nil
 }
 
+func (cc *ClientConn) DeleteStream(body *message.NetStreamDeleteStream) error {
+	if err := cc.controllable(); err != nil {
+		return err
+	}
+
+	ctrlStream, err := cc.conn.streams.At(ControlStreamID)
+	if err != nil {
+		return err
+	}
+
+	// Check if stream id exists
+	_, err = cc.conn.streams.At(body.StreamID)
+	if err != nil {
+		return err
+	}
+
+	err = ctrlStream.DeleteStream(body)
+	if err != nil {
+		return err
+	}
+
+	return cc.conn.streams.Delete(body.StreamID)
+}
+
 func (cc *ClientConn) startHandleMessageLoop() {
 	if err := cc.conn.handleMessageLoop(); err != nil {
 		cc.setLastError(err)
