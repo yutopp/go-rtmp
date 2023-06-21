@@ -30,11 +30,13 @@ func newClientConnWithSetup(c net.Conn, config *ConnConfig) (*ClientConn, error)
 	if err := handshake.HandshakeWithServer(conn.rwc, conn.rwc, &handshake.Config{
 		SkipHandshakeVerification: conn.config.SkipHandshakeVerification,
 	}); err != nil {
+		_ = conn.Close()
 		return nil, errors.Wrap(err, "Failed to handshake")
 	}
 
 	ctrlStream, err := conn.streams.Create(ControlStreamID)
 	if err != nil {
+		_ = conn.Close()
 		return nil, errors.Wrap(err, "Failed to create control stream")
 	}
 	ctrlStream.handler.ChangeState(streamStateClientNotConnected)
