@@ -200,7 +200,12 @@ func DecodeBodyPublish(_ io.Reader, d AMFDecoder, v *AMFConvertible) error {
 	}
 	var publishingType string
 	if err := d.Decode(&publishingType); err != nil {
-		return errors.Wrap(err, "Failed to decode 'publish' args[2]")
+		// value is optional
+		if errors.Is(err, io.EOF) {
+			publishingType = "live"
+		} else {
+			return errors.Wrap(err, "Failed to decode 'publish' args[2]")
+		}
 	}
 
 	var cmd NetStreamPublish

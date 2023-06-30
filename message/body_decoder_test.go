@@ -112,6 +112,25 @@ func TestDecodeCmdMessagePublish(t *testing.T) {
 	}, v)
 }
 
+func TestDecodeCmdMessagePublishWithoutPublishingType(t *testing.T) {
+	bin := []byte{
+		// nil
+		0x05,
+		// string: abc
+		0x02, 0x00, 0x03, 0x61, 0x62, 0x63,
+	}
+	r := bytes.NewReader(bin)
+	d := amf0.NewDecoder(r)
+
+	var v AMFConvertible
+	err := CmdBodyDecoderFor("publish", 42)(r, d, &v)
+	require.Nil(t, err)
+	require.Equal(t, &NetStreamPublish{
+		PublishingName: "abc",
+		PublishingType: "live",
+	}, v)
+}
+
 func TestDecodeCmdMessagePlay(t *testing.T) {
 	bin := []byte{
 		// nil
