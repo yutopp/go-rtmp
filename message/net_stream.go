@@ -107,7 +107,10 @@ func (t *NetStreamDeleteStream) FromArgs(args ...interface{}) error {
 }
 
 func (t *NetStreamDeleteStream) ToArgs(ty EncodingType) ([]interface{}, error) {
-	panic("Not implemented")
+	return []interface{}{
+		nil, // no command object
+		t.StreamID,
+	}, nil
 }
 
 type NetStreamFCPublish struct {

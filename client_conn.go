@@ -30,11 +30,13 @@ func newClientConnWithSetup(c net.Conn, config *ConnConfig) (*ClientConn, error)
 	if err := handshake.HandshakeWithServer(conn.rwc, conn.rwc, &handshake.Config{
 		SkipHandshakeVerification: conn.config.SkipHandshakeVerification,
 	}); err != nil {
+		_ = conn.Close()
 		return nil, errors.Wrap(err, "Failed to handshake")
 	}
 
 	ctrlStream, err := conn.streams.Create(ControlStreamID)
 	if err != nil {
+		_ = conn.Close()
 		return nil, errors.Wrap(err, "Failed to create control stream")
 	}
 	ctrlStream.handler.ChangeState(streamStateClientNotConnected)
@@ -104,6 +106,30 @@ func (cc *ClientConn) CreateStream(body *message.NetConnectionCreateStream, chun
 	}
 
 	return newStream, nil
+}
+
+func (cc *ClientConn) DeleteStream(body *message.NetStreamDeleteStream) error {
+	if err := cc.controllable(); err != nil {
+		return err
+	}
+
+	ctrlStream, err := cc.conn.streams.At(ControlStreamID)
+	if err != nil {
+		return err
+	}
+
+	// Check if stream id exists
+	_, err = cc.conn.streams.At(body.StreamID)
+	if err != nil {
+		return err
+	}
+
+	err = ctrlStream.DeleteStream(body)
+	if err != nil {
+		return err
+	}
+
+	return cc.conn.streams.Delete(body.StreamID)
 }
 
 func (cc *ClientConn) startHandleMessageLoop() {
