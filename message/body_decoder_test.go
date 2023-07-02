@@ -11,7 +11,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/yutopp/go-amf0"
 )
 
@@ -22,8 +22,8 @@ func TestDecodeDataMessageAtsetDataFrame(t *testing.T) {
 
 	var v AMFConvertible
 	err := DataBodyDecoderFor("@setDataFrame")(r, d, &v)
-	assert.Nil(t, err)
-	assert.Equal(t, &NetStreamSetDataFrame{
+	require.Nil(t, err)
+	require.Equal(t, &NetStreamSetDataFrame{
 		Payload: bin,
 	}, v)
 }
@@ -38,11 +38,11 @@ func TestDecodeDataMessageUnknown(t *testing.T) {
 
 	var v AMFConvertible
 	err := DataBodyDecoderFor("hogehoge")(r, d, &v)
-	assert.Equal(t, &UnknownDataBodyDecodeError{
+	require.Equal(t, &UnknownDataBodyDecodeError{
 		Name: "hogehoge",
 		Objs: []interface{}{nil},
 	}, err)
-	assert.Nil(t, v)
+	require.Nil(t, v)
 }
 
 func TestDecodeCmdMessageConnect(t *testing.T) {
@@ -55,8 +55,8 @@ func TestDecodeCmdMessageConnect(t *testing.T) {
 
 	var v AMFConvertible
 	err := CmdBodyDecoderFor("connect", 1)(r, d, &v) // Transaction is always 1 (7.2.1.1)
-	assert.Nil(t, err)
-	assert.Equal(t, &NetConnectionConnect{}, v)
+	require.Nil(t, err)
+	require.Equal(t, &NetConnectionConnect{}, v)
 }
 
 func TestDecodeCmdMessageCreateStream(t *testing.T) {
@@ -69,8 +69,8 @@ func TestDecodeCmdMessageCreateStream(t *testing.T) {
 
 	var v AMFConvertible
 	err := CmdBodyDecoderFor("createStream", 42)(r, d, &v)
-	assert.Nil(t, err)
-	assert.Equal(t, &NetConnectionCreateStream{}, v)
+	require.Nil(t, err)
+	require.Equal(t, &NetConnectionCreateStream{}, v)
 }
 
 func TestDecodeCmdMessageDeleteStream(t *testing.T) {
@@ -85,8 +85,8 @@ func TestDecodeCmdMessageDeleteStream(t *testing.T) {
 
 	var v AMFConvertible
 	err := CmdBodyDecoderFor("deleteStream", 42)(r, d, &v)
-	assert.Nil(t, err)
-	assert.Equal(t, &NetStreamDeleteStream{
+	require.Nil(t, err)
+	require.Equal(t, &NetStreamDeleteStream{
 		StreamID: 42,
 	}, v)
 }
@@ -105,8 +105,8 @@ func TestDecodeCmdMessagePublish(t *testing.T) {
 
 	var v AMFConvertible
 	err := CmdBodyDecoderFor("publish", 42)(r, d, &v)
-	assert.Nil(t, err)
-	assert.Equal(t, &NetStreamPublish{
+	require.Nil(t, err)
+	require.Equal(t, &NetStreamPublish{
 		PublishingName: "abc",
 		PublishingType: "def",
 	}, v)
@@ -126,8 +126,8 @@ func TestDecodeCmdMessagePlay(t *testing.T) {
 
 	var v AMFConvertible
 	err := CmdBodyDecoderFor("play", 42)(r, d, &v)
-	assert.Nil(t, err)
-	assert.Equal(t, &NetStreamPlay{
+	require.Nil(t, err)
+	require.Equal(t, &NetStreamPlay{
 		StreamName: "abc",
 		Start:      42,
 	}, v)
@@ -145,8 +145,8 @@ func TestDecodeCmdMessageReleaseStream(t *testing.T) {
 
 	var v AMFConvertible
 	err := CmdBodyDecoderFor("releaseStream", 42)(r, d, &v)
-	assert.Nil(t, err)
-	assert.Equal(t, &NetConnectionReleaseStream{
+	require.Nil(t, err)
+	require.Equal(t, &NetConnectionReleaseStream{
 		StreamName: "abc",
 	}, v)
 }
@@ -163,8 +163,8 @@ func TestDecodeCmdMessageFCPublish(t *testing.T) {
 
 	var v AMFConvertible
 	err := CmdBodyDecoderFor("FCPublish", 42)(r, d, &v)
-	assert.Nil(t, err)
-	assert.Equal(t, &NetStreamFCPublish{
+	require.Nil(t, err)
+	require.Equal(t, &NetStreamFCPublish{
 		StreamName: "abc",
 	}, v)
 }
@@ -181,8 +181,8 @@ func TestDecodeCmdMessageFCUnpublish(t *testing.T) {
 
 	var v AMFConvertible
 	err := CmdBodyDecoderFor("FCUnpublish", 42)(r, d, &v)
-	assert.Nil(t, err)
-	assert.Equal(t, &NetStreamFCUnpublish{
+	require.Nil(t, err)
+	require.Equal(t, &NetStreamFCUnpublish{
 		StreamName: "abc",
 	}, v)
 }
@@ -199,8 +199,8 @@ func TestDecodeCmdMessageGetStreamLength(t *testing.T) {
 
 	var v AMFConvertible
 	err := CmdBodyDecoderFor("getStreamLength", 42)(r, d, &v)
-	assert.Nil(t, err)
-	assert.Equal(t, &NetStreamGetStreamLength{
+	require.Nil(t, err)
+	require.Equal(t, &NetStreamGetStreamLength{
 		StreamName: "abc",
 	}, v)
 }
@@ -215,8 +215,8 @@ func TestDecodeCmdMessagePing(t *testing.T) {
 
 	var v AMFConvertible
 	err := CmdBodyDecoderFor("ping", 42)(r, d, &v)
-	assert.Nil(t, err)
-	assert.Equal(t, &NetStreamPing{}, v)
+	require.Nil(t, err)
+	require.Equal(t, &NetStreamPing{}, v)
 }
 
 func TestDecodeCmdMessageCloseStream(t *testing.T) {
@@ -229,8 +229,8 @@ func TestDecodeCmdMessageCloseStream(t *testing.T) {
 
 	var v AMFConvertible
 	err := CmdBodyDecoderFor("closeStream", 42)(r, d, &v)
-	assert.Nil(t, err)
-	assert.Equal(t, &NetStreamCloseStream{}, v)
+	require.Nil(t, err)
+	require.Equal(t, &NetStreamCloseStream{}, v)
 }
 
 func TestDecodeCmdMessageUnknown(t *testing.T) {
@@ -243,10 +243,10 @@ func TestDecodeCmdMessageUnknown(t *testing.T) {
 
 	var v AMFConvertible
 	err := CmdBodyDecoderFor("hogehoge", 42)(r, d, &v)
-	assert.Equal(t, &UnknownCommandBodyDecodeError{
+	require.Equal(t, &UnknownCommandBodyDecodeError{
 		Name:          "hogehoge",
 		TransactionID: 42,
 		Objs:          []interface{}{nil},
 	}, err)
-	assert.Nil(t, v)
+	require.Nil(t, v)
 }

@@ -11,7 +11,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDecodeCommon(t *testing.T) {
@@ -26,7 +26,7 @@ func TestDecodeCommon(t *testing.T) {
 
 			var msg Message
 			err := dec.Decode(tc.TypeID, &msg)
-			assert.Nil(t, err)
+			require.Nil(t, err)
 			assertEqualMessage(t, tc.Value, msg)
 		})
 	}

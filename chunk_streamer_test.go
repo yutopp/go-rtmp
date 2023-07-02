@@ -18,7 +18,7 @@ import (
 	"time"
 
 	"github.com/fortytw2/leaktest"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/yutopp/go-rtmp/message"
 )
@@ -39,38 +39,38 @@ func TestStreamerSingleChunk(t *testing.T) {
 
 	// write a message
 	w, err := streamer.NewChunkWriter(context.Background(), chunkStreamID)
-	assert.Nil(t, err)
-	assert.NotNil(t, w)
+	require.Nil(t, err)
+	require.NotNil(t, w)
 
 	enc := message.NewEncoder(w)
 	err = enc.Encode(msg)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	w.messageLength = uint32(w.buf.Len())
 	w.messageTypeID = byte(msg.TypeID())
 	w.timestamp = timestamp
 	err = streamer.Sched(w)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	_, err = streamer.NewChunkWriter(context.Background(), chunkStreamID) // wait for writing
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	// read a message
 	r, err := streamer.readChunk()
-	assert.Nil(t, err)
-	assert.NotNil(t, r)
-	assert.True(t, r.completed)
+	require.Nil(t, err)
+	require.NotNil(t, r)
+	require.True(t, r.completed)
 
 	dec := message.NewDecoder(r)
 	var actualMsg message.Message
 	err = dec.Decode(message.TypeID(r.messageTypeID), &actualMsg)
-	assert.Nil(t, err)
-	assert.Equal(t, uint32(timestamp), r.timestamp)
+	require.Nil(t, err)
+	require.Equal(t, uint32(timestamp), r.timestamp)
 
 	// check message
-	assert.Equal(t, actualMsg.TypeID(), msg.TypeID())
+	require.Equal(t, actualMsg.TypeID(), msg.TypeID())
 	actualMsgT := actualMsg.(*message.VideoMessage)
 	actualContent, _ := ioutil.ReadAll(actualMsgT.Payload)
-	assert.Equal(t, actualContent, videoContent)
+	require.Equal(t, actualContent, videoContent)
 }
 
 func TestStreamerMultipleChunk(t *testing.T) {
@@ -93,40 +93,40 @@ func TestStreamerMultipleChunk(t *testing.T) {
 
 	// write a message
 	w, err := streamer.NewChunkWriter(context.Background(), chunkStreamID)
-	assert.Nil(t, err)
-	assert.NotNil(t, w)
+	require.Nil(t, err)
+	require.NotNil(t, w)
 
 	enc := message.NewEncoder(w)
 	err = enc.Encode(msg)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	w.messageLength = uint32(w.buf.Len())
 	w.messageTypeID = byte(msg.TypeID())
 	w.timestamp = timestamp
 	err = streamer.Sched(w)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	_, err = streamer.NewChunkWriter(context.Background(), chunkStreamID) // wait for writing
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	// read a message
 	var r *ChunkStreamReader
 	for i := 0; i < len(payloadUnit); i++ {
 		r, err = streamer.readChunk()
-		assert.Nil(t, err)
+		require.Nil(t, err)
 	}
-	assert.NotNil(t, r)
+	require.NotNil(t, r)
 
 	dec := message.NewDecoder(r)
 	var actualMsg message.Message
 	err = dec.Decode(message.TypeID(r.messageTypeID), &actualMsg)
-	assert.Nil(t, err)
-	assert.Equal(t, uint32(timestamp), r.timestamp)
+	require.Nil(t, err)
+	require.Equal(t, uint32(timestamp), r.timestamp)
 
 	// check message
-	assert.Equal(t, actualMsg.TypeID(), msg.TypeID())
+	require.Equal(t, actualMsg.TypeID(), msg.TypeID())
 	actualMsgT := actualMsg.(*message.VideoMessage)
 	actualContent, _ := ioutil.ReadAll(actualMsgT.Payload)
-	assert.Equal(t, actualContent, videoContent)
+	require.Equal(t, actualContent, videoContent)
 }
 
 func TestStreamerChunkExample1(t *testing.T) {
@@ -215,8 +215,8 @@ func TestStreamerChunkExample1(t *testing.T) {
 			for i, wc := range tc.writeCases {
 				t.Run(fmt.Sprintf("Write: %d", i), func(t *testing.T) {
 					w, err := streamer.NewChunkWriter(context.Background(), tc.chunkStreamID)
-					assert.Nil(t, err)
-					assert.NotNil(t, w)
+					require.Nil(t, err)
+					require.NotNil(t, w)
 
 					bin := make([]byte, wc.length)
 
@@ -227,22 +227,22 @@ func TestStreamerChunkExample1(t *testing.T) {
 					w.buf.Write(bin)
 
 					err = streamer.Sched(w)
-					assert.Nil(t, err)
+					require.Nil(t, err)
 				})
 			}
 
 			_, err := streamer.NewChunkWriter(context.Background(), tc.chunkStreamID) // wait for writing
-			assert.Nil(t, err)
+			require.Nil(t, err)
 
 			for i, rc := range tc.readCases {
 				t.Run(fmt.Sprintf("Read: %d", i), func(t *testing.T) {
 					r, err := streamer.readChunk()
-					assert.Nil(t, err)
-					assert.NotNil(t, r)
+					require.Nil(t, err)
+					require.NotNil(t, r)
 
-					assert.Equal(t, rc.fmt, r.basicHeader.fmt)
-					assert.Equal(t, uint32(rc.timestamp), r.timestamp)
-					assert.Equal(t, rc.isComplete, r.completed)
+					require.Equal(t, rc.fmt, r.basicHeader.fmt)
+					require.Equal(t, uint32(rc.timestamp), r.timestamp)
+					require.Equal(t, rc.isComplete, r.completed)
 				})
 			}
 		})
@@ -310,8 +310,8 @@ func TestStreamerChunkExample2(t *testing.T) {
 			for i, wc := range tc.writeCases {
 				t.Run(fmt.Sprintf("Write: %d", i), func(t *testing.T) {
 					w, err := streamer.NewChunkWriter(context.Background(), tc.chunkStreamID)
-					assert.Nil(t, err)
-					assert.NotNil(t, w)
+					require.Nil(t, err)
+					require.NotNil(t, w)
 
 					bin := make([]byte, wc.length)
 
@@ -321,23 +321,23 @@ func TestStreamerChunkExample2(t *testing.T) {
 					w.timestamp = wc.timestamp
 					w.buf.Write(bin)
 					err = streamer.Sched(w)
-					assert.Nil(t, err)
+					require.Nil(t, err)
 				})
 			}
 
 			_, err := streamer.NewChunkWriter(context.Background(), tc.chunkStreamID) // wait for writing
-			assert.Nil(t, err)
+			require.Nil(t, err)
 
 			for i, rc := range tc.readCases {
 				t.Run(fmt.Sprintf("Read: %d", i), func(t *testing.T) {
 					r, err := streamer.readChunk()
 					_ = rc
 					_ = err
-					assert.Nil(t, err)
-					assert.NotNil(t, r)
-					assert.Equal(t, rc.fmt, r.basicHeader.fmt)
-					assert.Equal(t, uint32(rc.delta), r.messageHeader.timestampDelta)
-					assert.Equal(t, rc.isComplete, r.completed)
+					require.Nil(t, err)
+					require.NotNil(t, r)
+					require.Equal(t, rc.fmt, r.basicHeader.fmt)
+					require.Equal(t, uint32(rc.delta), r.messageHeader.timestampDelta)
+					require.Equal(t, rc.isComplete, r.completed)
 				})
 			}
 		})
@@ -357,10 +357,10 @@ func TestWriteToInvalidWriter(t *testing.T) {
 		StreamID: 0,
 		Message:  &message.Ack{},
 	})
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	<-streamer.Done()
-	assert.EqualErrorf(t, streamer.Err(), "Always error!", "")
+	require.EqualErrorf(t, streamer.Err(), "Always error!", "")
 }
 
 type AlwaysErrorWriter struct{}
@@ -379,7 +379,7 @@ func TestChunkStreamerHasNoLeaksOfGoroutines(t *testing.T) {
 	streamer := NewChunkStreamer(inbuf, outbuf, nil)
 
 	err := streamer.Close()
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	<-streamer.Done()
 }
@@ -396,18 +396,18 @@ func TestChunkStreamerStreamsLimitation(t *testing.T) {
 
 	{
 		_, err := streamer.prepareChunkReader(0)
-		assert.Nil(t, err)
+		require.Nil(t, err)
 
 		_, err = streamer.prepareChunkReader(1)
-		assert.EqualError(t, err, "Creating chunk streams limit exceeded(Reader): Limit = 1")
+		require.EqualError(t, err, "Creating chunk streams limit exceeded(Reader): Limit = 1")
 	}
 
 	{
 		_, err := streamer.prepareChunkWriter(0)
-		assert.Nil(t, err)
+		require.Nil(t, err)
 
 		_, err = streamer.prepareChunkWriter(1)
-		assert.EqualError(t, err, "Creating chunk streams limit exceeded(Writer): Limit = 1")
+		require.EqualError(t, err, "Creating chunk streams limit exceeded(Writer): Limit = 1")
 	}
 }
 
@@ -433,16 +433,16 @@ func TestChunkStreamerDualWriter(t *testing.T) {
 				Payload: bytes.NewReader(largePayload),
 			},
 		})
-		assert.Nil(t, err)
+		require.Nil(t, err)
 	}
 
 	streamer.waitWriters()
 
 	err := streamer.Close()
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	<-streamer.Done()
-	assert.Equal(t, nil, streamer.Err())
+	require.Equal(t, nil, streamer.Err())
 }
 
 func TestChunkStreamerDualWriterWithoutWaiting(t *testing.T) {
@@ -467,14 +467,14 @@ func TestChunkStreamerDualWriterWithoutWaiting(t *testing.T) {
 				Payload: bytes.NewReader(largePayload),
 			},
 		})
-		assert.Nil(t, err)
+		require.Nil(t, err)
 	}
 
 	err := streamer.Close()
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	<-streamer.Done()
-	assert.Equal(t, nil, streamer.Err())
+	require.Equal(t, nil, streamer.Err())
 }
 
 func TestChunkStreamerNewChunkWriterTwice(t *testing.T) {
@@ -487,18 +487,18 @@ func TestChunkStreamerNewChunkWriterTwice(t *testing.T) {
 	chunkStreamID := 10
 
 	_, err := streamer.NewChunkWriter(context.Background(), chunkStreamID)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	_, err = streamer.NewChunkWriter(ctx, chunkStreamID) // Try to acquire same chunk writer
-	assert.EqualError(t, err, "Failed to wait chunk writer: context deadline exceeded")
+	require.EqualError(t, err, "Failed to wait chunk writer: context deadline exceeded")
 
 	err = streamer.Close()
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	<-streamer.Done()
-	assert.Equal(t, nil, streamer.Err())
+	require.Equal(t, nil, streamer.Err())
 }
 
 func BenchmarkStreamerMultipleChunkRead(b *testing.B) {

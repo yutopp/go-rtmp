@@ -11,7 +11,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestUserControlEventEncoderCommon(t *testing.T) {
@@ -25,8 +25,8 @@ func TestUserControlEventEncoderCommon(t *testing.T) {
 
 			enc := NewUserControlEventEncoder(buf)
 			err := enc.Encode(tc.Value)
-			assert.Nil(t, err)
-			assert.Equal(t, tc.Binary, buf.Bytes())
+			require.Nil(t, err)
+			require.Equal(t, tc.Binary, buf.Bytes())
 		})
 	}
 }

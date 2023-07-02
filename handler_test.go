@@ -10,7 +10,7 @@ package rtmp
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/yutopp/go-rtmp/message"
 )
@@ -67,10 +67,10 @@ type testHandler struct {
 
 func (h *testHandler) OnServe(conn *Conn) {
 	for _, s := range []*StreamControlState{conn.streamer.PeerState(), conn.streamer.SelfState()} {
-		assert.Equal(h.t, uint32(1234), s.ChunkSize())
-		assert.Equal(h.t, uint32(1234), s.AckWindowSize())
-		assert.Equal(h.t, int32(1234), s.BandwidthWindowSize())
-		assert.Equal(h.t, message.LimitTypeHard, s.BandwidthLimitType())
+		require.Equal(h.t, uint32(1234), s.ChunkSize())
+		require.Equal(h.t, uint32(1234), s.AckWindowSize())
+		require.Equal(h.t, int32(1234), s.BandwidthWindowSize())
+		require.Equal(h.t, message.LimitTypeHard, s.BandwidthLimitType())
 	}
 
 	close(h.closer) // Finish testing

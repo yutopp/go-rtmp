@@ -10,7 +10,7 @@ package rtmp
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestStreams(t *testing.T) {
@@ -24,17 +24,17 @@ func TestStreams(t *testing.T) {
 	streams := newStreams(conn)
 
 	s, err := streams.CreateIfAvailable()
-	assert.Nil(t, err)
-	assert.Equal(t, uint32(0), s.streamID)
+	require.Nil(t, err)
+	require.Equal(t, uint32(0), s.streamID)
 
 	// Becomes error because number of max streams is 1
 	_, err = streams.CreateIfAvailable()
-	assert.NotNil(t, err)
+	require.NotNil(t, err)
 
 	err = streams.Delete(s.streamID)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	// Becomes error because the stream is already deleted
 	err = streams.Delete(s.streamID)
-	assert.NotNil(t, err)
+	require.NotNil(t, err)
 }

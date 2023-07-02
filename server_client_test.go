@@ -14,7 +14,7 @@ import (
 	"testing"
 
 	"github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/yutopp/go-amf0"
 
 	"github.com/yutopp/go-rtmp/message"
@@ -32,7 +32,7 @@ func TestServerCanAcceptConnect(t *testing.T) {
 
 	prepareConnection(t, config, func(c *ClientConn) {
 		err := c.Connect(nil)
-		assert.Nil(t, err)
+		require.Nil(t, err)
 	})
 }
 
@@ -48,7 +48,7 @@ func TestServerCanRejectConnect(t *testing.T) {
 
 	prepareConnection(t, config, func(c *ClientConn) {
 		err := c.Connect(nil)
-		assert.Equal(t, &ConnectRejectedError{
+		require.Equal(t, &ConnectRejectedError{
 			TransactionID: 1,
 			Result: &message.NetConnectionConnectResult{
 				Properties: message.NetConnectionConnectResultProperties{
@@ -86,15 +86,15 @@ func TestServerCanAcceptCreateStream(t *testing.T) {
 
 	prepareConnection(t, config, func(c *ClientConn) {
 		err := c.Connect(nil)
-		assert.Nil(t, err)
+		require.Nil(t, err)
 
 		s0, err := c.CreateStream(nil, chunkSize)
-		assert.Nil(t, err)
+		require.Nil(t, err)
 		defer s0.Close()
 
 		// Rejected because a number of message streams is exceeded the limits
 		s1, err := c.CreateStream(nil, chunkSize)
-		assert.Equal(t, &CreateStreamRejectedError{
+		require.Equal(t, &CreateStreamRejectedError{
 			TransactionID: 2,
 			Result: &message.NetConnectionCreateStreamResult{
 				StreamID: 0,
@@ -110,7 +110,7 @@ type ServerCanAcceptCreateStreamHandler struct {
 
 func prepareConnection(t *testing.T, config *ConnConfig, f func(c *ClientConn)) {
 	l, err := net.Listen("tcp", "127.0.0.1:")
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	srv := NewServer(&ServerConfig{
 		OnConnect: func(conn net.Conn) (io.ReadWriteCloser, *ConnConfig) {
@@ -119,21 +119,21 @@ func prepareConnection(t *testing.T, config *ConnConfig, f func(c *ClientConn)) 
 	})
 	defer func() {
 		err := srv.Close()
-		assert.Nil(t, err)
+		require.Nil(t, err)
 	}()
 
 	go func() {
 		err := srv.Serve(l)
-		assert.Equal(t, ErrClosed, err)
+		require.Equal(t, ErrClosed, err)
 	}()
 
 	c, err := Dial("rtmp", l.Addr().String(), &ConnConfig{
 		Logger: logrus.StandardLogger(),
 	})
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	defer func() {
 		err := c.Close()
-		assert.Nil(t, err)
+		require.Nil(t, err)
 	}()
 
 	f(c)

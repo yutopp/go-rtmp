@@ -11,7 +11,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestChunkBasicHeader(t *testing.T) {
@@ -116,8 +116,8 @@ func TestChunkBasicHeader(t *testing.T) {
 
 				buf := new(bytes.Buffer)
 				err := encodeChunkBasicHeader(buf, tc.value)
-				assert.Nil(t, err)
-				assert.Equal(t, tc.binary, buf.Bytes())
+				require.Nil(t, err)
+				require.Equal(t, tc.binary, buf.Bytes())
 			})
 		}
 	})
@@ -132,8 +132,8 @@ func TestChunkBasicHeader(t *testing.T) {
 				r := bytes.NewReader(tc.binary)
 				var mh chunkBasicHeader
 				err := decodeChunkBasicHeader(r, nil, &mh)
-				assert.Nil(t, err)
-				assert.Equal(t, tc.value, &mh)
+				require.Nil(t, err)
+				require.Equal(t, tc.value, &mh)
 			})
 		}
 	})
@@ -146,7 +146,7 @@ func TestChunkBasicHeaderError(t *testing.T) {
 			fmt:           3,
 			chunkStreamID: 65600,
 		})
-		assert.EqualError(t, err, "Chunk stream id is out of range: 65600 must be in range [2, 65599]")
+		require.EqualError(t, err, "Chunk stream id is out of range: 65600 must be in range [2, 65599]")
 	})
 
 	t.Run("Out of range(under)", func(t *testing.T) {
@@ -155,7 +155,7 @@ func TestChunkBasicHeaderError(t *testing.T) {
 			fmt:           3,
 			chunkStreamID: 1,
 		})
-		assert.EqualError(t, err, "Chunk stream id is out of range: 1 must be in range [2, 65599]")
+		require.EqualError(t, err, "Chunk stream id is out of range: 1 must be in range [2, 65599]")
 	})
 }
 
@@ -367,8 +367,8 @@ func TestChunkMessageHeader(t *testing.T) {
 
 				buf := new(bytes.Buffer)
 				err := encodeChunkMessageHeader(buf, tc.fmt, tc.value)
-				assert.Nil(t, err)
-				assert.Equal(t, tc.binary, buf.Bytes())
+				require.Nil(t, err)
+				require.Equal(t, tc.binary, buf.Bytes())
 			})
 		}
 	})
@@ -383,8 +383,8 @@ func TestChunkMessageHeader(t *testing.T) {
 				r := bytes.NewReader(tc.binary)
 				var mh chunkMessageHeader
 				err := decodeChunkMessageHeader(r, tc.fmt, nil, &mh)
-				assert.Nil(t, err)
-				assert.Equal(t, tc.value, &mh)
+				require.Nil(t, err)
+				require.Equal(t, tc.value, &mh)
 			})
 		}
 	})

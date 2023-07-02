@@ -11,7 +11,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestUserControlEventDecodeCommon(t *testing.T) {
@@ -26,8 +26,8 @@ func TestUserControlEventDecodeCommon(t *testing.T) {
 
 			var msg UserCtrlEvent
 			err := dec.Decode(&msg)
-			assert.Nil(t, err)
-			assert.Equal(t, tc.Value, msg)
+			require.Nil(t, err)
+			require.Equal(t, tc.Value, msg)
 		})
 	}
 }

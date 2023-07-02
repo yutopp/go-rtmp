@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestServerCanClose(t *testing.T) {
@@ -21,12 +21,12 @@ func TestServerCanClose(t *testing.T) {
 	go func(ch <-chan time.Time) {
 		<-ch
 		err := srv.Close()
-		assert.Nil(t, err)
+		require.Nil(t, err)
 	}(time.After(1 * time.Second))
 
 	l, err := net.Listen("tcp", "127.0.0.1:")
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	err = srv.Serve(l)
-	assert.Equal(t, ErrClosed, err)
+	require.Equal(t, ErrClosed, err)
 }
