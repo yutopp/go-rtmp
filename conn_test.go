@@ -11,7 +11,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/yutopp/go-rtmp/message"
 )
@@ -42,24 +42,24 @@ func TestConnConfig(t *testing.T) {
 		},
 	})
 
-	assert.Equal(t, true, conn.config.SkipHandshakeVerification)
+	require.Equal(t, true, conn.config.SkipHandshakeVerification)
 
-	assert.Equal(t, 1234, conn.config.ReaderBufferSize)
-	assert.Equal(t, 1234, conn.config.WriterBufferSize)
+	require.Equal(t, 1234, conn.config.ReaderBufferSize)
+	require.Equal(t, 1234, conn.config.WriterBufferSize)
 
-	assert.Equal(t, uint32(1234), conn.config.ControlState.DefaultChunkSize)
-	assert.Equal(t, uint32(1234), conn.config.ControlState.MaxChunkSize)
-	assert.Equal(t, 1234, conn.config.ControlState.MaxChunkStreams)
+	require.Equal(t, uint32(1234), conn.config.ControlState.DefaultChunkSize)
+	require.Equal(t, uint32(1234), conn.config.ControlState.MaxChunkSize)
+	require.Equal(t, 1234, conn.config.ControlState.MaxChunkStreams)
 
-	assert.Equal(t, int32(1234), conn.config.ControlState.DefaultAckWindowSize)
-	assert.Equal(t, int32(1234), conn.config.ControlState.MaxAckWindowSize)
+	require.Equal(t, int32(1234), conn.config.ControlState.DefaultAckWindowSize)
+	require.Equal(t, int32(1234), conn.config.ControlState.MaxAckWindowSize)
 
-	assert.Equal(t, int32(1234), conn.config.ControlState.DefaultBandwidthWindowSize)
-	assert.Equal(t, message.LimitTypeHard, conn.config.ControlState.DefaultBandwidthLimitType)
-	assert.Equal(t, int32(1234), conn.config.ControlState.MaxBandwidthWindowSize)
+	require.Equal(t, int32(1234), conn.config.ControlState.DefaultBandwidthWindowSize)
+	require.Equal(t, message.LimitTypeHard, conn.config.ControlState.DefaultBandwidthLimitType)
+	require.Equal(t, int32(1234), conn.config.ControlState.MaxBandwidthWindowSize)
 
-	assert.Equal(t, uint32(1234), conn.config.ControlState.MaxMessageSize)
-	assert.Equal(t, 1234, conn.config.ControlState.MaxMessageStreams)
+	require.Equal(t, uint32(1234), conn.config.ControlState.MaxMessageSize)
+	require.Equal(t, 1234, conn.config.ControlState.MaxMessageStreams)
 }
 
 type rwcMock struct {

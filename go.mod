@@ -11,6 +11,6 @@ require (
 	github.com/sirupsen/logrus v1.7.0
 	github.com/stretchr/testify v1.8.1
 	github.com/yutopp/go-amf0 v0.1.0
-	github.com/yutopp/go-flv v0.3.0
+	github.com/yutopp/go-flv v0.3.1
 	golang.org/x/sys v0.3.0 // indirect
 )

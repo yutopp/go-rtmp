@@ -10,7 +10,7 @@ package message
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type netStreamTestCase struct {
@@ -62,21 +62,21 @@ func TestConvertNetStreamMessages(t *testing.T) {
 
 			// Make a message from args
 			err := tc.Box.FromArgs(tc.Args...)
-			assert.Equal(t, tc.FromErr, err)
+			require.Equal(t, tc.FromErr, err)
 
 			if err != nil {
 				return
 			}
-			assert.Equal(t, tc.ExpectedMsg, tc.Box) // Message <- Args0
+			require.Equal(t, tc.ExpectedMsg, tc.Box) // Message <- Args0
 
 			// Make args from message
 			args, err := tc.Box.ToArgs(EncodingTypeAMF0) // TODO: fix interface...
-			assert.Equal(t, tc.ToErr, err)
+			require.Equal(t, tc.ToErr, err)
 
 			if err != nil {
 				return
 			}
-			assert.Equal(t, tc.Args, args) // Args0 <- Message
+			require.Equal(t, tc.Args, args) // Args0 <- Message
 		})
 	}
 }

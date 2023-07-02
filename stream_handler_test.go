@@ -10,7 +10,7 @@ package rtmp
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestStreamHandlerChangeState(t *testing.T) {
@@ -19,41 +19,41 @@ func TestStreamHandlerChangeState(t *testing.T) {
 	s := newStream(42, c)
 
 	s.handler.ChangeState(streamStateUnknown)
-	assert.Equal(t, s.handler.state, streamStateUnknown)
-	assert.Equal(t, s.handler.handler, nil)
+	require.Equal(t, s.handler.state, streamStateUnknown)
+	require.Equal(t, s.handler.handler, nil)
 
 	s.handler.ChangeState(streamStateServerNotConnected)
-	assert.Equal(t, s.handler.state, streamStateServerNotConnected)
-	assert.Equal(t, s.handler.handler, &serverControlNotConnectedHandler{sh: s.handler})
+	require.Equal(t, s.handler.state, streamStateServerNotConnected)
+	require.Equal(t, s.handler.handler, &serverControlNotConnectedHandler{sh: s.handler})
 
 	s.handler.ChangeState(streamStateServerConnected)
-	assert.Equal(t, s.handler.state, streamStateServerConnected)
-	assert.Equal(t, s.handler.handler, &serverControlConnectedHandler{sh: s.handler})
+	require.Equal(t, s.handler.state, streamStateServerConnected)
+	require.Equal(t, s.handler.handler, &serverControlConnectedHandler{sh: s.handler})
 
 	s.handler.ChangeState(streamStateServerInactive)
-	assert.Equal(t, s.handler.state, streamStateServerInactive)
-	assert.Equal(t, s.handler.handler, &serverDataInactiveHandler{sh: s.handler})
+	require.Equal(t, s.handler.state, streamStateServerInactive)
+	require.Equal(t, s.handler.handler, &serverDataInactiveHandler{sh: s.handler})
 
 	s.handler.ChangeState(streamStateServerPublish)
-	assert.Equal(t, s.handler.state, streamStateServerPublish)
-	assert.Equal(t, s.handler.handler, &serverDataPublishHandler{sh: s.handler})
+	require.Equal(t, s.handler.state, streamStateServerPublish)
+	require.Equal(t, s.handler.handler, &serverDataPublishHandler{sh: s.handler})
 
 	s.handler.ChangeState(streamStateServerPlay)
-	assert.Equal(t, s.handler.state, streamStateServerPlay)
-	assert.Equal(t, s.handler.handler, &serverDataPlayHandler{sh: s.handler})
+	require.Equal(t, s.handler.state, streamStateServerPlay)
+	require.Equal(t, s.handler.handler, &serverDataPlayHandler{sh: s.handler})
 
 	s.handler.ChangeState(streamStateClientNotConnected)
-	assert.Equal(t, s.handler.state, streamStateClientNotConnected)
-	assert.Equal(t, s.handler.handler, &clientControlNotConnectedHandler{sh: s.handler})
+	require.Equal(t, s.handler.state, streamStateClientNotConnected)
+	require.Equal(t, s.handler.handler, &clientControlNotConnectedHandler{sh: s.handler})
 }
 
 func TestStreamStateString(t *testing.T) {
-	assert.Equal(t, "<Unknown>", streamStateUnknown.String())
-	assert.Equal(t, "NotConnected(Server)", streamStateServerNotConnected.String())
-	assert.Equal(t, "Connected(Server)", streamStateServerConnected.String())
-	assert.Equal(t, "Inactive(Server)", streamStateServerInactive.String())
-	assert.Equal(t, "Publish(Server)", streamStateServerPublish.String())
-	assert.Equal(t, "Play(Server)", streamStateServerPlay.String())
-	assert.Equal(t, "NotConnected(Client)", streamStateClientNotConnected.String())
-	assert.Equal(t, "Connected(Client)", streamStateClientConnected.String())
+	require.Equal(t, "<Unknown>", streamStateUnknown.String())
+	require.Equal(t, "NotConnected(Server)", streamStateServerNotConnected.String())
+	require.Equal(t, "Connected(Server)", streamStateServerConnected.String())
+	require.Equal(t, "Inactive(Server)", streamStateServerInactive.String())
+	require.Equal(t, "Publish(Server)", streamStateServerPublish.String())
+	require.Equal(t, "Play(Server)", streamStateServerPlay.String())
+	require.Equal(t, "NotConnected(Client)", streamStateClientNotConnected.String())
+	require.Equal(t, "Connected(Client)", streamStateClientConnected.String())
 }

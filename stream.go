@@ -257,7 +257,12 @@ func (s *Stream) NotifyStatus(
 }
 
 func (s *Stream) Close() error {
+	s.assumeClosed()
 	return nil // TODO: implement
+}
+
+func (s *Stream) assumeClosed() {
+	// TODO: implement
 }
 
 func (s *Stream) writeCommandMessage(

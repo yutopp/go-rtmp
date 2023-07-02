@@ -70,12 +70,14 @@ func (ss *streams) Delete(streamID uint32) error {
 	ss.m.Lock()
 	defer ss.m.Unlock()
 
-	_, ok := ss.streams[streamID]
+	s, ok := ss.streams[streamID]
 	if !ok {
 		return errors.Errorf("Stream not exists: StreamID = %d", streamID)
 	}
 
-	delete(ss.streams, streamID)
+	delete(ss.streams, s.streamID)
+
+	s.assumeClosed()
 
 	return nil
 }

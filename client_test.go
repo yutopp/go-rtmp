@@ -10,23 +10,23 @@ package rtmp
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestClientValidAddr(t *testing.T) {
 	addr, err := makeValidAddr("host:123")
-	assert.Equal(t, nil, err)
-	assert.Equal(t, "host:123", addr)
+	require.Equal(t, nil, err)
+	require.Equal(t, "host:123", addr)
 
 	addr, err = makeValidAddr("host")
-	assert.Equal(t, nil, err)
-	assert.Equal(t, "host:1935", addr)
+	require.Equal(t, nil, err)
+	require.Equal(t, "host:1935", addr)
 
 	addr, err = makeValidAddr("host:")
-	assert.Equal(t, nil, err)
-	assert.Equal(t, "host:", addr)
+	require.Equal(t, nil, err)
+	require.Equal(t, "host:", addr)
 
 	addr, err = makeValidAddr(":1111")
-	assert.Equal(t, nil, err)
-	assert.Equal(t, ":1111", addr)
+	require.Equal(t, nil, err)
+	require.Equal(t, ":1111", addr)
 }
