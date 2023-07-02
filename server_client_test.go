@@ -24,9 +24,13 @@ const (
 	chunkSize = 128
 )
 
+type serverCanAcceptConnectHandler struct {
+	DefaultHandler
+}
+
 func TestServerCanAcceptConnect(t *testing.T) {
 	config := &ConnConfig{
-		Handler: &ServerCanAcceptConnectHandler{},
+		Handler: &serverCanAcceptConnectHandler{},
 		Logger:  logrus.StandardLogger(),
 	}
 
@@ -36,13 +40,17 @@ func TestServerCanAcceptConnect(t *testing.T) {
 	})
 }
 
-type ServerCanAcceptConnectHandler struct {
+type serverCanRejectConnectHandler struct {
 	DefaultHandler
+}
+
+func (h *serverCanRejectConnectHandler) OnConnect(_ uint32, _ *message.NetConnectionConnect) error {
+	return fmt.Errorf("Reject")
 }
 
 func TestServerCanRejectConnect(t *testing.T) {
 	config := &ConnConfig{
-		Handler: &ServerCanRejectConnectHandler{},
+		Handler: &serverCanRejectConnectHandler{},
 		Logger:  logrus.StandardLogger(),
 	}
 
@@ -67,17 +75,13 @@ func TestServerCanRejectConnect(t *testing.T) {
 	})
 }
 
-type ServerCanRejectConnectHandler struct {
+type serverCanAcceptCreateStreamHandler struct {
 	DefaultHandler
-}
-
-func (h *ServerCanRejectConnectHandler) OnConnect(_ uint32, _ *message.NetConnectionConnect) error {
-	return fmt.Errorf("Reject")
 }
 
 func TestServerCanAcceptCreateStream(t *testing.T) {
 	config := &ConnConfig{
-		Handler: &ServerCanAcceptCreateStreamHandler{},
+		Handler: &serverCanAcceptCreateStreamHandler{},
 		Logger:  logrus.StandardLogger(),
 		ControlState: StreamControlStateConfig{
 			MaxMessageStreams: 2, // Control and another 1 stream
@@ -104,11 +108,45 @@ func TestServerCanAcceptCreateStream(t *testing.T) {
 	})
 }
 
-type ServerCanAcceptCreateStreamHandler struct {
+type serverCanAcceptDeleteStreamHandler struct {
 	DefaultHandler
 }
 
+func TestServerCanAcceptDeleteStream(t *testing.T) {
+	config := &ConnConfig{
+		Handler: &serverCanAcceptDeleteStreamHandler{},
+		Logger:  logrus.StandardLogger(),
+		ControlState: StreamControlStateConfig{
+			MaxMessageStreams: 2, // Control and another 1 stream
+		},
+	}
+
+	prepareConnection(t, config, func(c *ClientConn) {
+		err := c.Connect(nil)
+		require.Nil(t, err)
+
+		s0, err := c.CreateStream(nil, chunkSize)
+		require.NoError(t, err)
+		defer s0.Close()
+
+		t.Run("Cannot delete a stream which does not exist", func(t *testing.T) {
+			err = c.DeleteStream(&message.NetStreamDeleteStream{
+				StreamID: 42,
+			})
+			require.Error(t, err)
+		})
+
+		t.Run("Can delete a stream", func(t *testing.T) {
+			err = c.DeleteStream(&message.NetStreamDeleteStream{
+				StreamID: s0.streamID,
+			})
+			require.NoError(t, err)
+		})
+	})
+}
+
 func prepareConnection(t *testing.T, config *ConnConfig, f func(c *ClientConn)) {
+	// prepare server
 	l, err := net.Listen("tcp", "127.0.0.1:")
 	require.Nil(t, err)
 
@@ -127,6 +165,7 @@ func prepareConnection(t *testing.T, config *ConnConfig, f func(c *ClientConn)) 
 		require.Equal(t, ErrClosed, err)
 	}()
 
+	// prepare client
 	c, err := Dial("rtmp", l.Addr().String(), &ConnConfig{
 		Logger: logrus.StandardLogger(),
 	})

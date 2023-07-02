@@ -119,13 +119,11 @@ func (cc *ClientConn) DeleteStream(body *message.NetStreamDeleteStream) error {
 	}
 
 	// Check if stream id exists
-	_, err = cc.conn.streams.At(body.StreamID)
-	if err != nil {
+	if _, err := cc.conn.streams.At(body.StreamID); err != nil {
 		return err
 	}
 
-	err = ctrlStream.DeleteStream(body)
-	if err != nil {
+	if err := ctrlStream.DeleteStream(body); err != nil {
 		return err
 	}
 
