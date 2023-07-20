@@ -361,7 +361,7 @@ func DecodeBodyOnStatus(_ io.Reader, d AMFDecoder, v *AMFConvertible) error {
 	if err := d.Decode(&commandObject); err != nil {
 		return errors.Wrap(err, "Failed to decode 'OnStatus' args[0]")
 	}
-	var infoObject NetStreamOnStatusInfoObject
+	var infoObject map[string]interface{}
 	if err := d.Decode(&infoObject); err != nil {
 		return errors.Wrap(err, "Failed to decode 'OnStatus' args[1]")
 	}

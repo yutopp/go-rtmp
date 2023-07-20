@@ -7,6 +7,8 @@
 
 package message
 
+import "errors"
+
 type NetStreamPublish struct {
 	CommandObject  interface{}
 	PublishingName string
@@ -85,7 +87,32 @@ type NetStreamOnStatusInfoObject struct {
 
 func (t *NetStreamOnStatus) FromArgs(args ...interface{}) error {
 	// args[0] is nil, ignore
-	t.InfoObject = args[1].(NetStreamOnStatusInfoObject)
+
+	info, ok := args[1].(map[string]interface{})
+	if !ok {
+		return errors.New("invalid type") // TODO: fix
+	}
+	if v, ok := info["level"]; ok {
+		level, ok := v.(string)
+		if !ok {
+			return errors.New("invalid type") // TODO: fix
+		}
+		t.InfoObject.Level = NetStreamOnStatusLevel(level) // TODO: type check
+	}
+	if v, ok := info["code"]; ok {
+		code, ok := v.(string)
+		if !ok {
+			return errors.New("invalid type") // TODO: fix
+		}
+		t.InfoObject.Code = NetStreamOnStatusCode(code) // TODO: type check
+	}
+	if v, ok := info["description"]; ok {
+		description, ok := v.(string)
+		if !ok {
+			return errors.New("invalid type") // TODO: fix
+		}
+		t.InfoObject.Description = description
+	}
 
 	return nil
 }
