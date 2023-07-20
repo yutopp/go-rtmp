@@ -104,6 +104,7 @@ func (cc *ClientConn) CreateStream(body *message.NetConnectionCreateStream, chun
 	if err != nil {
 		return nil, err
 	}
+	newStream.handler.ChangeState(streamStateClientNotConnected)
 
 	return newStream, nil
 }
