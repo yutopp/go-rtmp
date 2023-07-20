@@ -44,7 +44,11 @@ func (t *NetStreamPlay) FromArgs(args ...interface{}) error {
 }
 
 func (t *NetStreamPlay) ToArgs(ty EncodingType) ([]interface{}, error) {
-	panic("Not implemented")
+	return []interface{}{
+		nil, // Always nil
+		t.StreamName,
+		t.Start,
+	}, nil
 }
 
 type NetStreamOnStatusLevel string
@@ -80,7 +84,10 @@ type NetStreamOnStatusInfoObject struct {
 }
 
 func (t *NetStreamOnStatus) FromArgs(args ...interface{}) error {
-	panic("Not implemented")
+	// args[0] is nil, ignore
+	t.InfoObject = args[1].(NetStreamOnStatusInfoObject)
+
+	return nil
 }
 
 func (t *NetStreamOnStatus) ToArgs(ty EncodingType) ([]interface{}, error) {

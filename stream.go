@@ -227,6 +227,23 @@ func (s *Stream) ReplyCreateStream(
 	)
 }
 
+func (s *Stream) Play(
+	body *message.NetStreamPlay,
+) error {
+	if body == nil {
+		body = &message.NetStreamPlay{}
+	}
+
+	chunkStreamID := 3 // TODO: fix
+	return s.writeCommandMessage(
+		chunkStreamID,
+		0, // TODO: fix, Timestamp is 0
+		"play",
+		int64(0), // Always 0, 7.2.2.1
+		body,
+	)
+}
+
 func (s *Stream) Publish(
 	body *message.NetStreamPublish,
 ) error {
