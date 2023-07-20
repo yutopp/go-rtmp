@@ -71,6 +71,7 @@ var CmdBodyDecoders = map[string]BodyDecoderFunc{
 	"getStreamLength": DecodeBodyGetStreamLength,
 	"ping":            DecodeBodyPing,
 	"closeStream":     DecodeBodyCloseStream,
+	"onStatus":        DecodeBodyOnStatus,
 }
 
 func CmdBodyDecoderFor(name string, transactionID int64) BodyDecoderFunc {
@@ -352,5 +353,24 @@ func DecodeBodyCloseStream(_ io.Reader, d AMFDecoder, v *AMFConvertible) error {
 
 	*v = &cmd
 
+	return nil
+}
+
+func DecodeBodyOnStatus(_ io.Reader, d AMFDecoder, v *AMFConvertible) error {
+	var commandObject interface{} // maybe nil
+	if err := d.Decode(&commandObject); err != nil {
+		return errors.Wrap(err, "Failed to decode 'OnStatus' args[0]")
+	}
+	var infoObject NetStreamOnStatusInfoObject
+	if err := d.Decode(&infoObject); err != nil {
+		return errors.Wrap(err, "Failed to decode 'OnStatus' args[1]")
+	}
+
+	var cmd NetStreamOnStatus
+	if err := cmd.FromArgs(commandObject, infoObject); err != nil {
+		return errors.Wrap(err, "Failed to reconstruct 'OnStatus'")
+	}
+
+	*v = &cmd
 	return nil
 }
