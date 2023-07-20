@@ -28,6 +28,7 @@ const (
 	streamStateServerPlay
 	streamStateClientNotConnected
 	streamStateClientConnected
+	streamStateClientPlay
 )
 
 func (s streamState) String() string {
@@ -46,6 +47,8 @@ func (s streamState) String() string {
 		return "NotConnected(Client)"
 	case streamStateClientConnected:
 		return "Connected(Client)"
+	case streamStateClientPlay:
+		return "Play(Client)"
 	default:
 		return "<Unknown>"
 	}
@@ -118,10 +121,12 @@ func (h *streamHandler) ChangeState(state streamState) {
 		h.handler = &serverDataPlayHandler{sh: h}
 	case streamStateClientNotConnected:
 		h.handler = &clientControlNotConnectedHandler{sh: h}
-		// 	case streamStateClientConnected:
-		// 		h.handler = &serverControlConnectedHandler{sh: h}
+	case streamStateClientConnected:
+		h.handler = &clientControlConnectedHandler{sh: h}
+	case streamStateClientPlay:
+		h.handler = &clientDataPlayHandler{sh: h}
 	default:
-		panic("Unexpected")
+		panic("Unexpected state")
 	}
 	h.state = state
 
