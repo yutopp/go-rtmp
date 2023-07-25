@@ -252,6 +252,44 @@ func TestDecodeCmdMessageCloseStream(t *testing.T) {
 	require.Equal(t, &NetStreamCloseStream{}, v)
 }
 
+func TestDecodeCmdMessageOnStatus(t *testing.T) {
+	t.Run("OK", func(t *testing.T) {
+		bin := []byte{
+			// nil
+			0x05,
+			// object start
+			0x03,
+			// key[0]: "level"
+			0x00, 0x05, 0x6c, 0x65, 0x76, 0x65, 0x6c,
+			// value[0]: string status
+			0x02, 0x00, 0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73,
+			// key[1]: "code",
+			0x00, 0x04, 0x63, 0x6f, 0x64, 0x65,
+			// value[1]: string NetStream.Play.Start
+			0x02, 0x00, 0x14, 0x4e, 0x65, 0x74, 0x53, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x2e, 0x50, 0x6c, 0x61, 0x79, 0x2e, 0x53, 0x74, 0x61, 0x72, 0x74,
+			// key[2]: "description",
+			0x00, 0x0b, 0x64, 0x65, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x69, 0x6f, 0x6e,
+			// value[2]: string abc
+			0x02, 0x00, 0x03, 0x61, 0x62, 0x63,
+			// empty key, object end
+			0x00, 0x00, 0x09,
+		}
+		r := bytes.NewReader(bin)
+		d := amf0.NewDecoder(r)
+
+		var v AMFConvertible
+		err := CmdBodyDecoderFor("onStatus", 42)(r, d, &v)
+		require.Nil(t, err)
+		require.Equal(t, &NetStreamOnStatus{
+			InfoObject: NetStreamOnStatusInfoObject{
+				Level:       NetStreamOnStatusLevelStatus,
+				Code:        NetStreamOnStatusCodePlayStart,
+				Description: "abc",
+			},
+		}, v)
+	})
+}
+
 func TestDecodeCmdMessageUnknown(t *testing.T) {
 	bin := []byte{
 		// nil
