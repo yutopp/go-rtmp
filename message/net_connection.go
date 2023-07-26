@@ -39,9 +39,12 @@ type NetConnectionConnectCommand struct {
 }
 
 func (t *NetConnectionConnect) FromArgs(args ...interface{}) error {
-	command := args[0].(map[string]interface{})
+	command, ok := args[0].(map[string]interface{})
+	if !ok {
+		return errors.Errorf("expect map[string]interface{} at arg[0], but got %T", args[0])
+	}
 	if err := mapstructure.Decode(command, &t.Command); err != nil {
-		return errors.Wrapf(err, "Failed to mapping NetConnectionConnect")
+		return errors.Wrapf(err, "failed to mapping arg[0] to NetConnectionConnectCommand")
 	}
 
 	return nil
@@ -72,14 +75,20 @@ type NetConnectionConnectResultInformation struct {
 }
 
 func (t *NetConnectionConnectResult) FromArgs(args ...interface{}) error {
-	properties := args[0].(map[string]interface{})
+	properties, ok := args[0].(map[string]interface{})
+	if !ok {
+		return errors.Errorf("expect map[string]interface{} at arg[0], but got %T", args[0])
+	}
 	if err := mapstructure.Decode(properties, &t.Properties); err != nil {
-		return errors.Wrapf(err, "Failed to mapping NetConnectionConnectResultProperties")
+		return errors.Wrapf(err, "failed to mapping arg[0] to NetConnectionConnectResultProperties")
 	}
 
 	information := args[1].(map[string]interface{})
+	if !ok {
+		return errors.Errorf("expect map[string]interface{} at arg[1], but got %T", args[1])
+	}
 	if err := mapstructure.Decode(information, &t.Information); err != nil {
-		return errors.Wrapf(err, "Failed to mapping NetConnectionConnectResultInformation")
+		return errors.Wrapf(err, "failed to mapping arg[1] to NetConnectionConnectResultInformation")
 	}
 
 	return nil
@@ -113,7 +122,12 @@ type NetConnectionCreateStreamResult struct {
 
 func (t *NetConnectionCreateStreamResult) FromArgs(args ...interface{}) error {
 	// args[0] is unknown, ignore
-	t.StreamID = args[1].(uint32)
+
+	streamID, ok := args[1].(uint32)
+	if !ok {
+		return errors.Errorf("expect uint32 at arg[1], but got %T", args[1])
+	}
+	t.StreamID = streamID
 
 	return nil
 }
@@ -131,7 +145,12 @@ type NetConnectionReleaseStream struct {
 
 func (t *NetConnectionReleaseStream) FromArgs(args ...interface{}) error {
 	// args[0] is unknown, ignore
-	t.StreamName = args[1].(string)
+
+	streamName, ok := args[1].(string)
+	if !ok {
+		return errors.Errorf("expect string at arg[1], but got %T", args[1])
+	}
+	t.StreamName = streamName
 
 	return nil
 }

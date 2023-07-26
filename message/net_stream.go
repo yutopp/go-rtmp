@@ -144,6 +144,9 @@ func (t *NetStreamOnStatus) FromArgs(args ...interface{}) error {
 
 func (t *NetStreamOnStatus) ToArgs(ty EncodingType) ([]interface{}, error) {
 	info := make(map[string]interface{})
+	for k, v := range t.InfoObject.ExtraProperties {
+		info[k] = v
+	}
 	info["level"] = t.InfoObject.Level
 	info["code"] = t.InfoObject.Code
 	info["description"] = t.InfoObject.Description
