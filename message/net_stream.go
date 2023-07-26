@@ -83,6 +83,8 @@ type NetStreamOnStatusInfoObject struct {
 	Level       NetStreamOnStatusLevel
 	Code        NetStreamOnStatusCode
 	Description string
+
+	ExtraProperties map[string]interface{}
 }
 
 func (t *NetStreamOnStatus) FromArgs(args ...interface{}) error {
@@ -90,29 +92,52 @@ func (t *NetStreamOnStatus) FromArgs(args ...interface{}) error {
 
 	info, ok := args[1].(map[string]interface{})
 	if !ok {
-		return errors.New("invalid type") // TODO: fix
+		return errors.New("expect map type value")
 	}
-	if v, ok := info["level"]; ok {
+
+	{
+		v, ok := info["level"]
+		if !ok {
+			return errors.New("missing `level` key")
+		}
 		level, ok := v.(string)
 		if !ok {
-			return errors.New("invalid type") // TODO: fix
+			return errors.New("expect string type for value of `level` key")
 		}
 		t.InfoObject.Level = NetStreamOnStatusLevel(level) // TODO: type check
+
+		delete(info, "level")
 	}
-	if v, ok := info["code"]; ok {
+
+	{
+		v, ok := info["code"]
+		if !ok {
+			return errors.New("missing `code` key")
+		}
 		code, ok := v.(string)
 		if !ok {
-			return errors.New("invalid type") // TODO: fix
+			return errors.New("expect string type for value of `code` key")
 		}
 		t.InfoObject.Code = NetStreamOnStatusCode(code) // TODO: type check
+
+		delete(info, "code")
 	}
-	if v, ok := info["description"]; ok {
+
+	{
+		v, ok := info["description"]
+		if !ok {
+			return errors.New("missing `description` key")
+		}
 		description, ok := v.(string)
 		if !ok {
-			return errors.New("invalid type") // TODO: fix
+			return errors.New("expect string type for value of `description` key")
 		}
 		t.InfoObject.Description = description
+
+		delete(info, "description")
 	}
+
+	t.InfoObject.ExtraProperties = info
 
 	return nil
 }

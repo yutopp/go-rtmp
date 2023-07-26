@@ -282,9 +282,10 @@ func TestDecodeCmdMessageOnStatus(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, &NetStreamOnStatus{
 			InfoObject: NetStreamOnStatusInfoObject{
-				Level:       NetStreamOnStatusLevelStatus,
-				Code:        NetStreamOnStatusCodePlayStart,
-				Description: "abc",
+				Level:           NetStreamOnStatusLevelStatus,
+				Code:            NetStreamOnStatusCodePlayStart,
+				Description:     "abc",
+				ExtraProperties: map[string]interface{}{},
 			},
 		}, v)
 	})
