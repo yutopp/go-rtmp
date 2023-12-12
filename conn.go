@@ -105,6 +105,10 @@ func newConn(rwc io.ReadWriteCloser, config *ConnConfig) *Conn {
 	return conn
 }
 
+func (c *Conn) GetChunkStreamer() *ChunkStreamer {
+	return c.streamer
+}
+
 func (c *Conn) Close() error {
 	c.m.Lock()
 	defer c.m.Unlock()
