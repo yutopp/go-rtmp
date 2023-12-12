@@ -20,7 +20,7 @@ var _ stateHandler = (*serverDataInactiveHandler)(nil)
 //
 //	transitions:
 //	  | "publish" -> serverDataPublishHandler
-//	  | "play"	   -> serverDataPlayHandler
+//	  | "play"	  -> serverDataPlayHandler
 //	  | _         -> self
 type serverDataInactiveHandler struct {
 	sh *streamHandler

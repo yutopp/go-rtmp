@@ -8,26 +8,49 @@
 package rtmp
 
 import (
+	"context"
 	"net"
 
 	"github.com/pkg/errors"
 )
 
-func Dial(protocol, addr string, config *ConnConfig) (*ClientConn, error) {
-	return DialWithDialer(&net.Dialer{}, protocol, addr, config)
+type dialOptions struct {
+	dialFunc func(ctx context.Context, network, addr string) (net.Conn, error)
 }
 
-func DialWithDialer(dialer *net.Dialer, protocol, addr string, config *ConnConfig) (*ClientConn, error) {
+func WithContextDialer(dialFunc func(context.Context, string, string) (net.Conn, error)) DialOption {
+	return func(o *dialOptions) {
+		o.dialFunc = dialFunc
+	}
+}
+
+type DialOption func(*dialOptions)
+
+func Dial(protocol, addr string, config *ConnConfig, opts ...DialOption) (*ClientConn, error) {
+	opt := &dialOptions{
+		dialFunc: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			return (&net.Dialer{}).DialContext(ctx, network, addr)
+		},
+	}
+	for _, o := range opts {
+		o(opt)
+	}
+
 	if protocol != "rtmp" {
 		return nil, errors.Errorf("Unknown protocol: %s", protocol)
 	}
 
-	rwc, err := dialer.Dial("tcp", addr)
+	// TODO: support ctx
+	rwc, err := opt.dialFunc(context.Background(), "tcp", addr)
 	if err != nil {
 		return nil, err
 	}
 
 	return newClientConnWithSetup(rwc, config)
+}
+
+func DialWithDialer(dialer *net.Dialer, protocol, addr string, config *ConnConfig) (*ClientConn, error) {
+	return Dial(protocol, addr, config, WithContextDialer(dialer.DialContext))
 }
 
 func makeValidAddr(addr string) (string, error) {

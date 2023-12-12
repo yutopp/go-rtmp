@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018- yutopp (yutopp@gmail.com)
+// Copyright (c) 2023- yutopp (yutopp@gmail.com)
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at  https://www.boost.org/LICENSE_1_0.txt)
@@ -12,18 +12,17 @@ import (
 	"github.com/yutopp/go-rtmp/message"
 )
 
-// clientControlNotConnectedHandler Handle control messages from a server in flow of connecting.
+// clientControlConnectedHandler Handle control messages from a server in flow of connected.
 //
 //	transitions:
-//	  | "_result" -> controlStreamStateConnected
 //	  | _         -> self
-type clientControlNotConnectedHandler struct {
+type clientControlConnectedHandler struct {
 	sh *streamHandler
 }
 
-var _ stateHandler = (*clientControlNotConnectedHandler)(nil)
+var _ stateHandler = (*clientControlConnectedHandler)(nil)
 
-func (h *clientControlNotConnectedHandler) onMessage(
+func (h *clientControlConnectedHandler) onMessage(
 	chunkStreamID int,
 	timestamp uint32,
 	msg message.Message,
@@ -31,7 +30,7 @@ func (h *clientControlNotConnectedHandler) onMessage(
 	return internal.ErrPassThroughMsg
 }
 
-func (h *clientControlNotConnectedHandler) onData(
+func (h *clientControlConnectedHandler) onData(
 	chunkStreamID int,
 	timestamp uint32,
 	dataMsg *message.DataMessage,
@@ -40,20 +39,19 @@ func (h *clientControlNotConnectedHandler) onData(
 	return internal.ErrPassThroughMsg
 }
 
-func (h *clientControlNotConnectedHandler) onCommand(
+func (h *clientControlConnectedHandler) onCommand(
 	chunkStreamID int,
 	timestamp uint32,
 	cmdMsg *message.CommandMessage,
 	body interface{},
 ) error {
-	l := h.sh.Logger()
-
 	switch cmd := body.(type) {
-	case *message.NetConnectionConnectResult:
-		l.Info("ConnectResult")
-		l.Infof("Result: Info = %+v, Props = %+v", cmd.Information, cmd.Properties)
+	case *message.NetStreamOnStatus:
+		if cmd.InfoObject.Code == message.NetStreamOnStatusCodePlayStart {
+			h.sh.ChangeState(streamStateClientPlay)
+		}
 
-		return nil
+		return internal.ErrPassThroughMsg
 
 	default:
 		return internal.ErrPassThroughMsg
