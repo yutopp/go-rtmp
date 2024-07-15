@@ -31,4 +31,5 @@ jobs:
           files: ./coverage.txt
           flags: unittests
           name: codecov-umbrella-${{ matrix.go }}
+          token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
