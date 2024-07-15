@@ -7,6 +7,8 @@
 
 package message
 
+import "errors"
+
 type NetStreamPublish struct {
 	CommandObject  interface{}
 	PublishingName string
@@ -44,7 +46,11 @@ func (t *NetStreamPlay) FromArgs(args ...interface{}) error {
 }
 
 func (t *NetStreamPlay) ToArgs(ty EncodingType) ([]interface{}, error) {
-	panic("Not implemented")
+	return []interface{}{
+		nil, // Always nil
+		t.StreamName,
+		t.Start,
+	}, nil
 }
 
 type NetStreamOnStatusLevel string
@@ -77,14 +83,70 @@ type NetStreamOnStatusInfoObject struct {
 	Level       NetStreamOnStatusLevel
 	Code        NetStreamOnStatusCode
 	Description string
+
+	ExtraProperties map[string]interface{}
 }
 
 func (t *NetStreamOnStatus) FromArgs(args ...interface{}) error {
-	panic("Not implemented")
+	// args[0] is nil, ignore
+
+	info, ok := args[1].(map[string]interface{})
+	if !ok {
+		return errors.New("expect map type value")
+	}
+
+	{
+		v, ok := info["level"]
+		if !ok {
+			return errors.New("missing `level` key")
+		}
+		level, ok := v.(string)
+		if !ok {
+			return errors.New("expect string type for value of `level` key")
+		}
+		t.InfoObject.Level = NetStreamOnStatusLevel(level) // TODO: type check
+
+		delete(info, "level")
+	}
+
+	{
+		v, ok := info["code"]
+		if !ok {
+			return errors.New("missing `code` key")
+		}
+		code, ok := v.(string)
+		if !ok {
+			return errors.New("expect string type for value of `code` key")
+		}
+		t.InfoObject.Code = NetStreamOnStatusCode(code) // TODO: type check
+
+		delete(info, "code")
+	}
+
+	{
+		v, ok := info["description"]
+		if !ok {
+			return errors.New("missing `description` key")
+		}
+		description, ok := v.(string)
+		if !ok {
+			return errors.New("expect string type for value of `description` key")
+		}
+		t.InfoObject.Description = description
+
+		delete(info, "description")
+	}
+
+	t.InfoObject.ExtraProperties = info
+
+	return nil
 }
 
 func (t *NetStreamOnStatus) ToArgs(ty EncodingType) ([]interface{}, error) {
 	info := make(map[string]interface{})
+	for k, v := range t.InfoObject.ExtraProperties {
+		info[k] = v
+	}
 	info["level"] = t.InfoObject.Level
 	info["code"] = t.InfoObject.Code
 	info["description"] = t.InfoObject.Description

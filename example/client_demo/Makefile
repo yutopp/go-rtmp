@@ -1,3 +1,3 @@
 PHONY: all
 all:
-	go build -i -v -o client_demo .
+	go build -v -o client_demo .

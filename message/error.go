@@ -27,7 +27,7 @@ type UnknownCommandBodyDecodeError struct {
 }
 
 func (e *UnknownCommandBodyDecodeError) Error() string {
-	return fmt.Sprintf("UnknownCommandMessageDecodeError: Name = %s, TransactionID = %d, Objs = %+v",
+	return fmt.Sprintf("UnknownCommandBodyDecodeError: Name = %s, TransactionID = %d, Objs = %+v",
 		e.Name,
 		e.TransactionID,
 		e.Objs,
