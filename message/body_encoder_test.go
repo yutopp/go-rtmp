@@ -51,6 +51,7 @@ func TestEncodeCmdMessageOnStatus(t *testing.T) {
 					Level:       "status",
 					Code:        NetConnectionConnectCodeSuccess,
 					Description: "Connection succeeded",
+					Data:        map[string]interface{}{},
 				},
 			},
 		},

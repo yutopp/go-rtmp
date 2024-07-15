@@ -83,7 +83,7 @@ func (t *NetConnectionConnectResult) FromArgs(args ...interface{}) error {
 		return errors.Wrapf(err, "failed to mapping arg[0] to NetConnectionConnectResultProperties")
 	}
 
-	information := args[1].(map[string]interface{})
+	information, ok := args[1].(map[string]interface{})
 	if !ok {
 		return errors.Errorf("expect map[string]interface{} at arg[1], but got %T", args[1])
 	}
