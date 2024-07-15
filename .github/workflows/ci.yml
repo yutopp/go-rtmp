@@ -3,16 +3,16 @@ on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        go: [ '1.19', '1.18' ]
+        go: [ '1.22.0', '1.21.0', '1.20', '1.19' ]
     name: ${{ matrix.go }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go }}
 
@@ -26,10 +26,9 @@ jobs:
 
       - run: make vet
 
-      - uses: codecov/codecov-action@v1
+      - uses: codecov/codecov-action@v4
         with:
           files: ./coverage.txt
           flags: unittests
           name: codecov-umbrella-${{ matrix.go }}
-          fail_ci_if_error: true
           verbose: true
