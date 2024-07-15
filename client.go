@@ -9,6 +9,7 @@ package rtmp
 
 import (
 	"context"
+	"crypto/tls"
 	"net"
 
 	"github.com/pkg/errors"
@@ -26,8 +27,11 @@ func WithContextDialer(dialFunc func(context.Context, string, string) (net.Conn,
 
 type DialOption func(*dialOptions)
 
-func Dial(protocol, addr string, config *ConnConfig, opts ...DialOption) (*ClientConn, error) {
+// DialContext dials a connection to the specified address.
+// The protocol must be "rtmp" or "rtmps".
+func DialContext(ctx context.Context, protocol, addr string, config *ConnConfig, opts ...DialOption) (*ClientConn, error) {
 	opt := &dialOptions{
+		// default dialer
 		dialFunc: func(ctx context.Context, network, addr string) (net.Conn, error) {
 			return (&net.Dialer{}).DialContext(ctx, network, addr)
 		},
@@ -36,12 +40,11 @@ func Dial(protocol, addr string, config *ConnConfig, opts ...DialOption) (*Clien
 		o(opt)
 	}
 
-	if protocol != "rtmp" {
-		return nil, errors.Errorf("Unknown protocol: %s", protocol)
+	if protocol != "rtmp" && protocol != "rtmps" {
+		return nil, errors.Errorf("unknown protocol: %s", protocol)
 	}
 
-	// TODO: support ctx
-	rwc, err := opt.dialFunc(context.Background(), "tcp", addr)
+	rwc, err := opt.dialFunc(ctx, "tcp", addr)
 	if err != nil {
 		return nil, err
 	}
@@ -49,17 +52,32 @@ func Dial(protocol, addr string, config *ConnConfig, opts ...DialOption) (*Clien
 	return newClientConnWithSetup(rwc, config)
 }
 
+// Dial dials a connection to the specified address.
+func Dial(protocol, addr string, config *ConnConfig, opts ...DialOption) (*ClientConn, error) {
+	return DialContext(context.Background(), protocol, addr, config, opts...)
+}
+
+// DialWithDialer dials a connection to the specified address with the specified dialer.
 func DialWithDialer(dialer *net.Dialer, protocol, addr string, config *ConnConfig) (*ClientConn, error) {
 	return Dial(protocol, addr, config, WithContextDialer(dialer.DialContext))
 }
 
-func makeValidAddr(addr string) (string, error) {
-	host, port, err := net.SplitHostPort(addr)
-	if err != nil {
-		if err, ok := err.(*net.AddrError); ok && err.Err == "missing port in address" {
-			return makeValidAddr(addr + ":1935") // Default RTMP port
-		}
-		return "", err
+// TLSDialContext dials a connection to the specified address with TLS.
+func TLSDialContext(ctx context.Context, protocol, addr string, config *ConnConfig, tlsConfig *tls.Config, opts ...DialOption) (*ClientConn, error) {
+	dialer := &tls.Dialer{
+		NetDialer: &net.Dialer{},
+		Config:    tlsConfig,
 	}
-	return net.JoinHostPort(host, port), nil
+	opts = append([]DialOption{WithContextDialer(dialer.DialContext)}, opts...)
+	return DialContext(ctx, protocol, addr, config, opts...)
+}
+
+// TLSDial dials a connection to the specified address with TLS.
+func TLSDial(protocol, addr string, config *ConnConfig, tlsConfig *tls.Config, opts ...DialOption) (*ClientConn, error) {
+	return TLSDialContext(context.Background(), protocol, addr, config, tlsConfig, opts...)
+}
+
+// DialWithTLSDialer dials a connection to the specified address with the specified TLS dialer.
+func DialWithTLSDialer(dialer *tls.Dialer, protocol, addr string, config *ConnConfig) (*ClientConn, error) {
+	return Dial(protocol, addr, config, WithContextDialer(dialer.DialContext))
 }
