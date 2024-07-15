@@ -8,6 +8,7 @@
 package rtmp
 
 import (
+	"crypto/tls"
 	"net"
 
 	"github.com/pkg/errors"
@@ -15,6 +16,13 @@ import (
 
 func Dial(protocol, addr string, config *ConnConfig) (*ClientConn, error) {
 	return DialWithDialer(&net.Dialer{}, protocol, addr, config)
+}
+
+func TLSDial(protocol, addr string, config *ConnConfig, tlsConfig *tls.Config) (*ClientConn, error) {
+	return DialWithTLSDialer(&tls.Dialer{
+		NetDialer: &net.Dialer{},
+		Config:    tlsConfig,
+	}, protocol, addr, config)
 }
 
 func DialWithDialer(dialer *net.Dialer, protocol, addr string, config *ConnConfig) (*ClientConn, error) {
@@ -30,13 +38,15 @@ func DialWithDialer(dialer *net.Dialer, protocol, addr string, config *ConnConfi
 	return newClientConnWithSetup(rwc, config)
 }
 
-func makeValidAddr(addr string) (string, error) {
-	host, port, err := net.SplitHostPort(addr)
-	if err != nil {
-		if err, ok := err.(*net.AddrError); ok && err.Err == "missing port in address" {
-			return makeValidAddr(addr + ":1935") // Default RTMP port
-		}
-		return "", err
+func DialWithTLSDialer(dialer *tls.Dialer, protocol, addr string, config *ConnConfig) (*ClientConn, error) {
+	if protocol != "rtmps" {
+		return nil, errors.Errorf("Unknown protocol: %s", protocol)
 	}
-	return net.JoinHostPort(host, port), nil
+
+	rwc, err := dialer.Dial("tcp", addr)
+	if err != nil {
+		return nil, err
+	}
+
+	return newClientConnWithSetup(rwc, config)
 }
