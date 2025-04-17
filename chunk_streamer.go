@@ -16,7 +16,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-
 	"github.com/yutopp/go-rtmp/message"
 )
 
@@ -465,23 +464,23 @@ func (sched *chunkStreamerWriterSched) Run() (err error) {
 		}
 	}()
 
+writerLoop:
 	for {
 		select {
 		case writer := <-sched.writers:
-			isCompleted, err := sched.streamer.writeChunk(writer)
-			if err != nil {
-				writer.lastErr = err
-				close(writer.doneCh)
-				return err
+			isCompleted := false
+			for !isCompleted {
+				isCompleted, err = sched.streamer.writeChunk(writer)
+				if err != nil {
+					writer.lastErr = err
+					close(writer.doneCh)
+					return err
+				}
+				if isCompleted {
+					close(writer.doneCh)
+					continue writerLoop
+				}
 			}
-			if isCompleted {
-				close(writer.doneCh)
-				continue
-			}
-
-			// Enqueue writer
-			sched.writers <- writer
-
 		case <-sched.stopCh:
 			return nil
 		}
