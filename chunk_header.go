@@ -79,14 +79,15 @@ func encodeChunkBasicHeader(w io.Writer, mh *chunkBasicHeader) error {
 }
 
 type chunkMessageHeader struct {
-	timestamp       uint32 // fmt = 0
-	timestampDelta  uint32 // fmt = 1 | 2
-	messageLength   uint32 // fmt = 0 | 1
-	messageTypeID   byte   // fmt = 0 | 1
-	messageStreamID uint32 // fmt = 0
+	timestamp             uint32                // fmt = 0
+	timestampDelta        uint32                // fmt = 1 | 2
+	messageLength         uint32                // fmt = 0 | 1
+	messageTypeID         byte                  // fmt = 0 | 1
+	messageStreamID       uint32                // fmt = 0
+	extendedTimestampMode ExtendedTimestampMode // fmt = 0 | 1 | 2
 }
 
-func decodeChunkMessageHeader(r io.Reader, fmt byte, buf []byte, mh *chunkMessageHeader) error {
+func decodeChunkMessageHeader(r io.Reader, fmt byte, buf []byte, mh *chunkMessageHeader, extendedTimestampMode ExtendedTimestampMode) error {
 	if buf == nil || len(buf) < 11 {
 		buf = make([]byte, 11)
 	}
@@ -104,8 +105,10 @@ func decodeChunkMessageHeader(r io.Reader, fmt byte, buf []byte, mh *chunkMessag
 		mh.messageLength = binary.BigEndian.Uint32(cache32bits)
 		mh.messageTypeID = buf[6]                                  // 8bits
 		mh.messageStreamID = binary.LittleEndian.Uint32(buf[7:11]) // 32bits
+		mh.extendedTimestampMode = ExtendedTimestampUnused
 
 		if mh.timestamp == 0xffffff {
+			mh.extendedTimestampMode = ExtendedTimestampUsed
 			_, err := io.ReadAtLeast(r, cache32bits, 4)
 			if err != nil {
 				return err
@@ -123,8 +126,10 @@ func decodeChunkMessageHeader(r io.Reader, fmt byte, buf []byte, mh *chunkMessag
 		copy(cache32bits[1:], buf[3:6]) // 24bits BE
 		mh.messageLength = binary.BigEndian.Uint32(cache32bits)
 		mh.messageTypeID = buf[6] // 8bits
+		mh.extendedTimestampMode = ExtendedTimestampUnused
 
 		if mh.timestampDelta == 0xffffff {
+			mh.extendedTimestampMode = ExtendedTimestampDeltaUsed
 			_, err := io.ReadAtLeast(r, cache32bits, 4)
 			if err != nil {
 				return err
@@ -139,8 +144,10 @@ func decodeChunkMessageHeader(r io.Reader, fmt byte, buf []byte, mh *chunkMessag
 
 		copy(cache32bits[1:], buf[0:3]) // 24bits BE
 		mh.timestampDelta = binary.BigEndian.Uint32(cache32bits)
+		mh.extendedTimestampMode = ExtendedTimestampUnused
 
 		if mh.timestampDelta == 0xffffff {
+			mh.extendedTimestampMode = ExtendedTimestampDeltaUsed
 			_, err := io.ReadAtLeast(r, cache32bits, 4)
 			if err != nil {
 				return err
@@ -149,7 +156,22 @@ func decodeChunkMessageHeader(r io.Reader, fmt byte, buf []byte, mh *chunkMessag
 		}
 
 	case 3:
-		// DO NOTHING
+		// DO NOTHING unless an extended timestamp was used in preceding messages
+		switch extendedTimestampMode {
+		case ExtendedTimestampUsed:
+			_, err := io.ReadAtLeast(r, cache32bits, 4)
+			if err != nil {
+				return err
+			}
+			mh.timestamp = binary.BigEndian.Uint32(cache32bits)
+
+		case ExtendedTimestampDeltaUsed:
+			_, err := io.ReadAtLeast(r, cache32bits, 4)
+			if err != nil {
+				return err
+			}
+			mh.timestampDelta = binary.BigEndian.Uint32(cache32bits)
+		}
 
 	default:
 		panic("Unexpected fmt")

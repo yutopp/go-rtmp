@@ -10,6 +10,7 @@ package rtmp
 import (
 	"io"
 	"net"
+	"strings"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -116,6 +117,9 @@ func (srv *Server) handleConn(conn net.Conn) {
 	if err := sc.Serve(); err != nil {
 		if err == io.EOF {
 			c.logger.Infof("Server closed")
+			return
+		} else if strings.HasPrefix(err.Error(), "Failed to handshake") {
+			c.logger.Debugf("Server handshake failed")
 			return
 		}
 		c.logger.Errorf("Server closed by error: Err = %+v", err)

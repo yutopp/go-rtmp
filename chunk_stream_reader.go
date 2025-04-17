@@ -11,6 +11,14 @@ import (
 	"bytes"
 )
 
+type ExtendedTimestampMode byte
+
+const (
+	ExtendedTimestampUnused    ExtendedTimestampMode = 0
+	ExtendedTimestampUsed      ExtendedTimestampMode = 1
+	ExtendedTimestampDeltaUsed ExtendedTimestampMode = 2
+)
+
 type ChunkStreamReader struct {
 	basicHeader   chunkBasicHeader
 	messageHeader chunkMessageHeader
@@ -20,6 +28,8 @@ type ChunkStreamReader struct {
 	messageLength   uint32 // max, 24bits
 	messageTypeID   byte
 	messageStreamID uint32
+
+	extendedTimestampMode ExtendedTimestampMode
 
 	buf       bytes.Buffer
 	completed bool
