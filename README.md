@@ -21,7 +21,7 @@ See also [server_demo](https://github.com/yutopp/go-rtmp/tree/master/example/ser
 ## Documentation
 
 - [GoDoc](https://pkg.go.dev/github.com/yutopp/go-rtmp)
-- [REAL-TIME MESSAGING PROTOCOL (RTMP) SPECIFICATION](https://www.adobe.com/devnet/rtmp.html)
+- [REAL-TIME MESSAGING PROTOCOL (RTMP) SPECIFICATION](https://veovera.github.io/enhanced-rtmp/docs/legacy/rtmp-v1-0-spec.pdf)
 
 
 ## NOTES
